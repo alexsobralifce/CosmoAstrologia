@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Onboarding, OnboardingData } from './components/onboarding';
 import { AdvancedDashboard } from './components/advanced-dashboard';
 import { InterpretationPage } from './components/interpretation-page';
+import { AuthPortal, AuthUserData } from './components/auth-portal';
 import { AstroButton } from './components/astro-button';
 import { zodiacSigns } from './components/zodiac-icons';
 import { planets } from './components/planet-icons';
@@ -10,13 +11,38 @@ import { AstroCard } from './components/astro-card';
 import { AstroInput } from './components/astro-input';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
+import { Toaster } from './components/ui/sonner';
 
-type AppView = 'landing' | 'onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
+type AppView = 'landing' | 'auth' | 'onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<AppView>('landing');
   const [userData, setUserData] = useState<OnboardingData | null>(null);
+  const [authData, setAuthData] = useState<AuthUserData | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
+
+  const handleAuthSuccess = (data: AuthUserData) => {
+    setAuthData(data);
+    if (data.hasCompletedOnboarding) {
+      // Usuário já tem mapa, vai direto pro dashboard
+      // Simulando userData completo
+      setUserData({
+        name: data.name || 'Usuário',
+        birthDate: new Date(1990, 0, 15),
+        birthTime: '14:30',
+        birthPlace: 'São Paulo, SP'
+      });
+      setCurrentView('dashboard');
+    } else {
+      // Precisa completar onboarding
+      setCurrentView('onboarding');
+    }
+  };
+
+  const handleNeedsBirthData = (email: string, name?: string) => {
+    setAuthData({ email, name, hasCompletedOnboarding: false });
+    setCurrentView('onboarding');
+  };
 
   const handleOnboardingComplete = (data: OnboardingData) => {
     setUserData(data);
@@ -38,11 +64,15 @@ export default function App() {
         currentView={currentView}
         setCurrentView={setCurrentView}
         userData={userData}
+        authData={authData}
         selectedTopic={selectedTopic}
+        handleAuthSuccess={handleAuthSuccess}
+        handleNeedsBirthData={handleNeedsBirthData}
         handleOnboardingComplete={handleOnboardingComplete}
         handleViewInterpretation={handleViewInterpretation}
         handleBackToDashboard={handleBackToDashboard}
       />
+      <Toaster richColors position="top-center" />
     </ThemeProvider>
   );
 }
@@ -51,7 +81,10 @@ interface AppContentProps {
   currentView: AppView;
   setCurrentView: (view: AppView) => void;
   userData: OnboardingData | null;
+  authData: AuthUserData | null;
   selectedTopic: string;
+  handleAuthSuccess: (data: AuthUserData) => void;
+  handleNeedsBirthData: (email: string, name?: string) => void;
   handleOnboardingComplete: (data: OnboardingData) => void;
   handleViewInterpretation: (topicId: string) => void;
   handleBackToDashboard: () => void;
@@ -61,7 +94,10 @@ function AppContent({
   currentView,
   setCurrentView,
   userData,
+  authData,
   selectedTopic,
+  handleAuthSuccess,
+  handleNeedsBirthData,
   handleOnboardingComplete,
   handleViewInterpretation,
   handleBackToDashboard,
@@ -112,7 +148,7 @@ function AppContent({
               <AstroButton
                 variant="primary"
                 size="lg"
-                onClick={() => setCurrentView('onboarding')}
+                onClick={() => setCurrentView('auth')}
               >
                 Calcular Meu Mapa Astral
               </AstroButton>
@@ -155,6 +191,21 @@ function AppContent({
     );
   }
 
+  // Auth Portal
+  if (currentView === 'auth') {
+    return (
+      <>
+        <div className="absolute top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
+        <AuthPortal 
+          onAuthSuccess={handleAuthSuccess}
+          onNeedsBirthData={handleNeedsBirthData}
+        />
+      </>
+    );
+  }
+
   // Onboarding Flow
   if (currentView === 'onboarding') {
     return (
@@ -162,7 +213,11 @@ function AppContent({
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <Onboarding onComplete={handleOnboardingComplete} />
+        <Onboarding 
+          onComplete={handleOnboardingComplete}
+          initialEmail={authData?.email}
+          initialName={authData?.name}
+        />
       </>
     );
   }

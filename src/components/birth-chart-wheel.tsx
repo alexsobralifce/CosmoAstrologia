@@ -10,22 +10,45 @@ interface PlanetPosition {
   icon: any;
 }
 
-export const BirthChartWheel = () => {
+interface BirthChartWheelProps {
+  chartData?: {
+    planets: Array<{
+      planet: string;
+      sign: string;
+      degree: number;
+      house: number;
+    }>;
+  };
+}
+
+export const BirthChartWheel = ({ chartData }: BirthChartWheelProps) => {
   const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
 
-  // Mock data - Em produção, isso viria de um cálculo astrológico real
-  const planetPositions: PlanetPosition[] = [
-    { planet: 'Sol', sign: 'Leão', degree: 15, house: 5, icon: planets[0].icon },
-    { planet: 'Lua', sign: 'Touro', degree: 22, house: 2, icon: planets[1].icon },
-    { planet: 'Mercúrio', sign: 'Câncer', degree: 8, house: 4, icon: planets[2].icon },
-    { planet: 'Vênus', sign: 'Gêmeos', degree: 28, house: 3, icon: planets[3].icon },
-    { planet: 'Marte', sign: 'Áries', degree: 12, house: 1, icon: planets[4].icon },
-    { planet: 'Júpiter', sign: 'Sagitário', degree: 5, house: 9, icon: planets[5].icon },
-    { planet: 'Saturno', sign: 'Capricórnio', degree: 18, house: 10, icon: planets[6].icon },
-    { planet: 'Urano', sign: 'Aquário', degree: 25, house: 11, icon: planets[7].icon },
-    { planet: 'Netuno', sign: 'Peixes', degree: 3, house: 12, icon: planets[8].icon },
-    { planet: 'Plutão', sign: 'Escorpião', degree: 20, house: 8, icon: planets[9].icon },
-  ];
+  const getPlanetIcon = (planetName: string) => {
+    return planets.find(p => p.name === planetName)?.icon || planets[0].icon;
+  };
+
+  // Use chart data if provided, otherwise use mock data
+  const planetPositions: PlanetPosition[] = chartData
+    ? chartData.planets.map((p) => ({
+        planet: p.planet,
+        sign: p.sign,
+        degree: p.degree,
+        house: p.house,
+        icon: getPlanetIcon(p.planet),
+      }))
+    : [
+        { planet: 'Sol', sign: 'Leão', degree: 15, house: 5, icon: planets[0].icon },
+        { planet: 'Lua', sign: 'Touro', degree: 22, house: 2, icon: planets[1].icon },
+        { planet: 'Mercúrio', sign: 'Câncer', degree: 8, house: 4, icon: planets[2].icon },
+        { planet: 'Vênus', sign: 'Gêmeos', degree: 28, house: 3, icon: planets[3].icon },
+        { planet: 'Marte', sign: 'Áries', degree: 12, house: 1, icon: planets[4].icon },
+        { planet: 'Júpiter', sign: 'Sagitário', degree: 5, house: 9, icon: planets[5].icon },
+        { planet: 'Saturno', sign: 'Capricórnio', degree: 18, house: 10, icon: planets[6].icon },
+        { planet: 'Urano', sign: 'Aquário', degree: 25, house: 11, icon: planets[7].icon },
+        { planet: 'Netuno', sign: 'Peixes', degree: 3, house: 12, icon: planets[8].icon },
+        { planet: 'Plutão', sign: 'Escorpião', degree: 20, house: 8, icon: planets[9].icon },
+      ];
 
   return (
     <div className="relative w-full aspect-square max-w-2xl mx-auto">

@@ -1,15 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AstroButton } from './astro-button';
 import { AstroInput } from './astro-input';
 import { AstroCard } from './astro-card';
-import { Calendar } from './ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { DatePicker } from './date-picker';
+import { LocationAutocomplete } from './location-autocomplete';
 import { UIIcons } from './ui-icons';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 interface OnboardingProps {
   onComplete: (data: OnboardingData) => void;
+  onLogin?: () => void;
 }
 
 export interface OnboardingData {
@@ -19,13 +18,22 @@ export interface OnboardingData {
   birthPlace: string;
 }
 
-export const Onboarding = ({ onComplete }: OnboardingProps) => {
-  const [step, setStep] = useState(1);
+export const Onboarding = ({ onComplete, onLogin }: OnboardingProps) => {
+  // Check if there's a saved step from OAuth callback
+  const savedStep = sessionStorage.getItem('onboarding_step');
+  const [step, setStep] = useState(savedStep ? parseInt(savedStep) : 1);
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState<Date>();
   const [birthTime, setBirthTime] = useState('');
   const [birthPlace, setBirthPlace] = useState('');
   const [showTimeHelp, setShowTimeHelp] = useState(false);
+
+  // Clear saved step after loading
+  useEffect(() => {
+    if (savedStep) {
+      sessionStorage.removeItem('onboarding_step');
+    }
+  }, [savedStep]);
 
   const handleNext = () => {
     if (step < 5) {
@@ -39,7 +47,7 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (name && birthDate && birthTime && birthPlace) {
       onComplete({ name, birthDate, birthTime, birthPlace });
     }
@@ -55,6 +63,9 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
         return birthTime.length > 0;
       case 4:
         return birthPlace.trim().length > 0;
+      case 5:
+        // Step 5 is optional account creation - always valid
+        return true;
       default:
         return true;
     }
@@ -104,36 +115,18 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
                 <p className="text-secondary">Escolha a data exata do seu nascimento.</p>
               </div>
               <div className="space-y-4">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="w-full px-4 py-3 rounded-lg bg-input-background border border-[var(--input-border)] text-foreground transition-all duration-200 hover:border-[var(--input-border-active)] focus:outline-none focus:border-[var(--input-border-active)] focus:ring-2 focus:ring-accent/20 text-left flex items-center justify-between">
-                      {birthDate ? (
-                        format(birthDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                      ) : (
-                        <span className="text-secondary">Selecione a data</span>
-                      )}
-                      <UIIcons.Calendar className="text-accent" size={20} />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-card border border-border backdrop-blur-md">
-                    <Calendar
-                      mode="single"
-                      selected={birthDate}
-                      onSelect={setBirthDate}
-                      initialFocus
-                      disabled={(date) => date > new Date()}
-                      captionLayout="dropdown-buttons"
-                      fromYear={1900}
-                      toYear={new Date().getFullYear()}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePicker
+                  value={birthDate}
+                  onChange={setBirthDate}
+                  minYear={1900}
+                  maxYear={new Date().getFullYear()}
+                />
               </div>
             </div>
           )}
 
-          {/* Step 3: Birth Time */}
-          {step === 3 && (
+          {/* Step 4: Birth Time */}
+          {step === 4 && (
             <div className="space-y-6 animate-fadeIn">
               <div className="space-y-2">
                 <h1 className="text-accent">E a hora em que você nasceu?</h1>
@@ -166,39 +159,14 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
             </div>
           )}
 
-          {/* Step 4: Birth Place */}
-          {step === 4 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="space-y-2">
-                <h1 className="text-accent">Onde você nasceu?</h1>
-                <p className="text-secondary">Digite a cidade e o estado.</p>
-              </div>
-              <div className="space-y-4">
-                <AstroInput
-                  label="Local de Nascimento"
-                  placeholder="Ex: São Paulo, SP"
-                  value={birthPlace}
-                  onChange={(e) => setBirthPlace(e.target.value)}
-                  autoFocus
-                />
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
-                  <UIIcons.MapPin className="text-accent mt-0.5 flex-shrink-0" size={16} />
-                  <p className="text-sm text-secondary">
-                    Precisamos do local exato para calcular as posições planetárias corretas
-                    baseadas na latitude e longitude.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Login/Finalization */}
+          {/* Step 5: Optional Account Creation */}
           {step === 5 && (
             <div className="space-y-6 animate-fadeIn">
               <div className="space-y-2">
-                <h1 className="text-accent">Seu mapa está quase pronto!</h1>
+                <h1 className="text-accent">Salve seu Mapa Astral</h1>
                 <p className="text-secondary">
-                  Crie sua conta para salvar e acessar suas interpretações.
+                  Crie uma conta gratuita para salvar seu mapa e acessá-lo sempre que quiser. 
+                  Você também pode pular e ver seu mapa agora mesmo!
                 </p>
               </div>
 
@@ -206,7 +174,20 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
                 <AstroButton
                   variant="google"
                   className="w-full gap-3"
-                  onClick={handleComplete}
+                  onClick={() => {
+                    // Save birth data for after authentication
+                    if (name && birthDate && birthTime && birthPlace) {
+                      sessionStorage.setItem('birth_data_to_save', JSON.stringify({
+                        name,
+                        birthDate: birthDate.toISOString(),
+                        birthTime,
+                        birthPlace
+                      }));
+                    }
+                    // Trigger Google OAuth
+                    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                    window.location.href = `${API_BASE_URL}/api/auth/login`;
+                  }}
                 >
                   <svg width="20" height="20" viewBox="0 0 18 18">
                     <path
@@ -226,7 +207,7 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
                       d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"
                     />
                   </svg>
-                  Entrar com Google
+                  Criar Conta com Google
                 </AstroButton>
 
                 <div className="relative">
@@ -238,32 +219,71 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <AstroInput type="email" placeholder="seu@email.com" label="Email" />
-                  <AstroInput type="password" placeholder="••••••••" label="Senha" />
-                  <AstroButton variant="primary" className="w-full" onClick={handleComplete}>
-                    Criar Conta
+                {onLogin && (
+                  <AstroButton 
+                    variant="secondary" 
+                    className="w-full" 
+                    onClick={onLogin}
+                  >
+                    <UIIcons.User size={16} />
+                    Já tenho conta - Fazer Login
                   </AstroButton>
+                )}
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-border"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-card text-secondary">Ou</span>
+                  </div>
                 </div>
 
-                <p className="text-center text-sm text-secondary">
-                  Já tem uma conta?{' '}
-                  <button className="text-accent hover:text-accent/80 transition-colors">
-                    Entrar
-                  </button>
-                </p>
+                <AstroButton 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleComplete}
+                >
+                  Ver Mapa Agora (sem criar conta)
+                </AstroButton>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Birth Place */}
+          {step === 4 && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className="space-y-2">
+                <h1 className="text-accent">Onde você nasceu?</h1>
+                <p className="text-secondary">Digite a cidade e selecione da lista.</p>
+              </div>
+              <div className="space-y-4">
+                <LocationAutocomplete
+                  label="Local de Nascimento"
+                  placeholder="Ex: São Paulo, SP"
+                  value={birthPlace}
+                  onChange={setBirthPlace}
+                  autoFocus
+                />
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
+                  <UIIcons.MapPin className="text-accent mt-0.5 flex-shrink-0" size={16} />
+                  <p className="text-sm text-secondary">
+                    Precisamos do local exato para calcular as posições planetárias corretas
+                    baseadas na latitude e longitude.
+                  </p>
+                </div>
               </div>
             </div>
           )}
 
           {/* Navigation Buttons */}
           <div className="flex gap-4 pt-4">
-            {step > 1 && (
+            {step > 1 && step < 5 && (
               <AstroButton variant="secondary" onClick={handleBack} className="flex-1">
                 Voltar
               </AstroButton>
             )}
-            {step < 5 && (
+            {step < 4 ? (
               <AstroButton
                 variant="primary"
                 onClick={handleNext}
@@ -272,7 +292,17 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
               >
                 Avançar
               </AstroButton>
-            )}
+            ) : step === 4 ? (
+              <AstroButton
+                variant="primary"
+                onClick={handleNext}
+                disabled={!isStepValid()}
+                className="flex-1"
+              >
+                Continuar
+              </AstroButton>
+            ) : null}
+            {/* Step 5 buttons are handled inside the step component */}
           </div>
         </AstroCard>
       </div>

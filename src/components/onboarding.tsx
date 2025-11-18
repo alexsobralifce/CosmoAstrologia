@@ -10,6 +10,8 @@ import { ptBR } from 'date-fns/locale';
 
 interface OnboardingProps {
   onComplete: (data: OnboardingData) => void;
+  initialEmail?: string;
+  initialName?: string;
 }
 
 export interface OnboardingData {
@@ -19,9 +21,9 @@ export interface OnboardingData {
   birthPlace: string;
 }
 
-export const Onboarding = ({ onComplete }: OnboardingProps) => {
+export const Onboarding = ({ onComplete, initialEmail, initialName }: OnboardingProps) => {
   const [step, setStep] = useState(1);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialName || '');
   const [birthDate, setBirthDate] = useState<Date>();
   const [birthTime, setBirthTime] = useState('');
   const [birthPlace, setBirthPlace] = useState('');
@@ -83,16 +85,31 @@ export const Onboarding = ({ onComplete }: OnboardingProps) => {
           {step === 1 && (
             <div className="space-y-6 animate-fadeIn">
               <div className="space-y-2">
-                <h1 className="text-accent">Vamos criar seu Mapa Astral</h1>
-                <p className="text-secondary">Para começar, precisamos do seu nome completo.</p>
+                <h1 className="text-accent">
+                  {initialName ? `Alinhando os Astros para ${initialName.split(' ')[0]}` : 'Vamos criar seu Mapa Astral'}
+                </h1>
+                <p className="text-secondary">
+                  {initialName 
+                    ? 'Confirme seu nome ou edite se necessário.' 
+                    : 'Para começar, precisamos do seu nome completo.'
+                  }
+                </p>
               </div>
               <AstroInput
                 label="Nome Completo"
                 placeholder="Digite seu nome"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                autoFocus
+                autoFocus={!initialName}
               />
+              {initialEmail && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
+                  <UIIcons.CheckCircle className="text-accent flex-shrink-0" size={16} />
+                  <p className="text-sm text-secondary">
+                    Conta conectada: <span className="text-foreground font-medium">{initialEmail}</span>
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

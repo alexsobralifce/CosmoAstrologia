@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Onboarding, OnboardingData } from './components/onboarding';
 import { AdvancedDashboard } from './components/advanced-dashboard';
-import { PreChartDashboard } from './components/pre-chart-dashboard';
 import { InterpretationPage } from './components/interpretation-page';
 import { AuthPortal, AuthUserData } from './components/auth-portal';
 import { AstroButton } from './components/astro-button';
@@ -10,19 +9,40 @@ import { planets } from './components/planet-icons';
 import { UIIcons } from './components/ui-icons';
 import { AstroCard } from './components/astro-card';
 import { AstroInput } from './components/astro-input';
-import { DatePicker } from './components/date-picker';
-import { LocationAutocomplete } from './components/location-autocomplete';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
+import { Toaster } from './components/ui/sonner';
 
 type AppView = 'landing' | 'auth' | 'onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
 
 export default function App() {
-  // Always start on landing page - never auto-redirect to onboarding
   const [currentView, setCurrentView] = useState<AppView>('landing');
   const [userData, setUserData] = useState<OnboardingData | null>(null);
   const [authData, setAuthData] = useState<AuthUserData | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
+
+  const handleAuthSuccess = (data: AuthUserData) => {
+    setAuthData(data);
+    if (data.hasCompletedOnboarding) {
+      // Usuário já tem mapa, vai direto pro dashboard
+      // Simulando userData completo
+      setUserData({
+        name: data.name || 'Usuário',
+        birthDate: new Date(1990, 0, 15),
+        birthTime: '14:30',
+        birthPlace: 'São Paulo, SP'
+      });
+      setCurrentView('dashboard');
+    } else {
+      // Precisa completar onboarding
+      setCurrentView('onboarding');
+    }
+  };
+
+  const handleNeedsBirthData = (email: string, name?: string) => {
+    setAuthData({ email, name, hasCompletedOnboarding: false });
+    setCurrentView('onboarding');
+  };
 
   const handleOnboardingComplete = (data: OnboardingData) => {
     setUserData(data);
@@ -38,22 +58,6 @@ export default function App() {
     setCurrentView('dashboard');
   };
 
-  // Show loading screen while checking auth
-  if (loading) {
-    return (
-      <ThemeProvider>
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background to-[#1a1f4a]">
-          <div className="text-center space-y-4">
-            <div className="animate-spin">
-              <UIIcons.Star size={48} className="text-accent" />
-            </div>
-            <p className="text-secondary">Carregando...</p>
-          </div>
-        </div>
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ThemeProvider>
       <AppContent
@@ -67,296 +71,9 @@ export default function App() {
         handleOnboardingComplete={handleOnboardingComplete}
         handleViewInterpretation={handleViewInterpretation}
         handleBackToDashboard={handleBackToDashboard}
-        user={user}
-        login={login}
-        logout={logout}
-        isAuthenticated={isAuthenticated}
-        hasBirthData={hasBirthData}
       />
       <Toaster richColors position="top-center" />
     </ThemeProvider>
-  );
-}
-
-interface LandingPageFormProps {
-  onComplete: (data: OnboardingData) => void;
-  onLogin: () => void;
-  isAuthenticated: boolean;
-  logout: () => Promise<void>;
-  setCurrentView: (view: AppView) => void;
-  saveBirthData?: (data: OnboardingData) => Promise<void>;
-}
-
-function LandingPageForm({
-  onComplete,
-  onLogin,
-  isAuthenticated,
-  logout,
-  setCurrentView,
-  saveBirthData
-}: LandingPageFormProps) {
-  const [step, setStep] = useState(1);
-  const [birthPlace, setBirthPlace] = useState('');
-  const [birthDate, setBirthDate] = useState<Date>();
-  const [birthTime, setBirthTime] = useState('');
-  const [dontKnowTime, setDontKnowTime] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-
-  const handleSubmit = () => {
-    if (!birthPlace || !birthDate) {
-      return;
-    }
-    // Go to step 2 to collect name and email
-    setStep(2);
-  };
-
-  const handleFinalSubmit = async () => {
-    if (!name || !email || !birthPlace || !birthDate) {
-      return;
-    }
-
-    // Use default time if user doesn't know
-    const time = dontKnowTime ? '12:00' : birthTime || '12:00';
-    
-    try {
-      // Register user in database
-      const { apiService } = await import('./services/api');
-      const response = await apiService.registerUser(
-        name,
-        email,
-        {
-          name,
-          birth_date: birthDate.toISOString().split('T')[0],
-          birth_time: time,
-          birth_place: birthPlace
-        }
-      );
-      
-      // Complete with name and email
-      onComplete({
-        name,
-        birthDate: birthDate,
-        birthTime: time,
-        birthPlace,
-      });
-    } catch (error) {
-      console.error('Error registering user:', error);
-      // Still complete even if registration fails (user can see map)
-      onComplete({
-        name,
-        birthDate: birthDate,
-        birthTime: time,
-        birthPlace,
-      });
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    // Save birth data for after authentication
-    if (birthPlace && birthDate) {
-      const time = dontKnowTime ? '12:00' : birthTime || '12:00';
-      sessionStorage.setItem('birth_data_to_save', JSON.stringify({
-        name: 'Usuário',
-        birthDate: birthDate.toISOString(),
-        birthTime: time,
-        birthPlace
-      }));
-    }
-    // Trigger Google OAuth
-    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-    window.location.href = `${API_BASE_URL}/api/auth/login`;
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-background to-[#1a1f4a] dark:to-[#1a1f4a] light:to-[#F0E6D2] relative overflow-hidden">
-      {/* Theme Toggle in Corner */}
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
-        <ThemeToggle />
-        {isAuthenticated ? (
-          <AstroButton
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              await logout();
-              window.location.reload();
-            }}
-            className="text-xs"
-          >
-            <UIIcons.LogOut size={14} />
-            Sair
-          </AstroButton>
-        ) : null}
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        <AstroCard className="p-8 space-y-6">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
-              <UIIcons.Star size={24} className="text-accent" />
-            </div>
-            <h1 className="text-2xl font-bold text-accent">Astrolink</h1>
-          </div>
-
-          {/* Step 1: Birth Data */}
-          {step === 1 && (
-            <>
-              {/* Form Fields */}
-              <div className="space-y-4">
-                <LocationAutocomplete
-                  label=""
-                  placeholder="Em qual cidade você nasceu?"
-                  value={birthPlace}
-                  onChange={setBirthPlace}
-                />
-
-                <DatePicker
-                  value={birthDate}
-                  onChange={setBirthDate}
-                  minYear={1900}
-                  maxYear={new Date().getFullYear()}
-                  placeholder="Qual sua data de nascimento?"
-                />
-
-                <div className="relative">
-                  <AstroInput
-                    type="time"
-                    placeholder="Qual seu horário de nascimento?"
-                    value={birthTime}
-                    onChange={(e) => setBirthTime(e.target.value)}
-                    disabled={dontKnowTime}
-                    className="pr-10"
-                  />
-                  <UIIcons.Clock className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary" size={20} />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="dontKnowTime"
-                    checked={dontKnowTime}
-                    onChange={(e) => setDontKnowTime(e.target.checked)}
-                    className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
-                  />
-                  <label htmlFor="dontKnowTime" className="text-sm text-secondary cursor-pointer">
-                    Não sei meu horário de nascimento / Informar depois?
-                  </label>
-                </div>
-              </div>
-
-              {/* Primary Button */}
-              <AstroButton
-                variant="primary"
-                className="w-full"
-                onClick={handleSubmit}
-                disabled={!birthPlace || !birthDate}
-              >
-                Ver mapa astral completo
-              </AstroButton>
-
-              {/* Separator */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-secondary">ou</span>
-                </div>
-              </div>
-
-              {/* Social Login Buttons */}
-              <div className="space-y-3">
-                <AstroButton
-                  variant="google"
-                  className="w-full gap-3"
-                  onClick={handleGoogleLogin}
-                >
-                  <svg width="20" height="20" viewBox="0 0 18 18">
-                    <path
-                      fill="#4285F4"
-                      d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"
-                    />
-                    <path
-                      fill="#EA4335"
-                      d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"
-                    />
-                  </svg>
-                  Login com Google
-                </AstroButton>
-              </div>
-
-              {/* Login Link */}
-              <div className="text-center pt-2">
-                <span className="text-sm text-secondary">Já tem um cadastro? </span>
-                <button
-                  onClick={onLogin}
-                  className="text-sm text-accent hover:text-accent/80 underline"
-                >
-                  Faça login
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Step 2: Name and Email */}
-          {step === 2 && (
-            <>
-              <div className="space-y-2 mb-4">
-                <h2 className="text-accent text-xl">Complete seu cadastro</h2>
-                <p className="text-secondary text-sm">
-                  Informe seu nome e email para salvar seu mapa astral
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <AstroInput
-                  label="Nome completo"
-                  placeholder="Digite seu nome"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoFocus
-                />
-
-                <AstroInput
-                  type="email"
-                  label="Email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <AstroButton
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => setStep(1)}
-                >
-                  Voltar
-                </AstroButton>
-                <AstroButton
-                  variant="primary"
-                  className="flex-1"
-                  onClick={handleFinalSubmit}
-                  disabled={!name || !email}
-                >
-                  Avançar
-                </AstroButton>
-              </div>
-            </>
-          )}
-        </AstroCard>
-      </div>
-    </div>
   );
 }
 
@@ -371,11 +88,6 @@ interface AppContentProps {
   handleOnboardingComplete: (data: OnboardingData) => void;
   handleViewInterpretation: (topicId: string) => void;
   handleBackToDashboard: () => void;
-  user: UserWithBirthData | null;
-  login: () => void;
-  logout: () => Promise<void>;
-  isAuthenticated: boolean;
-  hasBirthData: boolean;
 }
 
 function AppContent({
@@ -389,13 +101,8 @@ function AppContent({
   handleOnboardingComplete,
   handleViewInterpretation,
   handleBackToDashboard,
-  user,
-  login,
-  logout,
-  isAuthenticated,
-  hasBirthData,
 }: AppContentProps) {
-  // Landing Page with Astrolink-style form
+  // Landing Page
   if (currentView === 'landing') {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-background to-[#1a1f4a] dark:to-[#1a1f4a] light:to-[#F0E6D2] relative overflow-hidden">
@@ -441,7 +148,7 @@ function AppContent({
               <AstroButton
                 variant="primary"
                 size="lg"
-                onClick={() => setCurrentView('onboarding')}
+                onClick={() => setCurrentView('auth')}
               >
                 Calcular Meu Mapa Astral
               </AstroButton>
@@ -506,76 +213,20 @@ function AppContent({
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <Onboarding onComplete={handleOnboardingComplete} />
+        <Onboarding 
+          onComplete={handleOnboardingComplete}
+          initialEmail={authData?.email}
+          initialName={authData?.name}
+        />
       </>
     );
   }
 
   // Dashboard
-  if (currentView === 'dashboard') {
-    // If user is authenticated with birth data but hasn't generated chart yet
-    // Show PreChartDashboard (even if userData is not set yet, we'll load it)
-    if (isAuthenticated && user && hasBirthData && !shouldGenerateChart) {
-      return (
-        <PreChartDashboard
-          user={user}
-          onGenerateChart={() => {
-            setShouldGenerateChart(true);
-            // Convert birth data to userData format for AdvancedDashboard
-            if (user.birthData) {
-              setUserData({
-                name: user.birthData.name,
-                birthDate: new Date(user.birthData.birth_date),
-                birthTime: user.birthData.birth_time,
-                birthPlace: user.birthData.birth_place,
-              });
-            }
-          }}
-          onUpdateUser={async (name: string) => {
-            // Update user name logic here
-            console.log('Update user name:', name);
-          }}
-          onLogout={async () => {
-            await logout();
-            setShouldGenerateChart(false);
-            setUserData(null);
-            setCurrentView('landing');
-          }}
-        />
-      );
-    }
-    
-    // If we have userData (either loaded from DB or from onboarding), show AdvancedDashboard
-    // This works for both authenticated and non-authenticated users
-    if (userData) {
-      return (
-        <AdvancedDashboard userData={userData} onViewInterpretation={handleViewInterpretation} />
-      );
-    }
-    
-    // If user is authenticated but no birth data, show onboarding to collect birth data
-    if (isAuthenticated && !hasBirthData) {
-      return (
-        <>
-          <div className="absolute top-4 right-4 z-50">
-            <ThemeToggle />
-          </div>
-          <Onboarding onComplete={handleOnboardingComplete} onLogin={login} />
-        </>
-      );
-    }
-    
-    // If not authenticated and no userData, show onboarding
-    if (!isAuthenticated && !userData) {
-      return (
-        <>
-          <div className="absolute top-4 right-4 z-50">
-            <ThemeToggle />
-          </div>
-          <Onboarding onComplete={handleOnboardingComplete} onLogin={login} />
-        </>
-      );
-    }
+  if (currentView === 'dashboard' && userData) {
+    return (
+      <AdvancedDashboard userData={userData} onViewInterpretation={handleViewInterpretation} />
+    );
   }
 
   // Interpretation Page

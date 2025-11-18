@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AstroCard } from './astro-card';
 import { AstroButton } from './astro-button';
 import { BirthChartWheel } from './birth-chart-wheel';
@@ -12,10 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Badge } from './ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { ThemeToggle } from './theme-toggle';
 import { ChartRulerSection } from './chart-ruler-section';
 import { DailyAdviceSection } from './daily-advice-section';
 import { FutureTransitsSection } from './future-transits-section';
+import { UserProfileModal } from './user-profile-modal';
+import { useChart } from '../hooks/useChart';
+import { useAuth } from '../hooks/useAuth';
+import { apiService } from '../services/api';
 
 interface AdvancedDashboardProps {
   userData: OnboardingData;
@@ -57,287 +63,237 @@ interface AspectData {
 export const AdvancedDashboard = ({ userData, onViewInterpretation }: AdvancedDashboardProps) => {
   const [selectedHouse, setSelectedHouse] = useState<HouseData | null>(null);
   const [aspectFilter, setAspectFilter] = useState<'all' | 'harmonic' | 'dynamic' | 'neutral'>('all');
+  const [planetaryData, setPlanetaryData] = useState<PlanetData[]>([]);
+  const [aspectsData, setAspectsData] = useState<AspectData[]>([]);
+  const [loadingInterpretations, setLoadingInterpretations] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
-  // Mock astrological data
-  const bigThree = {
-    sun: { sign: 'Leão', icon: zodiacSigns[4].icon },
-    moon: { sign: 'Touro', icon: zodiacSigns[1].icon },
-    ascendant: { sign: 'Gêmeos', icon: zodiacSigns[2].icon },
+  const { chart, loading, error, dailyTransits, futureTransits } = useChart(userData);
+  const { user, updateUser, logout } = useAuth();
+
+  // Get icon helpers
+  const getSignIcon = (signName: string) => {
+    return zodiacSigns.find(z => z.name === signName)?.icon || zodiacSigns[0].icon;
   };
 
-  const elementsData = [
-    { name: 'Fogo', percentage: 40, color: '#E8B95A' },
-    { name: 'Terra', percentage: 30, color: '#8B7355' },
-    { name: 'Ar', percentage: 20, color: '#A0AEC0' },
-    { name: 'Água', percentage: 10, color: '#4A90E2' },
-  ];
+  const getPlanetIcon = (planetName: string) => {
+    return planets.find(p => p.name === planetName)?.icon || planets[0].icon;
+  };
 
-  const modalitiesData = [
-    { name: 'Cardinal', percentage: 25, color: '#E8B95A' },
-    { name: 'Fixo', percentage: 50, color: '#8B7355' },
-    { name: 'Mutável', percentage: 25, color: '#A0AEC0' },
-  ];
+  // Process chart data
+  const bigThree = chart ? {
+    sun: { sign: chart.big_three.sun, icon: getSignIcon(chart.big_three.sun) },
+    moon: { sign: chart.big_three.moon, icon: getSignIcon(chart.big_three.moon) },
+    ascendant: { sign: chart.big_three.ascendant, icon: getSignIcon(chart.big_three.ascendant) },
+  } : {
+    sun: { sign: '', icon: planets[0].icon },
+    moon: { sign: '', icon: planets[1].icon },
+    ascendant: { sign: '', icon: zodiacSigns[0].icon },
+  };
 
-  const strengths = [
-    {
-      title: 'Vênus em Trígono com Júpiter',
-      description: 'Carisma natural e sorte nas finanças. Generosidade e otimismo atraem oportunidades.',
-    },
-    {
-      title: 'Lua em Sextil com Mercúrio',
-      description: 'Comunicação emocional equilibrada. Facilidade em expressar sentimentos de forma clara.',
-    },
-  ];
+  const elementsData = chart?.elements || [];
+  const modalitiesData = chart?.modalities || [];
 
-  const challenges = [
-    {
-      title: 'Sol em Quadratura com Saturno',
-      description: 'Necessidade de disciplina e superação de limites. Trabalho árduo traz reconhecimento.',
-    },
-    {
-      title: 'Marte em Oposição com Plutão',
-      description: 'Tensão entre ação e poder. Cuidado com confrontos e uso da força de forma construtiva.',
-    },
-  ];
+  // Load and process planetary data from chart
+  useEffect(() => {
+    if (!chart) return;
 
-  const planetaryData: PlanetData[] = [
-    {
-      name: 'Sol',
-      sign: 'Leão',
-      house: 5,
-      degree: 15,
-      icon: planets[0].icon,
-      signIcon: zodiacSigns[4].icon,
-      interpretation: {
-        inSign: 'Com o Sol em Leão, você possui uma personalidade magnética e criativa. Há um forte senso de identidade e orgulho pessoal. Você brilha quando está no centro das atenções e tem um talento natural para liderança. Sua autoexpressão é dramática e generosa, e você busca reconhecimento por suas realizações. A criatividade e o romance são áreas importantes da sua vida.',
-        inHouse: 'O Sol na Casa 5 amplifica sua necessidade de autoexpressão criativa. Esta é a casa da criatividade, romance, filhos e prazer. Você encontra sua identidade através das atividades que lhe trazem alegria. Pode ter talento para as artes performáticas e adora estar no centro das atenções. Os relacionamentos românticos são importantes para seu senso de vitalidade.',
-      },
-    },
-    {
-      name: 'Lua',
-      sign: 'Touro',
-      house: 2,
-      degree: 22,
-      icon: planets[1].icon,
-      signIcon: zodiacSigns[1].icon,
-      interpretation: {
-        inSign: 'A Lua em Touro traz estabilidade emocional e necessidade de segurança material. Você se sente confortável com rotinas e ambientes familiares. Há uma forte conexão com os prazeres sensoriais - boa comida, música, natureza. Suas emoções são estáveis e confiáveis, mas pode haver resistência a mudanças. Você valoriza a lealdade e o conforto emocional.',
-        inHouse: 'Na Casa 2, a Lua reforça a necessidade de segurança material e financeira para seu bem-estar emocional. Você pode ter flutuações em suas finanças relacionadas ao seu estado emocional. Há um apego emocional a posses e objetos que trazem conforto. Seus valores pessoais estão profundamente conectados ao seu senso de identidade.',
-      },
-    },
-    {
-      name: 'Mercúrio',
-      sign: 'Câncer',
-      house: 4,
-      degree: 8,
-      icon: planets[2].icon,
-      signIcon: zodiacSigns[3].icon,
-      interpretation: {
-        inSign: 'Mercúrio em Câncer pensa com o coração. Sua mente é intuitiva e absorve informações emocionalmente. Você tem excelente memória, especialmente para experiências emocionais. A comunicação é sensível e você pode perceber as necessidades não ditas dos outros. Pode haver tendência a deixar as emoções influenciarem a lógica.',
-        inHouse: 'Na Casa 4, Mercúrio indica que sua mente está focada em questões familiares e domésticas. Você pode trabalhar de casa ou ter interesse em história familiar e genealogia. Conversas profundas acontecem em ambientes privados e seguros. Há um desejo de entender suas raízes e origem.',
-      },
-    },
-    {
-      name: 'Vênus',
-      sign: 'Gêmeos',
-      house: 3,
-      degree: 28,
-      icon: planets[3].icon,
-      signIcon: zodiacSigns[2].icon,
-      interpretation: {
-        inSign: 'Vênus em Gêmeos busca variedade no amor e nas relações. Você valoriza a comunicação e a estimulação mental nos relacionamentos. Pode ter múltiplos interesses amorosos ou gostar de flertar. A conversa é uma forma de sedução. Você aprecia parceiros inteligentes e versáteis.',
-        inHouse: 'Na Casa 3, Vênus traz harmonia à comunicação e às relações com irmãos e vizinhos. Você tem uma forma agradável de se expressar e pode ter talento para escrita ou oratória. Viagens curtas podem trazer encontros românticos.',
-      },
-    },
-    {
-      name: 'Marte',
-      sign: 'Áries',
-      house: 1,
-      degree: 12,
-      icon: planets[4].icon,
-      signIcon: zodiacSigns[0].icon,
-      interpretation: {
-        inSign: 'Marte em Áries está em seu domicílio, conferindo energia assertiva e pioneira. Você age rapidamente e com coragem. Há uma forte necessidade de independência e liderança. Pode ser impaciente e impulsivo, mas sua iniciativa é admirável. Você é competitivo e gosta de desafios.',
-        inHouse: 'Na Casa 1, Marte dá energia física e presença marcante. Você é assertivo e direto em sua abordagem à vida. Pode ter aparência atlética e gostar de atividades físicas. Há uma forte necessidade de agir de acordo com sua própria vontade.',
-      },
-    },
-    {
-      name: 'Júpiter',
-      sign: 'Sagitário',
-      house: 9,
-      degree: 5,
-      icon: planets[5].icon,
-      signIcon: zodiacSigns[8].icon,
-      interpretation: {
-        inSign: 'Júpiter em Sagitário está em seu domicílio, trazendo otimismo filosófico e amor pela aventura. Você tem fé natural e acredita em possibilidades expansivas. Há interesse por culturas estrangeiras, filosofia e busca de significado. Você é generoso com seu conhecimento.',
-        inHouse: 'Na Casa 9, Júpiter expande seu horizonte através de viagens, educação superior e filosofia. Você pode ter sorte em viagens ao exterior ou com pessoas estrangeiras. Há uma mente aberta e curiosa sobre diferentes culturas e crenças.',
-      },
-    },
-    {
-      name: 'Saturno',
-      sign: 'Capricórnio',
-      house: 10,
-      degree: 18,
-      icon: planets[6].icon,
-      signIcon: zodiacSigns[9].icon,
-      interpretation: {
-        inSign: 'Saturno em Capricórnio está em seu domicílio, conferindo ambição e disciplina naturais. Você leva responsabilidades a sério e trabalha duro por suas metas. Há respeito pela tradição e autoridade. O sucesso vem através da persistência e paciência.',
-        inHouse: 'Na Casa 10, Saturno indica que sua carreira é uma área de grande responsabilidade e realização. Você pode alcançar posições de autoridade através do trabalho árduo. Há uma necessidade de ser respeitado profissionalmente.',
-      },
-    },
-  ];
+    const loadPlanetaryData = async () => {
+      setLoadingInterpretations(true);
+      try {
+        const planetsToLoad = ['Sol', 'Lua', 'Mercúrio', 'Vênus', 'Marte', 'Júpiter', 'Saturno'];
+        const loadedPlanets: PlanetData[] = [];
 
-  const housesData: HouseData[] = [
-    {
-      number: 1,
-      theme: 'Identidade e Aparência',
-      cuspSign: 'Gêmeos',
-      planetsInHouse: ['Marte'],
-      interpretation: 'A Casa 1 representa sua personalidade externa, aparência física e como você se apresenta ao mundo. Com Gêmeos no Ascendente, você é percebido como comunicativo, versátil e intelectualmente curioso. Marte aqui traz energia assertiva e presença marcante.',
-      isAngular: true,
-    },
-    {
-      number: 2,
-      theme: 'Valores e Recursos',
-      cuspSign: 'Câncer',
-      planetsInHouse: ['Lua'],
-      interpretation: 'A Casa 2 rege suas finanças, posses e valores pessoais. Sua segurança emocional está ligada à segurança material. Você pode ganhar dinheiro através de atividades relacionadas ao cuidado, alimentação ou lar.',
-      isAngular: false,
-    },
-    {
-      number: 3,
-      theme: 'Comunicação e Aprendizado',
-      cuspSign: 'Leão',
-      planetsInHouse: ['Vênus'],
-      interpretation: 'A Casa 3 rege comunicação, irmãos, vizinhança e aprendizado básico. Você se comunica de forma criativa e dramática. Relações com irmãos e vizinhos tendem a ser harmoniosas.',
-      isAngular: false,
-    },
-    {
-      number: 4,
-      theme: 'Lar, Raízes e Família',
-      cuspSign: 'Virgem',
-      planetsInHouse: ['Mercúrio'],
-      interpretation: 'A Casa 4 é seu fundamento emocional, lar e família. Você pode trabalhar de casa ou ter uma abordagem prática às questões domésticas. Há forte conexão com suas raízes.',
-      isAngular: true,
-    },
-    {
-      number: 5,
-      theme: 'Criatividade e Romance',
-      cuspSign: 'Libra',
-      planetsInHouse: ['Sol'],
-      interpretation: 'A Casa 5 rege criatividade, romance, filhos e prazer. Esta é uma área iluminada em sua vida. Você brilha através da autoexpressão criativa e encontra alegria genuína nestas atividades.',
-      isAngular: false,
-    },
-    {
-      number: 6,
-      theme: 'Rotina e Saúde',
-      cuspSign: 'Escorpião',
-      planetsInHouse: [],
-      interpretation: 'A Casa 6 rege trabalho diário, saúde e rotinas. Você pode ter uma abordagem intensa ao trabalho e pode precisar cuidar de questões de saúde relacionadas ao estresse.',
-      isAngular: false,
-    },
-    {
-      number: 7,
-      theme: 'Parcerias e Relacionamentos',
-      cuspSign: 'Sagitário',
-      planetsInHouse: [],
-      interpretation: 'A Casa 7 rege casamento, parcerias e contratos. Você busca parceiros aventureiros, filosóficos e que expandam seus horizontes. Relacionamentos são uma jornada de crescimento.',
-      isAngular: true,
-    },
-    {
-      number: 8,
-      theme: 'Transformação e Recursos Compartilhados',
-      cuspSign: 'Capricórnio',
-      planetsInHouse: ['Júpiter'],
-      interpretation: 'A Casa 8 rege transformação, intimidade e recursos compartilhados. Júpiter aqui pode trazer sorte através de heranças ou recursos de parceiros. Há crescimento através de crises.',
-      isAngular: false,
-    },
-    {
-      number: 9,
-      theme: 'Filosofia e Viagens',
-      cuspSign: 'Aquário',
-      planetsInHouse: [],
-      interpretation: 'A Casa 9 rege educação superior, filosofia e viagens longas. Você tem uma mente aberta e progressista, interessada em ideias inovadoras e humanitárias.',
-      isAngular: false,
-    },
-    {
-      number: 10,
-      theme: 'Carreira e Reputação',
-      cuspSign: 'Peixes',
-      planetsInHouse: ['Saturno'],
-      interpretation: 'A Casa 10 rege carreira, reputação e vocação. Saturno aqui indica que você pode trabalhar em áreas relacionadas a serviço, criatividade ou espiritualidade, com disciplina e responsabilidade.',
-      isAngular: true,
-    },
-    {
-      number: 11,
-      theme: 'Amizades e Grupos',
-      cuspSign: 'Áries',
-      planetsInHouse: [],
-      interpretation: 'A Casa 11 rege amizades, grupos e objetivos futuros. Você é um líder natural em grupos e seus amigos tendem a ser dinâmicos e assertivos.',
-      isAngular: false,
-    },
-    {
-      number: 12,
-      theme: 'Espiritualidade e Inconsciente',
-      cuspSign: 'Touro',
-      planetsInHouse: [],
-      interpretation: 'A Casa 12 rege o inconsciente, espiritualidade e isolamento. Você encontra paz em ambientes naturais e tranquilos. Pode ter talentos artísticos ou curativos ocultos.',
-      isAngular: false,
-    },
-  ];
+        for (const planet of chart.planets) {
+          if (planetsToLoad.includes(planet.planet)) {
+            try {
+              const interpretation = await apiService.getPlanetInterpretation(
+                planet.planet,
+                planet.sign,
+                planet.house,
+                chart
+              );
 
-  const aspectsData: AspectData[] = [
-    {
-      id: '1',
-      planet1: 'Vênus',
-      planet2: 'Júpiter',
-      type: 'trine',
-      orb: 3,
-      interpretation: 'Este trígono entre Vênus e Júpiter é um dos aspectos mais afortunados em astrologia. Traz carisma natural, generosidade e otimismo. Você tem facilidade em atrair oportunidades, especialmente em questões financeiras e românticas. Há uma natureza amável e socialmente agradável que atrai pessoas e situações positivas. Pode ter sorte em investimentos e uma vida amorosa satisfatória.',
-      tags: ['Harmonia', 'Finanças', 'Sorte', 'Romance'],
-    },
-    {
-      id: '2',
-      planet1: 'Lua',
-      planet2: 'Mercúrio',
-      type: 'sextile',
-      orb: 2,
-      interpretation: 'O sextil entre a Lua e Mercúrio facilita a comunicação de emoções. Você consegue expressar seus sentimentos de forma clara e racional. Há uma boa integração entre mente e coração, permitindo decisões equilibradas. Pode ter talento para escrita emocional ou aconselhamento.',
-      tags: ['Comunicação', 'Emoções', 'Equilíbrio'],
-    },
-    {
-      id: '3',
-      planet1: 'Sol',
-      planet2: 'Saturno',
-      type: 'square',
-      orb: 4,
-      interpretation: 'A quadratura entre Sol e Saturno indica uma necessidade de superar obstáculos para brilhar. Pode haver questões de autoestima ou sensação de que precisa trabalhar mais duro que os outros. No entanto, este aspecto também traz disciplina, responsabilidade e a capacidade de alcançar grandes realizações através da persistência. O sucesso vem com o tempo e a maturidade.',
-      tags: ['Desafio', 'Disciplina', 'Crescimento', 'Carreira'],
-    },
-    {
-      id: '4',
-      planet1: 'Marte',
-      planet2: 'Plutão',
-      type: 'opposition',
-      orb: 5,
-      interpretation: 'A oposição entre Marte e Plutão cria uma tensão poderosa entre ação e transformação profunda. Você tem uma energia intensa e magnética, mas precisa aprender a usá-la construtivamente. Pode haver tendência a confrontos de poder. O desafio é canalizar esta força para transformação pessoal e realização, ao invés de conflito.',
-      tags: ['Poder', 'Transformação', 'Intensidade', 'Conflito'],
-    },
-    {
-      id: '5',
-      planet1: 'Sol',
-      planet2: 'Lua',
-      type: 'conjunction',
-      orb: 1,
-      interpretation: 'A conjunção Sol-Lua indica que você nasceu próximo a uma Lua Nova. Isto traz um forte senso de propósito e unidade interna. Sua vontade consciente e suas necessidades emocionais estão alinhadas. Você é autêntico e o que você mostra externamente reflete o que sente internamente.',
-      tags: ['Identidade', 'Autenticidade', 'Propósito'],
-    },
-  ];
+              loadedPlanets.push({
+                name: planet.planet,
+                sign: planet.sign,
+                house: planet.house,
+                degree: planet.degree,
+                icon: getPlanetIcon(planet.planet),
+                signIcon: getSignIcon(planet.sign),
+                interpretation: {
+                  inSign: interpretation.in_sign,
+                  inHouse: interpretation.in_house,
+                },
+              });
+            } catch (err) {
+              console.warn(`Error loading interpretation for ${planet.planet}:`, err);
+              // Use fallback
+              loadedPlanets.push({
+                name: planet.planet,
+                sign: planet.sign,
+                house: planet.house,
+                degree: planet.degree,
+                icon: getPlanetIcon(planet.planet),
+                signIcon: getSignIcon(planet.sign),
+                interpretation: {
+                  inSign: `${planet.planet} em ${planet.sign}`,
+                  inHouse: `${planet.planet} na Casa ${planet.house}`,
+                },
+              });
+            }
+          }
+        }
+
+        setPlanetaryData(loadedPlanets);
+      } catch (err) {
+        console.error('Error loading planetary data:', err);
+      } finally {
+        setLoadingInterpretations(false);
+      }
+    };
+
+    loadPlanetaryData();
+  }, [chart]);
+
+  // Process aspects data from chart
+  useEffect(() => {
+    if (!chart || chart.aspects.length === 0) return;
+
+    const loadAspectsData = async () => {
+      try {
+        const loadedAspects: AspectData[] = [];
+
+        for (const aspect of chart.aspects.slice(0, 10)) { // Limit to first 10 to avoid too many API calls
+          try {
+            const interpretation = await apiService.getAspectInterpretation(
+              aspect.planet1,
+              aspect.planet2,
+              aspect.type,
+              aspect.orb,
+              chart
+            );
+
+            loadedAspects.push({
+              id: `${aspect.planet1}-${aspect.planet2}-${aspect.type}`,
+              planet1: aspect.planet1,
+              planet2: aspect.planet2,
+              type: aspect.type as AspectType,
+              orb: aspect.orb,
+              interpretation: interpretation.interpretation,
+              tags: interpretation.tags,
+            });
+          } catch (err) {
+            console.warn(`Error loading aspect interpretation:`, err);
+          }
+        }
+
+        setAspectsData(loadedAspects);
+      } catch (err) {
+        console.error('Error loading aspects data:', err);
+      }
+    };
+
+    loadAspectsData();
+  }, [chart]);
+
+  // Process houses data from chart
+  const housesData: HouseData[] = chart
+    ? chart.houses.map((house) => {
+        const themes: Record<number, string> = {
+          1: 'Identidade e Aparência',
+          2: 'Valores e Recursos',
+          3: 'Comunicação e Aprendizado',
+          4: 'Lar, Raízes e Família',
+          5: 'Criatividade e Romance',
+          6: 'Rotina e Saúde',
+          7: 'Parcerias e Relacionamentos',
+          8: 'Transformação e Recursos Compartilhados',
+          9: 'Filosofia e Viagens',
+          10: 'Carreira e Reputação',
+          11: 'Amizades e Grupos',
+          12: 'Espiritualidade e Inconsciente',
+        };
+
+        return {
+          number: house.number,
+          theme: themes[house.number] || `Casa ${house.number}`,
+          cuspSign: house.cusp_sign,
+          planetsInHouse: house.planets_in_house,
+          interpretation: '', // Will be loaded on demand
+          isAngular: [1, 4, 7, 10].includes(house.number),
+        };
+      })
+    : [];
+
+  // Process strengths and challenges from aspects
+  const strengths = aspectsData
+    .filter((a) => a.type === 'trine' || a.type === 'sextile')
+    .slice(0, 2)
+    .map((a) => ({
+      title: `${a.planet1} em ${aspectData[a.type]?.name || a.type} com ${a.planet2}`,
+      description: a.interpretation.substring(0, 150) + '...',
+    }));
+
+  const challenges = aspectsData
+    .filter((a) => a.type === 'square' || a.type === 'opposition')
+    .slice(0, 2)
+    .map((a) => ({
+      title: `${a.planet1} em ${aspectData[a.type]?.name || a.type} com ${a.planet2}`,
+      description: a.interpretation.substring(0, 150) + '...',
+    }));
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background to-[#1a1f4a]">
+        <AstroCard>
+          <div className="text-center space-y-4">
+            <UIIcons.Star size={48} className="text-accent mx-auto animate-pulse" />
+            <h2 className="text-accent">Calculando seu mapa astral...</h2>
+            <p className="text-secondary">Isso pode levar alguns segundos</p>
+          </div>
+        </AstroCard>
+      </div>
+    );
+  }
+
+  if (error || !chart) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-background to-[#1a1f4a]">
+        <AstroCard>
+          <div className="text-center space-y-4">
+            <UIIcons.AlertCircle size={48} className="text-destructive mx-auto" />
+            <h2 className="text-destructive">Erro ao carregar mapa</h2>
+            <p className="text-secondary">{error || 'Não foi possível calcular o mapa astral'}</p>
+            <AstroButton onClick={() => window.location.reload()}>Tentar Novamente</AstroButton>
+          </div>
+        </AstroCard>
+      </div>
+    );
+  }
 
   const filteredAspects = aspectsData.filter((aspect) => {
     if (aspectFilter === 'all') return true;
-    return aspectData[aspect.type].type === aspectFilter;
+    if (aspectFilter === 'harmonic') return aspect.type === 'trine' || aspect.type === 'sextile';
+    if (aspectFilter === 'dynamic') return aspect.type === 'square' || aspect.type === 'opposition';
+    if (aspectFilter === 'neutral') return aspect.type === 'conjunction';
+    return true;
   });
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-[#1a1f4a] dark:to-[#1a1f4a] light:to-[#F0E6D2]">
@@ -353,12 +309,58 @@ export const AdvancedDashboard = ({ userData, onViewInterpretation }: AdvancedDa
             <button className="p-2 rounded-lg hover:bg-accent/10 transition-colors">
               <UIIcons.Settings size={20} className="text-secondary" />
             </button>
-            <button className="p-2 rounded-lg hover:bg-accent/10 transition-colors">
-              <UIIcons.User size={20} className="text-accent" />
-            </button>
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-1 rounded-full hover:ring-2 hover:ring-accent/50 transition-all focus:outline-none focus:ring-2 focus:ring-accent/50">
+                    <Avatar className="w-8 h-8 cursor-pointer">
+                      {user.picture ? (
+                        <AvatarImage src={user.picture} alt={user.name} />
+                      ) : null}
+                      <AvatarFallback className="bg-accent/20 text-accent text-sm">
+                        {getInitials(user.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowUserProfile(true)} className="cursor-pointer">
+                    <UIIcons.User className="mr-2 h-4 w-4" />
+                    <span>Perfil</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer">
+                    <UIIcons.Settings className="mr-2 h-4 w-4" />
+                    <span>Configurações</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500 focus:text-red-500">
+                    <UIIcons.LogOut className="mr-2 h-4 w-4" />
+                    <span>Sair</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </header>
+
+      {/* User Profile Modal */}
+      {user && (
+        <UserProfileModal
+          open={showUserProfile}
+          onOpenChange={setShowUserProfile}
+          user={user}
+          onUpdateUser={updateUser}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Main Layout: Fixed Left Sidebar + Tabbed Content */}
       <div className="max-w-[1800px] mx-auto px-4 py-8">
@@ -397,7 +399,7 @@ export const AdvancedDashboard = ({ userData, onViewInterpretation }: AdvancedDa
               <AstroCard>
                 <div className="space-y-4">
                   <h3 className="text-foreground text-center">Mapa Natal</h3>
-                  <BirthChartWheel />
+                  <BirthChartWheel chartData={chart} />
                 </div>
               </AstroCard>
 
@@ -454,42 +456,29 @@ export const AdvancedDashboard = ({ userData, onViewInterpretation }: AdvancedDa
 
               {/* Tab 0: Seu Guia Pessoal */}
               <TabsContent value="guide" className="space-y-8">
-                {/* Seção 1: Regente do Mapa 
-                    - Mostra o planeta regente baseado no Ascendente
-                    - ascendant: Signo do Ascendente do usuário
-                    - ruler: Planeta regente desse ascendente
-                    - rulerSign: Signo onde o regente está posicionado
-                    - rulerHouse: Casa onde o regente está posicionado
-                */}
-                <ChartRulerSection
-                  ascendant="Virgem"
-                  ruler="Mercúrio"
-                  rulerSign="Sagitário"
-                  rulerHouse={3}
-                />
+                {/* Seção 1: Regente do Mapa */}
+                {chart.chart_ruler && (
+                  <ChartRulerSection
+                    ascendant={chart.chart_ruler.ascendant}
+                    ruler={chart.chart_ruler.ruler}
+                    rulerSign={chart.chart_ruler.ruler_sign}
+                    rulerHouse={chart.chart_ruler.ruler_house}
+                  />
+                )}
 
-                {/* Seção 2: Conselhos para Hoje 
-                    - Mostra trânsitos diários e conselhos práticos
-                    - moonSign: Signo atual da Lua em trânsito
-                    - moonHouse: Casa do mapa natal onde a Lua transita hoje
-                    - isMercuryRetrograde: true se Mercúrio está retrógrado
-                    - isMoonVoidOfCourse: true se Lua está fora de curso
-                    - voidEndsAt: Horário que a Lua sai do void of course
-                */}
-                <DailyAdviceSection
-                  moonSign="Câncer"
-                  moonHouse={11}
-                  isMercuryRetrograde={true}
-                  isMoonVoidOfCourse={false}
-                  voidEndsAt="16:30"
-                />
+                {/* Seção 2: Conselhos para Hoje */}
+                {dailyTransits && (
+                  <DailyAdviceSection
+                    moonSign={dailyTransits.moon_sign}
+                    moonHouse={dailyTransits.moon_house}
+                    isMercuryRetrograde={dailyTransits.is_mercury_retrograde}
+                    isMoonVoidOfCourse={dailyTransits.is_moon_void_of_course}
+                    voidEndsAt={dailyTransits.void_ends_at || undefined}
+                  />
+                )}
 
-                {/* Seção 3: Horizontes Futuros 
-                    - Mostra trânsitos de longo prazo (planetas lentos)
-                    - Pode receber um array customizado de trânsitos
-                    - Se não passar nada, usa dados de exemplo
-                */}
-                <FutureTransitsSection />
+                {/* Seção 3: Horizontes Futuros */}
+                <FutureTransitsSection transits={futureTransits} />
               </TabsContent>
 
               {/* Tab 1: Overview */}
@@ -551,7 +540,15 @@ export const AdvancedDashboard = ({ userData, onViewInterpretation }: AdvancedDa
                 <AstroCard>
                   <h2 className="text-accent mb-6">Posições Planetárias</h2>
                   <Accordion type="single" collapsible className="space-y-3">
-                    {planetaryData.map((planet, index) => (
+                    {(planetaryData.length > 0 ? planetaryData : chart.planets.slice(0, 7).map(p => ({
+                      name: p.planet,
+                      sign: p.sign,
+                      house: p.house,
+                      degree: p.degree,
+                      icon: getPlanetIcon(p.planet),
+                      signIcon: getSignIcon(p.sign),
+                      interpretation: { inSign: '', inHouse: '' }
+                    }))).map((planet, index) => (
                       <AccordionItem
                         key={planet.name}
                         value={planet.name}

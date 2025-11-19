@@ -3053,81 +3053,119 @@
 }
 
 :root, .dark {
-  --background: #0a0e2f;
-  --foreground: #f0f0f0;
-  --card: #1c264d99;
-  --card-foreground: #f0f0f0;
-  --popover: #1c264df2;
-  --popover-foreground: #f0f0f0;
-  --primary: #0a0e2f;
-  --primary-foreground: #f0f0f0;
-  --secondary: #a0aec0;
-  --secondary-foreground: #0a0e2f;
-  --muted: #1c264d66;
-  --muted-foreground: #a0aec0;
-  --accent: #e8b95a;
-  --accent-foreground: #0a0e2f;
-  --destructive: #d4183d;
-  --destructive-foreground: #fff;
-  --border: #e8b95a33;
-  --input: transparent;
-  --input-background: #1c264d66;
-  --input-border: #a0aec04d;
-  --input-border-active: #e8b95a;
-  --switch-background: #cbced4;
-  --ring: #e8b95a;
-  --chart-1: oklch(.646 .222 41.116);
-  --chart-2: oklch(.6 .118 184.704);
-  --chart-3: oklch(.398 .07 227.392);
-  --chart-4: oklch(.828 .189 84.429);
-  --chart-5: oklch(.769 .188 70.08);
-  --sidebar: oklch(.205 0 0);
-  --sidebar-foreground: oklch(.985 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(.985 0 0);
-  --sidebar-accent: #1c264d99;
-  --sidebar-accent-foreground: #f0f0f0;
-  --sidebar-border: #e8b95a33;
-  --sidebar-ring: #e8b95a;
+  /* ===== CORES BASE ===== */
+  --background: #1A0F2E;           /* Fundo principal - roxo cósmico profundo */
+  --foreground: #F3F0F7;           /* Texto principal - lavanda branco suave */
+
+  /* ===== CARDS & CONTAINERS ===== */
+  --card: rgba(91, 95, 151, 0.35);         /* Cards glassmorphic - Iris Bloom */
+  --card-foreground: #F3F0F7;              /* Texto em cards */
+  --popover: rgba(63, 42, 86, 0.95);       /* Popover/tooltips - Petunia */
+  --popover-foreground: #F3F0F7;           /* Texto em popover */
+
+  /* ===== BOTÕES & AÇÕES ===== */
+  --primary: #9F86C0;              /* Botões primários - Purple Hebe vibrante */
+  --primary-foreground: #1A0F2E;   /* Texto em botões primários */
+  --secondary: #B5A5BC;            /* Botões secundários - lavanda cinza */
+  --secondary-foreground: #1A0F2E; /* Texto em botões secundários */
+  --accent: #B59DAB;               /* Acentos - Dusky Orchid rosa acinzentado */
+  --accent-foreground: #1A0F2E;    /* Texto em acentos */
+
+  /* ===== ESTADOS ===== */
+  --muted: rgba(91, 95, 151, 0.25);  /* Backgrounds sutis */
+  --muted-foreground: #B5A5BC;        /* Texto em elementos muted */
+  --destructive: #D95B7F;             /* Ações destrutivas - rosa pink */
+  --destructive-foreground: #ffffff;  /* Texto em destrutivos */
+
+  /* ===== BORDAS & INPUTS ===== */
+  --border: rgba(159, 134, 192, 0.25);    /* Bordas - brilho roxo sutil */
+  --input: transparent;                    /* Input background overlay */
+  --input-background: rgba(63, 42, 86, 0.4);  /* Fundo de inputs - Petunia */
+  --input-border: rgba(181, 165, 188, 0.3);   /* Borda de input normal */
+  --input-border-active: #9F86C0;             /* Borda de input em foco */
+  --ring: #9F86C0;                            /* Indicador de foco */
+  --switch-background: #3F2A56;               /* Background de switches */
+
+  /* ===== CHARTS/GRÁFICOS ===== */
+  --chart-1: oklch(0.68 0.12 290);  /* Gráfico cor 1 - Purple Hebe */
+  --chart-2: oklch(0.65 0.08 320);  /* Gráfico cor 2 - Dusky Orchid */
+  --chart-3: oklch(0.55 0.1 270);   /* Gráfico cor 3 - Iris Bloom */
+  --chart-4: oklch(0.72 0.11 300);  /* Gráfico cor 4 - Lavanda claro */
+  --chart-5: oklch(0.6 0.09 310);   /* Gráfico cor 5 - Roxo médio */
+
+  /* ===== SIDEBAR/NAVEGAÇÃO ===== */
+  --sidebar: #1A0F2E;                         /* Fundo da sidebar */
+  --sidebar-foreground: #F3F0F7;              /* Texto da sidebar */
+  --sidebar-primary: #3F2A56;                 /* Elementos primários - Petunia */
+  --sidebar-primary-foreground: #F3F0F7;      /* Texto em primários */
+  --sidebar-accent: rgba(159, 134, 192, 0.15); /* Acentos sidebar */
+  --sidebar-accent-foreground: #F3F0F7;       /* Texto em acentos */
+  --sidebar-border: rgba(159, 134, 192, 0.2); /* Bordas sidebar */
+  --sidebar-ring: #9F86C0;                    /* Foco sidebar */
+
+  /* ===== GRADIENTES (OPCIONAL) ===== */
+  --gradient-cosmic: linear-gradient(135deg, #3F2A56 0%, #5B5F97 40%, #9F86C0 70%, #B59DAB 100%);
+  --gradient-purple-rose: linear-gradient(to right, #9F86C0, #B59DAB);
+  --gradient-card: linear-gradient(135deg, rgba(91, 95, 151, 0.15) 0%, rgba(159, 134, 192, 0.1) 100%);
+  --gradient-iris: linear-gradient(135deg, #5B5F97 0%, #9F86C0 100%);
 }
 
 .light {
-  --background: #fdfbf7;
-  --foreground: #1a1a2e;
-  --card: #ffffffe6;
-  --card-foreground: #1a1a2e;
-  --popover: #fffffffa;
-  --popover-foreground: #1a1a2e;
-  --primary: #2d3047;
-  --primary-foreground: #fdfbf7;
-  --secondary: #6b7280;
-  --secondary-foreground: #fdfbf7;
-  --muted: #6b72801f;
-  --muted-foreground: #6b7280;
-  --accent: #d4a024;
-  --accent-foreground: #fff;
-  --destructive: #dc2626;
-  --destructive-foreground: #fff;
-  --border: #c9961f33;
-  --input: transparent;
-  --input-background: #ffffffb3;
-  --input-border: #6b728040;
-  --input-border-active: #d4a024;
-  --switch-background: #e5e7eb;
-  --ring: #d4a024;
-  --chart-1: oklch(.746 .15 41.116);
-  --chart-2: oklch(.7 .118 184.704);
-  --chart-3: oklch(.498 .07 227.392);
-  --chart-4: oklch(.728 .12 84.429);
-  --chart-5: oklch(.669 .13 70.08);
-  --sidebar: #fff;
-  --sidebar-foreground: #1a1a2e;
-  --sidebar-primary: #2d3047;
-  --sidebar-primary-foreground: #fdfbf7;
-  --sidebar-accent: #d4a0241f;
-  --sidebar-accent-foreground: #1a1a2e;
-  --sidebar-border: #c9961f26;
-  --sidebar-ring: #d4a024;
+  /* ===== CORES BASE ===== */
+  --background: #F5F2E8;           /* Fundo principal - bege suave quente */
+  --foreground: #272757;           /* Texto principal - índigo profundo */
+
+  /* ===== CARDS & CONTAINERS ===== */
+  --card: rgba(255, 255, 255, 0.90);   /* Cards glassmorphic brancos */
+  --card-foreground: #272757;          /* Texto em cards */
+  --popover: rgba(255, 255, 255, 0.98); /* Popover/tooltips */
+  --popover-foreground: #272757;        /* Texto em popover */
+
+  /* ===== BOTÕES & AÇÕES ===== */
+  --primary: #E35336;              /* Botões primários - coral vibrante */
+  --primary-foreground: #FFFFFF;   /* Texto em botões primários */
+  --secondary: #98A869;            /* Botões secundários - verde sálvia */
+  --secondary-foreground: #FFFFFF; /* Texto em botões secundários */
+  --accent: #C2B280;               /* Acentos - champanhe bege dourado */
+  --accent-foreground: #272757;    /* Texto em acentos */
+
+  /* ===== ESTADOS ===== */
+  --muted: rgba(194, 178, 128, 0.15);  /* Backgrounds sutis */
+  --muted-foreground: #6B6456;         /* Texto em elementos muted */
+  --destructive: #D63920;              /* Ações destrutivas - vermelho coral */
+  --destructive-foreground: #ffffff;   /* Texto em destrutivos */
+
+  /* ===== BORDAS & INPUTS ===== */
+  --border: rgba(152, 168, 105, 0.25);    /* Bordas - sálvia suave */
+  --input: transparent;                    /* Input background overlay */
+  --input-background: rgba(255, 255, 255, 0.85);  /* Fundo de inputs */
+  --input-border: rgba(152, 168, 105, 0.3);       /* Borda de input normal */
+  --input-border-active: #E35336;                 /* Borda de input em foco - coral */
+  --ring: #E35336;                                /* Indicador de foco */
+  --switch-background: #D8D4C8;                   /* Background de switches */
+
+  /* ===== CHARTS/GRÁFICOS ===== */
+  --chart-1: oklch(0.65 0.12 50);   /* Gráfico cor 1 - Coral */
+  --chart-2: oklch(0.68 0.08 110);  /* Gráfico cor 2 - Sálvia */
+  --chart-3: oklch(0.72 0.06 80);   /* Gráfico cor 3 - Bege */
+  --chart-4: oklch(0.45 0.1 265);   /* Gráfico cor 4 - Índigo */
+  --chart-5: oklch(0.6 0.1 30);     /* Gráfico cor 5 - Laranja quente */
+
+  /* ===== SIDEBAR/NAVEGAÇÃO ===== */
+  --sidebar: #FFFFFF;                      /* Fundo da sidebar */
+  --sidebar-foreground: #272757;           /* Texto da sidebar */
+  --sidebar-primary: #E35336;              /* Elementos primários - coral */
+  --sidebar-primary-foreground: #FFFFFF;   /* Texto em primários */
+  --sidebar-accent: rgba(227, 83, 54, 0.1); /* Acentos sidebar */
+  --sidebar-accent-foreground: #272757;    /* Texto em acentos */
+  --sidebar-border: rgba(152, 168, 105, 0.15); /* Bordas sidebar */
+  --sidebar-ring: #E35336;                 /* Foco sidebar */
+
+  /* ===== GRADIENTES (OPCIONAL) ===== */
+  --gradient-cosmic: linear-gradient(135deg, #272757 0%, #98A869 40%, #E35336 70%, #C2B280 100%);
+  --gradient-purple-rose: linear-gradient(to right, #E35336, #C2B280);
+  --gradient-card: linear-gradient(135deg, rgba(152, 168, 105, 0.08) 0%, rgba(194, 178, 128, 0.08) 100%);
+  --gradient-iris: linear-gradient(135deg, #98A869 0%, #C2B280 100%);
 }
 
 html {

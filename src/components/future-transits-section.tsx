@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { AstroCard } from './astro-card';
 import { planets } from './planet-icons';
 import { Badge } from './ui/badge';
 import { UIIcons } from './ui-icons';
+import { apiService } from '../services/api';
 
 interface Transit {
   id: string;
@@ -47,7 +49,47 @@ const defaultTransits: Transit[] = [
   }
 ];
 
-export const FutureTransitsSection = ({ transits = defaultTransits }: FutureTransitsSectionProps) => {
+export const FutureTransitsSection = ({ transits: propTransits }: FutureTransitsSectionProps) => {
+  const [transits, setTransits] = useState<Transit[]>(defaultTransits);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Se transits foram passados como prop, usar eles
+    if (propTransits && propTransits.length > 0) {
+      setTransits(propTransits);
+      setIsLoading(false);
+      return;
+    }
+
+    // Caso contrário, buscar do backend
+    const fetchTransits = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await apiService.getFutureTransits({
+          months_ahead: 24,
+          max_transits: 10
+        });
+        
+        if (response.transits && response.transits.length > 0) {
+          setTransits(response.transits);
+        } else {
+          // Se não houver trânsitos, usar os padrão
+          setTransits(defaultTransits);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar trânsitos:', err);
+        setError('Não foi possível carregar os trânsitos futuros');
+        // Usar transits padrão em caso de erro
+        setTransits(defaultTransits);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTransits();
+  }, [propTransits]);
   const getTypeColor = (type: Transit['type']) => {
     const colors = {
       'jupiter': 'text-[#E8B95A]',
@@ -81,65 +123,95 @@ export const FutureTransitsSection = ({ transits = defaultTransits }: FutureTran
         </p>
       </div>
 
-      {/* Timeline Vertical */}
-      <div className="relative pl-8 space-y-6">
-        {/* Linha vertical */}
-        <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gradient-to-b from-accent via-accent/50 to-accent/10"></div>
+      {/* Loading State */}
+      {isLoading && (
+        <AstroCard>
+          <div className="flex items-center justify-center gap-3 py-8">
+            <UIIcons.Loader className="w-5 h-5 animate-spin text-accent" />
+            <p className="text-secondary">Calculando trânsitos futuros...</p>
+          </div>
+        </AstroCard>
+      )}
 
-        {transits.map((transit, index) => {
-          const PlanetIcon = planets.find(p => p.name === transit.planet)?.icon;
-          
-          return (
-            <div 
-              key={transit.id} 
-              className="relative animate-fadeIn"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              {/* Ponto na timeline */}
-              <div className={`absolute -left-[29px] top-6 w-5 h-5 rounded-full border-2 border-accent ${
-                transit.isActive ? 'bg-accent' : 'bg-background'
-              } flex items-center justify-center`}>
-                {transit.isActive && (
-                  <div className="w-2 h-2 rounded-full bg-background animate-pulse"></div>
-                )}
-              </div>
+      {/* Error State */}
+      {error && !isLoading && (
+        <AstroCard className="border-destructive/30">
+          <div className="flex items-center gap-3 text-destructive">
+            <UIIcons.AlertCircle size={20} />
+            <p className="text-sm">{error}</p>
+          </div>
+        </AstroCard>
+      )}
 
-              <AstroCard className="hover:border-accent/40 transition-all duration-300 hover:shadow-lg hover:shadow-accent/10 animate-fadeIn">
-                <div className="space-y-4">
-                  {/* Header */}
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1">
-                      {PlanetIcon && (
-                        <PlanetIcon size={32} className={`${getTypeColor(transit.type)} flex-shrink-0 mt-1`} />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-foreground mb-1">{transit.title}</h3>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline" className={getTypeBadgeStyle(transit.type)}>
-                            {transit.timeframe}
-                          </Badge>
-                          {transit.isActive && (
-                            <Badge variant="outline" className="bg-accent/20 text-accent border-accent/40">
-                              Em Progresso
-                            </Badge>
+      {/* Timeline Vertical com scrollbar */}
+      {!isLoading && !error && (
+        <div className="relative pl-8 space-y-6 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          {/* Linha vertical */}
+          <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gradient-to-b from-accent via-accent/50 to-accent/10"></div>
+
+          {transits.length === 0 ? (
+            <AstroCard>
+              <p className="text-secondary text-center py-4">
+                Nenhum trânsito significativo encontrado no período calculado.
+              </p>
+            </AstroCard>
+          ) : (
+            transits.map((transit, index) => {
+              const PlanetIcon = planets.find(p => p.name === transit.planet)?.icon;
+              
+              return (
+                <div 
+                  key={transit.id} 
+                  className="relative animate-fadeIn"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  {/* Ponto na timeline */}
+                  <div className={`absolute -left-[29px] top-6 w-5 h-5 rounded-full border-2 border-accent ${
+                    transit.isActive ? 'bg-accent' : 'bg-background'
+                  } flex items-center justify-center`}>
+                    {transit.isActive && (
+                      <div className="w-2 h-2 rounded-full bg-background animate-pulse"></div>
+                    )}
+                  </div>
+
+                  <AstroCard className="hover:border-accent/40 transition-all duration-300 hover:shadow-lg hover:shadow-accent/10 animate-fadeIn">
+                    <div className="space-y-4">
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                          {PlanetIcon && (
+                            <PlanetIcon size={32} className={`${getTypeColor(transit.type)} flex-shrink-0 mt-1`} />
                           )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-foreground mb-1">{transit.title}</h3>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className={getTypeBadgeStyle(transit.type)}>
+                                {transit.timeframe}
+                              </Badge>
+                              {transit.isActive && (
+                                <Badge variant="outline" className="bg-accent/20 text-accent border-accent/40">
+                                  Em Progresso
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
 
-                  {/* Descrição */}
-                  <div className="border-l-2 border-accent/20 pl-4">
-                    <p className="text-sm text-secondary leading-relaxed">
-                      {transit.description}
-                    </p>
-                  </div>
+                      {/* Descrição */}
+                      <div className="border-l-2 border-accent/20 pl-4">
+                        <p className="text-sm text-secondary leading-relaxed">
+                          {transit.description}
+                        </p>
+                      </div>
+                    </div>
+                  </AstroCard>
                 </div>
-              </AstroCard>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* Footer informativo */}
       <AstroCard className="bg-muted/20 border-muted-foreground/20">

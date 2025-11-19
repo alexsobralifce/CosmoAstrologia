@@ -1,11 +1,122 @@
+# Astrologia - Sistema de Mapas Astrais
 
-  # Astrology Design System Foundations
+Sistema completo para cálculo e visualização de mapas astrais com interface moderna e cálculos astronômicos precisos.
 
-  This is a code bundle for Astrology Design System Foundations. The original project is available at https://www.figma.com/design/F5gz9YI38YpNAcWEwbPgf8/Astrology-Design-System-Foundations.
+## 🚀 Início Rápido
 
-  ## Running the code
+### Opção 1: Scripts Automáticos (Recomendado)
 
-  Run `npm i` to install the dependencies.
+**Linux/Mac:**
+```bash
+# Iniciar apenas o backend
+./start-backend.sh
 
-  Run `npm run dev` to start the development server.
-  
+# Iniciar frontend e backend juntos
+./start-all.sh
+```
+
+**Windows:**
+```powershell
+# Iniciar apenas o backend
+.\start-backend.ps1
+
+# Iniciar frontend e backend juntos
+.\start-all.ps1
+```
+
+### Opção 2: Manual
+
+#### Backend
+
+```bash
+cd backend
+
+# Criar e ativar ambiente virtual (primeira vez)
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Iniciar servidor
+python run.py
+```
+
+O backend estará disponível em: `http://localhost:8000`
+Documentação da API: `http://localhost:8000/docs`
+
+#### Frontend
+
+```bash
+# Instalar dependências (primeira vez)
+npm install
+
+# Iniciar servidor de desenvolvimento
+npm run dev
+```
+
+O frontend estará disponível em: `http://localhost:5173`
+
+## 📋 Requisitos
+
+- **Python 3.8+**
+- **Node.js 18+**
+- **npm ou yarn**
+
+## 🗄️ Banco de Dados
+
+O banco de dados SQLite é criado automaticamente na primeira execução em `backend/astrologia.db`.
+
+## 🔧 Estrutura do Projeto
+
+```
+Astrologia/
+├── backend/          # API FastAPI
+│   ├── app/
+│   │   ├── api/      # Endpoints da API
+│   │   ├── core/     # Configurações e banco de dados
+│   │   ├── models/   # Modelos SQLAlchemy e schemas
+│   │   └── services/ # Serviços (cálculos astrológicos)
+│   ├── requirements.txt
+│   └── run.py
+├── src/              # Frontend React + TypeScript
+│   ├── components/   # Componentes React
+│   ├── services/     # Serviços de API
+│   └── utils/        # Utilitários
+└── package.json
+```
+
+## 🌟 Funcionalidades
+
+- ✅ Cálculo preciso de mapas astrais usando PyEphem
+- ✅ Autenticação com JWT
+- ✅ Registro de usuários com dados de nascimento
+- ✅ Cálculo automático de signos (Sol, Lua, Ascendente)
+- ✅ Interface moderna e responsiva
+- ✅ Suporte a temas claro/escuro
+
+## 📚 API Endpoints
+
+- `POST /api/auth/register` - Registrar novo usuário
+- `GET /api/auth/me` - Obter usuário atual
+- `GET /api/auth/birth-chart` - Obter mapa astral do usuário
+
+## 🐛 Troubleshooting
+
+### Backend não inicia
+- Verifique se a porta 8000 está livre
+- Certifique-se de que todas as dependências estão instaladas
+- Verifique os logs em `backend.log`
+
+### Frontend não conecta ao backend
+- Certifique-se de que o backend está rodando em `http://localhost:8000`
+- Verifique a variável `VITE_API_URL` no `.env` (se configurada)
+
+### Erro de banco de dados
+- Delete `backend/astrologia.db` e reinicie o servidor para recriar o banco
+
+## 📝 Licença
+
+Este projeto é privado.

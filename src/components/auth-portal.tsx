@@ -4,12 +4,13 @@ import { AstroInput } from './astro-input';
 import { AstroCard } from './astro-card';
 import { UIIcons } from './ui-icons';
 import { AuthLoader } from './auth-loader';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { Chrome } from 'lucide-react';
+import { apiService } from '../services/api';
 
 interface AuthPortalProps {
   onAuthSuccess: (userData: AuthUserData) => void;
-  onNeedsBirthData: (email: string, name?: string) => void;
+  onNeedsBirthData: (email: string, name?: string, password?: string) => void;
 }
 
 export interface AuthUserData {
@@ -86,7 +87,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData }: AuthPortalProps)
 
     setIsLoading(false);
     // Novo usuário - precisa coletar dados de nascimento
-    onNeedsBirthData(email);
+    // Passar a senha também para que possa ser salva no registro
+    onNeedsBirthData(email, undefined, password);
   };
 
   const handleLogin = async () => {
@@ -103,36 +105,49 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData }: AuthPortalProps)
     }
 
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
-    const user = mockDatabase.find(u => u.email === email && u.password === password);
-    
-    if (!user) {
+    try {
+      // Fazer login no backend
+      await apiService.loginUser(email, password);
+      
+      // Buscar dados do usuário
+      const userData = await apiService.getCurrentUser();
+      const birthChart = await apiService.getUserBirthChart();
+      
       setIsLoading(false);
+      
+      if (birthChart) {
+        // Usuário tem mapa astral completo
+        toast.success('Bem-vindo de volta!', {
+          description: `Olá, ${userData?.name || email}! Acessando seu mapa astral...`,
+          duration: 2000
+        });
+        setTimeout(() => {
+          onAuthSuccess({
+            email: email,
+            name: userData?.name,
+            hasCompletedOnboarding: true
+          });
+        }, 500);
+      } else {
+        // Usuário existe mas não completou onboarding
+        toast.info('Complete seu cadastro', {
+          description: 'Precisamos de algumas informações para criar seu mapa astral.',
+          duration: 3000
+        });
+        setTimeout(() => {
+          onNeedsBirthData(email, userData?.name);
+        }, 500);
+      }
+    } catch (error: unknown) {
+      setIsLoading(false);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'E-mail ou senha incorretos.';
       toast.error('Credenciais inválidas', {
-        description: 'E-mail ou senha incorretos.',
+        description: errorMessage,
         duration: 4000
       });
-      return;
-    }
-
-    setIsLoading(false);
-    
-    if (user.hasCompletedOnboarding) {
-      toast.success('Bem-vindo de volta!', {
-        description: `Olá, ${user.name}! Acessando seu mapa astral...`,
-        duration: 2000
-      });
-      setTimeout(() => {
-        onAuthSuccess({
-          email: user.email,
-          name: user.name,
-          hasCompletedOnboarding: true
-        });
-      }, 500);
-    } else {
-      // Usuário existe mas não completou onboarding
-      onNeedsBirthData(user.email, user.name);
     }
   };
 

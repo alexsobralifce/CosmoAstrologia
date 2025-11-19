@@ -77,11 +77,11 @@ export const DailyAdviceSection = ({
 
         {/* Mercúrio Retrógrado - Condicional */}
         {isMercuryRetrograde && (
-          <AstroCard className="border-l-4 border-l-destructive bg-destructive/5 shadow-lg shadow-destructive/10 hover:shadow-xl hover:shadow-destructive/20 transition-all duration-300 animate-fadeIn">
+          <AstroCard className="border-l-4 border-l-destructive bg-destructive/15 dark:bg-destructive/20 shadow-lg shadow-destructive/10 hover:shadow-xl hover:shadow-destructive/20 transition-all duration-300 animate-fadeIn">
             <div className="flex items-start gap-4">
               <div className="relative flex-shrink-0">
                 {MercuryIcon && <MercuryIcon size={40} className="text-destructive drop-shadow-lg" />}
-                <div className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
+                <div className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-md">
                   R
                 </div>
               </div>
@@ -89,27 +89,27 @@ export const DailyAdviceSection = ({
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <AlertCircle size={18} className="text-destructive" />
-                    <h3 className="text-foreground">Alerta: Mercúrio Retrógrado Ativo</h3>
+                    <h3 className="text-foreground font-semibold">Alerta: Mercúrio Retrógrado Ativo</h3>
                   </div>
-                  <p className="text-sm text-muted-foreground">Em efeito por ~3 semanas</p>
+                  <p className="text-sm text-foreground/80 dark:text-foreground/70">Em efeito por ~3 semanas</p>
                 </div>
                 
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle size={16} className="text-destructive mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="text-destructive font-medium">Não Fazer:</span>
-                      <span className="text-secondary ml-1">
+                <div className="space-y-3 text-base">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 dark:bg-destructive/15 border border-destructive/20">
+                    <AlertCircle size={20} className="text-destructive mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <span className="text-destructive font-semibold block mb-1">Não Fazer:</span>
+                      <span className="text-foreground/90 dark:text-foreground leading-relaxed">
                         Evite assinar contratos, tomar decisões finais ou fazer grandes compras 
                         (especialmente eletrônicos ou veículos). A comunicação pode estar confusa.
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle size={16} className="text-accent mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="text-accent font-medium">Fazer:</span>
-                      <span className="text-secondary ml-1">
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/10 dark:bg-accent/15 border border-accent/30">
+                    <CheckCircle size={20} className="text-accent mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <span className="text-accent font-semibold block mb-1">Fazer:</span>
+                      <span className="text-foreground/90 dark:text-foreground leading-relaxed">
                         Ótimo momento para Revisar, Reavaliar e Replanejar. Reconecte-se com pessoas 
                         do passado ou revise projetos antigos.
                       </span>

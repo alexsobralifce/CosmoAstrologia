@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Onboarding, OnboardingData } from './components/onboarding';
 import { AdvancedDashboard } from './components/advanced-dashboard';
 import { InterpretationPage } from './components/interpretation-page';
@@ -12,6 +12,8 @@ import { AstroInput } from './components/astro-input';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
 import { Toaster } from './components/ui/sonner';
+import { apiService } from './services/api';
+import { toast } from 'sonner';
 
 type AppView = 'landing' | 'auth' | 'onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
 
@@ -20,18 +22,113 @@ export default function App() {
   const [userData, setUserData] = useState<OnboardingData | null>(null);
   const [authData, setAuthData] = useState<AuthUserData | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  const handleAuthSuccess = (data: AuthUserData) => {
+  // Verificar autenticação ao carregar a página
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Verificar se há token no localStorage
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        // Tentar buscar dados do usuário
+        const userInfo = await apiService.getCurrentUser();
+        if (!userInfo) {
+          // Token inválido, limpar e ir para landing
+          apiService.logout();
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        // Buscar mapa astral
+        const birthChart = await apiService.getUserBirthChart();
+        
+        if (birthChart && userInfo) {
+          // Usuário autenticado e tem mapa astral completo
+          setUserData({
+            name: birthChart.name,
+            birthDate: new Date(birthChart.birth_date),
+            birthTime: birthChart.birth_time,
+            birthPlace: birthChart.birth_place,
+            email: userInfo.email || '',
+            coordinates: {
+              latitude: birthChart.latitude,
+              longitude: birthChart.longitude,
+            },
+          });
+          setAuthData({
+            email: userInfo.email || '',
+            name: userInfo.name,
+            hasCompletedOnboarding: true,
+          });
+          setCurrentView('dashboard');
+        } else if (userInfo) {
+          // Usuário autenticado mas não completou onboarding
+          setAuthData({
+            email: userInfo.email || '',
+            name: userInfo.name,
+            hasCompletedOnboarding: false,
+          });
+          setCurrentView('onboarding');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        // Em caso de erro, limpar token e ir para landing
+        apiService.logout();
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  const handleAuthSuccess = async (data: AuthUserData) => {
     setAuthData(data);
     if (data.hasCompletedOnboarding) {
-      // Usuário já tem mapa, vai direto pro dashboard
-      // Simulando userData completo
-      setUserData({
-        name: data.name || 'Usuário',
-        birthDate: new Date(1990, 0, 15),
-        birthTime: '14:30',
-        birthPlace: 'São Paulo, SP'
-      });
+      // Usuário já tem mapa, buscar dados reais do backend
+      try {
+        const userInfo = await apiService.getCurrentUser();
+        const birthChart = await apiService.getUserBirthChart();
+        
+        if (birthChart && userInfo) {
+          setUserData({
+            name: birthChart.name,
+            birthDate: new Date(birthChart.birth_date),
+            birthTime: birthChart.birth_time,
+            birthPlace: birthChart.birth_place,
+            email: userInfo.email || data.email,
+            coordinates: {
+              latitude: birthChart.latitude,
+              longitude: birthChart.longitude,
+            },
+          });
+        } else {
+          // Fallback se não conseguir buscar
+          setUserData({
+            name: data.name || 'Usuário',
+            birthDate: new Date(1990, 0, 15),
+            birthTime: '14:30',
+            birthPlace: 'São Paulo, SP',
+            email: data.email,
+          });
+        }
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+        // Fallback em caso de erro
+        setUserData({
+          name: data.name || 'Usuário',
+          birthDate: new Date(1990, 0, 15),
+          birthTime: '14:30',
+          birthPlace: 'São Paulo, SP',
+          email: data.email,
+        });
+      }
       setCurrentView('dashboard');
     } else {
       // Precisa completar onboarding
@@ -39,14 +136,89 @@ export default function App() {
     }
   };
 
-  const handleNeedsBirthData = (email: string, name?: string) => {
+  const handleNeedsBirthData = (email: string, name?: string, password?: string) => {
     setAuthData({ email, name, hasCompletedOnboarding: false });
+    // Armazenar senha temporariamente se fornecida (para novo registro do auth-portal)
+    if (password) {
+      setTempPassword(password);
+    }
     setCurrentView('onboarding');
   };
 
-  const handleOnboardingComplete = (data: OnboardingData) => {
-    setUserData(data);
-    setCurrentView('dashboard');
+  const handleOnboardingComplete = async (data: OnboardingData) => {
+    // Verificar se tem email e coordenadas
+    if (!data.email) {
+      toast.error('Email é obrigatório para registro');
+      throw new Error('Email é obrigatório para registro');
+    }
+
+    if (!data.coordinates) {
+      toast.error('Coordenadas geográficas são obrigatórias');
+      throw new Error('Coordenadas geográficas são obrigatórias');
+    }
+
+    if (!data.birthDate) {
+      toast.error('Data de nascimento é obrigatória');
+      throw new Error('Data de nascimento é obrigatória');
+    }
+
+    // Validar senha
+    // Se veio do auth-portal (authData.email existe), a senha deve estar em tempPassword ou data.password
+    // Se não veio do auth-portal, a senha deve estar em data.password
+    const finalPassword = data.password || tempPassword;
+    
+    if (!finalPassword) {
+      toast.error('Senha é obrigatória para registro');
+      throw new Error('Senha é obrigatória para registro');
+    }
+
+    // Preparar dados para registro
+    const registerData = {
+      email: data.email,
+      password: finalPassword, // Usar a senha final (pode vir de data.password ou tempPassword)
+      name: data.name,
+      birth_data: {
+        name: data.name,
+        birth_date: data.birthDate.toISOString(),
+        birth_time: data.birthTime,
+        birth_place: data.birthPlace,
+        latitude: data.coordinates.latitude,
+        longitude: data.coordinates.longitude,
+      },
+    };
+
+    console.log('[DEBUG App] Dados de registro preparados:', {
+      email: registerData.email,
+      name: registerData.name,
+      hasPassword: !!registerData.password,
+      passwordLength: registerData.password?.length || 0,
+      passwordSource: data.password ? 'data.password' : tempPassword ? 'tempPassword' : 'nenhuma',
+      hasAuthData: !!authData,
+      authDataEmail: authData?.email,
+      hasTempPassword: !!tempPassword,
+    });
+
+    try {
+      // Registrar no backend
+      console.log('Iniciando registro no backend...');
+      await apiService.registerUser(registerData);
+      
+      console.log('Registro concluído com sucesso!');
+      toast.success('Cadastro realizado com sucesso!');
+      
+      setUserData(data);
+      setCurrentView('dashboard');
+      // Limpar senha temporária após registro bem-sucedido
+      setTempPassword(null);
+    } catch (error: unknown) {
+      console.error('Erro ao registrar:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Erro ao registrar usuário. Verifique sua conexão e tente novamente.';
+      toast.error(errorMessage);
+      // Re-lançar o erro para que o componente de onboarding possa tratá-lo
+      throw error;
+    }
   };
 
   const handleViewInterpretation = (topicId: string) => {
@@ -64,8 +236,13 @@ export default function App() {
         currentView={currentView}
         setCurrentView={setCurrentView}
         userData={userData}
+        setUserData={setUserData}
         authData={authData}
+        setAuthData={setAuthData}
         selectedTopic={selectedTopic}
+        tempPassword={tempPassword}
+        setTempPassword={setTempPassword}
+        isCheckingAuth={isCheckingAuth}
         handleAuthSuccess={handleAuthSuccess}
         handleNeedsBirthData={handleNeedsBirthData}
         handleOnboardingComplete={handleOnboardingComplete}
@@ -81,10 +258,15 @@ interface AppContentProps {
   currentView: AppView;
   setCurrentView: (view: AppView) => void;
   userData: OnboardingData | null;
+  setUserData: (data: OnboardingData | null) => void;
   authData: AuthUserData | null;
+  setAuthData: (data: AuthUserData | null) => void;
   selectedTopic: string;
+  tempPassword: string | null;
+  setTempPassword: (password: string | null) => void;
+  isCheckingAuth: boolean;
   handleAuthSuccess: (data: AuthUserData) => void;
-  handleNeedsBirthData: (email: string, name?: string) => void;
+  handleNeedsBirthData: (email: string, name?: string, password?: string) => void;
   handleOnboardingComplete: (data: OnboardingData) => void;
   handleViewInterpretation: (topicId: string) => void;
   handleBackToDashboard: () => void;
@@ -94,14 +276,46 @@ function AppContent({
   currentView,
   setCurrentView,
   userData,
+  setUserData,
   authData,
+  setAuthData,
   selectedTopic,
+  tempPassword,
+  setTempPassword,
+  isCheckingAuth,
   handleAuthSuccess,
   handleNeedsBirthData,
   handleOnboardingComplete,
   handleViewInterpretation,
   handleBackToDashboard,
 }: AppContentProps) {
+  // Mostrar loading enquanto verifica autenticação
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-background to-[#1a1f4a] dark:to-[#1a1f4a] light:to-[#F0E6D2] relative overflow-hidden">
+        <div className="absolute inset-0 opacity-30">
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-accent rounded-full"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                opacity: Math.random() * 0.5 + 0.3,
+              }}
+            />
+          ))}
+        </div>
+        <div className="relative z-10 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto animate-pulse">
+            <UIIcons.Star size={32} className="text-accent" />
+          </div>
+          <p className="text-secondary">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Landing Page
   if (currentView === 'landing') {
     return (
@@ -217,6 +431,12 @@ function AppContent({
           onComplete={handleOnboardingComplete}
           initialEmail={authData?.email}
           initialName={authData?.name}
+          initialPassword={tempPassword || undefined}
+          onBackToLogin={() => {
+            setCurrentView('auth');
+            setAuthData(null);
+            setTempPassword(null);
+          }}
         />
       </>
     );
@@ -225,7 +445,28 @@ function AppContent({
   // Dashboard
   if (currentView === 'dashboard' && userData) {
     return (
-      <AdvancedDashboard userData={userData} onViewInterpretation={handleViewInterpretation} />
+      <AdvancedDashboard
+        userData={userData}
+        onViewInterpretation={handleViewInterpretation}
+        onLogout={() => {
+          apiService.logout();
+          setCurrentView('auth');
+          setUserData(null);
+          setAuthData(null);
+          setTempPassword(null);
+        }}
+        onUserUpdate={(updatedData) => {
+          console.log('[DEBUG App] onUserUpdate chamado com:', updatedData);
+          // Criar novo objeto para garantir que React detecte a mudança
+          setUserData({
+            ...updatedData,
+            birthDate: new Date(updatedData.birthDate), // Nova instância de Date
+            coordinates: updatedData.coordinates ? {
+              ...updatedData.coordinates
+            } : undefined,
+          });
+        }}
+      />
     );
   }
 

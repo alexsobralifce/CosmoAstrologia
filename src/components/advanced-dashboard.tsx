@@ -6,6 +6,7 @@ import { ElementChart } from './element-chart';
 import { zodiacSigns } from './zodiac-icons';
 import { planets } from './planet-icons';
 import { UIIcons } from './ui-icons';
+import { BookOpen, Eye, Activity, Heart, Calendar, Moon, Star, Home, Zap } from 'lucide-react';
 import { AspectIcons, aspectData, AspectType } from './aspect-icons';
 import { OnboardingData } from './onboarding';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -26,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { EditUserModal } from './edit-user-modal';
-import { ThemeCustomizationModal, ThemeConfig, FontSizeConfig } from './theme-customization-modal';
+import { ThemeCustomizationModal, ThemeConfig, FontSizeConfig, TypographyConfig } from './theme-customization-modal';
 import { useTheme } from './theme-provider';
 import { apiService } from '../services/api';
 
@@ -419,9 +420,16 @@ export const AdvancedDashboard = ({
 }: AdvancedDashboardProps) => {
   const [selectedHouse, setSelectedHouse] = useState<HouseData | null>(null);
   const [aspectFilter, setAspectFilter] = useState<'all' | 'harmonic' | 'dynamic' | 'neutral'>('all');
+  const [activeTab, setActiveTab] = useState<string>('guide');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
   const [currentUserData, setCurrentUserData] = useState<OnboardingData>(userData);
+  const [showElementsModal, setShowElementsModal] = useState(false);
+  const [elementsInterpretation, setElementsInterpretation] = useState<string>('');
+  const [loadingElementsInterpretation, setLoadingElementsInterpretation] = useState(false);
+  const [aspectDetailedInterpretations, setAspectDetailedInterpretations] = useState<Record<string, string>>({});
+  const [loadingAspectInterpretations, setLoadingAspectInterpretations] = useState<Record<string, boolean>>({});
+  const [showDetailedAspects, setShowDetailedAspects] = useState<Record<string, boolean>>({});
   const [customTheme, setCustomTheme] = useState<ThemeConfig>(() => {
     // Carregar tema do localStorage se existir
     try {
@@ -452,6 +460,18 @@ export const AdvancedDashboard = ({
       console.warn('Erro ao carregar tamanho de fonte do localStorage:', e);
     }
     return { base: 16 };
+  });
+  const [typography, setTypography] = useState<TypographyConfig | null>(() => {
+    // Carregar tipografia do localStorage se existir
+    try {
+      const saved = localStorage.getItem('astro-typography');
+      if (saved) {
+        return JSON.parse(saved) as TypographyConfig;
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar tipografia do localStorage:', e);
+    }
+    return null;
   });
   const { theme: currentTheme } = useTheme();
   const ensureHex = (value: string) => (value.startsWith('#') ? value : `#${value}`);
@@ -502,6 +522,29 @@ export const AdvancedDashboard = ({
     const root = document.documentElement;
     root.style.setProperty('--font-size', `${fontSize.base}px`);
   }, [fontSize]);
+
+  // Aplicar configurações de tipografia globalmente
+  useEffect(() => {
+    if (!typography) return;
+    
+    const root = document.documentElement;
+    root.style.setProperty('--font-family', typography.fontFamily);
+    root.style.setProperty('--font-weight-base', typography.fontWeight === 'normal' ? '400' : typography.fontWeight === 'medium' ? '500' : typography.fontWeight === 'semibold' ? '600' : '700');
+    root.style.setProperty('--font-style', typography.fontStyle);
+    root.style.setProperty('--letter-spacing', typography.letterSpacing === 'tight' ? '-0.025em' : typography.letterSpacing === 'normal' ? '0' : '0.05em');
+    root.style.setProperty('--line-height', typography.lineHeight === 'tight' ? '1.25' : typography.lineHeight === 'normal' ? '1.5' : '1.75');
+    root.style.setProperty('--text-color-primary', typography.textColor.primary);
+    root.style.setProperty('--text-color-secondary', typography.textColor.secondary);
+    root.style.setProperty('--text-color-accent', typography.textColor.accent);
+  }, [typography]);
+
+  // Carregar interpretação de elementos quando o dialog for aberto
+  useEffect(() => {
+    if (showElementsModal && !elementsInterpretation && !loadingElementsInterpretation) {
+      loadElementsInterpretation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showElementsModal]);
 
   const [isApplyingTheme, setIsApplyingTheme] = useState(false);
   const [backendChartData, setBackendChartData] = useState<any>(null);
@@ -781,6 +824,296 @@ export const AdvancedDashboard = ({
   // Estado para armazenar interpretações dinâmicas
   const [planetInterpretations, setPlanetInterpretations] = useState<Record<string, { inSign: string; inHouse: string }>>({});
   const [loadingInterpretations, setLoadingInterpretations] = useState<Record<string, boolean>>({});
+
+  // Função para calcular elementos e modalidades do mapa
+  const calculateUserElements = () => {
+    const elementMap: Record<string, string> = {
+      'Áries': 'Fogo',
+      'Touro': 'Terra',
+      'Gêmeos': 'Ar',
+      'Câncer': 'Água',
+      'Leão': 'Fogo',
+      'Virgem': 'Terra',
+      'Libra': 'Ar',
+      'Escorpião': 'Água',
+      'Sagitário': 'Fogo',
+      'Capricórnio': 'Terra',
+      'Aquário': 'Ar',
+      'Peixes': 'Água',
+    };
+
+    const modalityMap: Record<string, string> = {
+      'Áries': 'Cardinal',
+      'Touro': 'Fixo',
+      'Gêmeos': 'Mutável',
+      'Câncer': 'Cardinal',
+      'Leão': 'Fixo',
+      'Virgem': 'Mutável',
+      'Libra': 'Cardinal',
+      'Escorpião': 'Fixo',
+      'Sagitário': 'Mutável',
+      'Capricórnio': 'Cardinal',
+      'Aquário': 'Fixo',
+      'Peixes': 'Mutável',
+    };
+
+    const elementCounts: Record<string, number> = { Fogo: 0, Terra: 0, Ar: 0, Água: 0 };
+    const modalityCounts: Record<string, number> = { Cardinal: 0, Fixo: 0, Mutável: 0 };
+
+    // Contar elementos e modalidades dos planetas
+    if (chartBasics.planets && chartBasics.planets.length > 0) {
+      chartBasics.planets.forEach((planet: any) => {
+        const sign = planet.sign;
+        if (sign && elementMap[sign]) {
+          elementCounts[elementMap[sign]]++;
+        }
+        if (sign && modalityMap[sign]) {
+          modalityCounts[modalityMap[sign]]++;
+        }
+      });
+    }
+
+    // Adicionar Sol, Lua e Ascendente
+    if (chartBasics.sun?.sign) {
+      const element = elementMap[chartBasics.sun.sign];
+      const modality = modalityMap[chartBasics.sun.sign];
+      if (element) elementCounts[element]++;
+      if (modality) modalityCounts[modality]++;
+    }
+    if (chartBasics.moon?.sign) {
+      const element = elementMap[chartBasics.moon.sign];
+      const modality = modalityMap[chartBasics.moon.sign];
+      if (element) elementCounts[element]++;
+      if (modality) modalityCounts[modality]++;
+    }
+    if (chartBasics.ascendant?.sign) {
+      const element = elementMap[chartBasics.ascendant.sign];
+      const modality = modalityMap[chartBasics.ascendant.sign];
+      if (element) elementCounts[element]++;
+      if (modality) modalityCounts[modality]++;
+    }
+
+    // Encontrar elemento mais e menos presente
+    const totalElements = Object.values(elementCounts).reduce((a, b) => a + b, 0);
+    
+    if (totalElements === 0) {
+      // Fallback: retornar valores padrão
+      return {
+        elementCounts,
+        elementPercentages: [],
+        mostElement: 'Fogo',
+        leastElement: 'Água',
+        mostElementPct: 0,
+        leastElementPct: 0,
+      };
+    }
+    
+    const elementPercentages = Object.entries(elementCounts).map(([name, count]) => ({
+      name,
+      count,
+      percentage: Math.round((count / totalElements) * 100),
+    }));
+
+    const sortedByPercentage = [...elementPercentages].sort((a, b) => b.percentage - a.percentage);
+    const mostElement = sortedByPercentage[0] || { name: 'Fogo', percentage: 0 };
+    const leastElement = sortedByPercentage[sortedByPercentage.length - 1] || { name: 'Água', percentage: 0 };
+
+    return {
+      elementCounts,
+      elementPercentages,
+      mostElement: mostElement.name,
+      leastElement: leastElement.name,
+      mostElementPct: mostElement.percentage,
+      leastElementPct: leastElement.percentage,
+    };
+  };
+
+  // Função para buscar interpretação sobre elementos e modalidades
+  const loadAspectDetailedInterpretation = async (
+    aspectId: string,
+    planet1: string,
+    planet2: string,
+    aspectType: AspectType
+  ) => {
+    // Se já está carregando ou já tem a interpretação, apenas mostrar
+    if (loadingAspectInterpretations[aspectId]) {
+      return;
+    }
+
+    if (aspectDetailedInterpretations[aspectId]) {
+      setShowDetailedAspects(prev => ({ ...prev, [aspectId]: true }));
+      return;
+    }
+
+    try {
+      setLoadingAspectInterpretations(prev => ({ ...prev, [aspectId]: true }));
+
+      // Mapear o tipo de aspecto para o formato esperado pela API
+      const aspectTypeMap: Record<AspectType, string> = {
+        conjunction: 'conjunction',
+        trine: 'trine',
+        sextile: 'sextile',
+        square: 'square',
+        opposition: 'opposition',
+      };
+
+      const result = await apiService.getAspectInterpretation({
+        planet1,
+        planet2,
+        aspect: aspectTypeMap[aspectType],
+      });
+
+      if (result.interpretation) {
+        // Limpar a interpretação removendo referências de fonte
+        let cleanInterpretation = result.interpretation;
+        cleanInterpretation = cleanInterpretation.replace(/\[Fonte:[^\]]+\]/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/--- Documento \d+[^-]+---/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/Fonte:[^\n]+/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/Página \d+/g, '');
+
+        setAspectDetailedInterpretations(prev => ({
+          ...prev,
+          [aspectId]: cleanInterpretation,
+        }));
+        setShowDetailedAspects(prev => ({ ...prev, [aspectId]: true }));
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      // Log apenas se não for timeout
+      if (!errorMessage.includes('Tempo de espera esgotado')) {
+        console.error(`[Aspectos] Erro ao buscar interpretação para ${aspectId}:`, error);
+      }
+    } finally {
+      setLoadingAspectInterpretations(prev => ({ ...prev, [aspectId]: false }));
+    }
+  };
+
+  const loadElementsInterpretation = async () => {
+    if (loadingElementsInterpretation || elementsInterpretation) {
+      return;
+    }
+
+    try {
+      setLoadingElementsInterpretation(true);
+      
+      // Calcular elementos do usuário
+      const userElements = calculateUserElements();
+      
+      // Construir query mais específica sobre os elementos
+      const query = `elemento ${userElements.mostElement} predominante no mapa astral significado características personalidade comportamento influência vida prática elemento ${userElements.leastElement} ausente falta impacto`;
+      
+      const result = await apiService.getInterpretation({
+        custom_query: query,
+        use_groq: true,
+      });
+
+      console.log('[DEBUG] Resultado da interpretação:', {
+        hasInterpretation: !!result.interpretation,
+        generatedBy: result.generated_by,
+        interpretationLength: result.interpretation?.length,
+        interpretationPreview: result.interpretation?.substring(0, 200),
+      });
+
+      if (result.interpretation) {
+        // Remover informações de fonte se presentes
+        let cleanInterpretation = result.interpretation;
+        
+        console.log('[DEBUG] Interpretação recebida (primeiros 500 chars):', cleanInterpretation.substring(0, 500));
+        console.log('[DEBUG] Generated by:', result.generated_by);
+        console.log('[DEBUG] Tamanho original:', cleanInterpretation.length);
+        
+        // Primeiro, remover apenas referências explícitas a fontes, mas preservar o conteúdo
+        cleanInterpretation = cleanInterpretation.replace(/\[Fonte:[^\]]+\]/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/--- Documento \d+[^-]+---/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/Fonte:[^\n]+/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/Página \d+/g, '');
+        
+        // Remover linhas que são apenas cabeçalhos ou referências, mas manter o conteúdo
+        const lines = cleanInterpretation.split('\n');
+        const filteredLines = lines.filter(line => {
+          const trimmed = line.trim();
+          // Ignorar apenas linhas completamente vazias
+          if (!trimmed) return false;
+          // Ignorar linhas que são apenas referências
+          if (trimmed.toLowerCase().includes('contexto da consulta:')) return false;
+          if (trimmed.toLowerCase().includes('documentos de referência:')) return false;
+          // Se a linha é exatamente igual à query, ignorar
+          if (trimmed.toLowerCase() === query.toLowerCase()) return false;
+          return true;
+        });
+        
+        cleanInterpretation = filteredLines.join('\n').trim();
+        
+        console.log('[DEBUG] Tamanho após primeira limpeza:', cleanInterpretation.length);
+        
+        // Se após a limpeza ficou muito curto, usar a versão original com limpeza mínima
+        if (cleanInterpretation.length < 100) {
+          console.warn('[DEBUG] Interpretação muito curta após limpeza, usando versão com limpeza mínima');
+          // Limpeza mínima: apenas remover referências explícitas a fontes
+          cleanInterpretation = result.interpretation
+            .replace(/\[Fonte:[^\]]+\]/g, '')
+            .replace(/Fonte:[^\n]+/g, '')
+            .replace(/Página \d+/g, '')
+            .trim();
+        }
+        
+        // Verificar se ainda há conteúdo válido
+        if (!cleanInterpretation || cleanInterpretation.length < 50) {
+          console.error('[DEBUG] Interpretação ainda muito curta após limpeza mínima:', cleanInterpretation.length);
+          console.error('[DEBUG] Conteúdo original completo:', result.interpretation);
+          setElementsInterpretation('Não foi possível processar a interpretação. Por favor, verifique os logs do backend ou tente novamente.');
+          return;
+        }
+        
+        // Verificar se não é apenas a query repetida (validação mais flexível)
+        const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+        if (queryWords.length > 0) {
+          const interpretationWords = cleanInterpretation.toLowerCase().split(/\s+/);
+          const matchingWords = queryWords.filter(qw => interpretationWords.includes(qw));
+          
+          // Se mais de 90% das palavras da query estão na interpretação E a interpretação é muito curta, pode ser problema
+          if (matchingWords.length / queryWords.length > 0.9 && cleanInterpretation.length < 150) {
+            console.warn('[DEBUG] Interpretação parece ser apenas a query repetida');
+            // Mesmo assim, vamos tentar usar se tiver algum conteúdo
+            if (cleanInterpretation.length < 50) {
+              setElementsInterpretation('A interpretação gerada parece estar incompleta. Por favor, tente novamente.');
+              return;
+            }
+          }
+        }
+        
+        // Melhorar formatação da interpretação
+        // Converter markdown básico para melhor legibilidade
+        cleanInterpretation = cleanInterpretation
+          .replace(/\*\*(.*?)\*\*/g, '$1') // Remover ** mas manter o texto em negrito
+          .replace(/\n{3,}/g, '\n\n') // Reduzir múltiplas quebras de linha
+          .trim();
+        
+        console.log('[DEBUG] Interpretação final (primeiros 200 chars):', cleanInterpretation.substring(0, 200));
+        setElementsInterpretation(cleanInterpretation);
+      } else {
+        setElementsInterpretation('Não foi possível carregar a interpretação no momento. Tente novamente mais tarde.');
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar interpretação de elementos:', error);
+      
+      // Verificar se é um erro HTTP
+      if (error?.response?.status === 500) {
+        console.error('[DEBUG] Erro 500 do servidor:', error?.response?.data);
+        setElementsInterpretation('Erro no servidor ao gerar a interpretação. O serviço pode estar temporariamente indisponível. Por favor, tente novamente em alguns instantes.');
+      } else if (error?.response?.status === 400) {
+        console.error('[DEBUG] Erro 400 - Requisição inválida:', error?.response?.data);
+        setElementsInterpretation('Erro na requisição. Por favor, verifique os dados e tente novamente.');
+      } else if (error?.message) {
+        console.error('[DEBUG] Erro na requisição:', error.message);
+        setElementsInterpretation(`Erro ao carregar a interpretação: ${error.message}. Por favor, tente novamente.`);
+      } else {
+        setElementsInterpretation('Erro ao carregar a interpretação. Por favor, verifique sua conexão e tente novamente.');
+      }
+    } finally {
+      setLoadingElementsInterpretation(false);
+    }
+  };
 
   // Função para buscar interpretação de um planeta
   const fetchPlanetInterpretation = async (planetName: string, sign: string, house: number) => {
@@ -1188,41 +1521,88 @@ export const AdvancedDashboard = ({
     >
       {/* Header */}
       <header className="border-b border-border/30 backdrop-blur-sm sticky top-0 z-10 bg-background/80">
-        <div className="max-w-[1800px] mx-auto px-4 py-4 flex items-center justify-between">
-          <h2 className="text-accent">Mapa Astral Completo</h2>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <button className="p-2 rounded-lg hover:bg-accent/10 hover:scale-110 transition-all duration-200 group">
-              <UIIcons.Bell size={20} className="text-secondary group-hover:text-accent transition-colors" />
-            </button>
-            <button
-              className="p-2 rounded-lg hover:bg-accent/10 hover:scale-110 transition-all duration-200 group"
-              onClick={() => setShowThemeModal(true)}
-            >
-              <UIIcons.Settings size={20} className="text-secondary group-hover:text-accent group-hover:rotate-90 transition-all duration-200" />
-            </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 rounded-lg hover:bg-accent/10 hover:scale-110 transition-all duration-200 cursor-pointer group">
-                  <Avatar className="w-8 h-8 bg-accent/20 group-hover:bg-accent/30 transition-colors ring-2 ring-transparent group-hover:ring-accent/40">
-                    <AvatarFallback className="text-accent font-medium text-sm group-hover:scale-105 transition-transform">
-                      {getInitials(currentUserData.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setShowEditModal(true)} className="hover:bg-accent/10 cursor-pointer group/item">
-                  <UIIcons.User className="mr-2 group-hover/item:text-accent group-hover/item:scale-110 transition-all" size={16} />
-                  <span className="group-hover/item:text-accent transition-colors">Editar Perfil</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} variant="destructive" className="hover:bg-destructive/10 cursor-pointer group/item">
-                  <UIIcons.LogOut className="mr-2 group-hover/item:scale-110 transition-all" size={16} />
-                  <span className="group-hover/item:opacity-90 transition-opacity">Sair</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+        <div className="max-w-[1800px] mx-auto px-4">
+          {/* Top Row: Title and Actions */}
+          <div className="flex items-center justify-between py-4">
+            <h2 className="text-accent">Mapa Astral Completo</h2>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <button className="p-2 rounded-lg hover:bg-accent/10 hover:scale-110 transition-all duration-200 group">
+                <UIIcons.Bell size={20} className="text-secondary group-hover:text-accent transition-colors" />
+              </button>
+              <button
+                className="p-2 rounded-lg hover:bg-accent/10 hover:scale-110 transition-all duration-200 group"
+                onClick={() => setShowThemeModal(true)}
+              >
+                <UIIcons.Settings size={20} className="text-secondary group-hover:text-accent group-hover:rotate-90 transition-all duration-200" />
+              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 rounded-lg hover:bg-accent/10 hover:scale-110 transition-all duration-200 cursor-pointer group">
+                    <Avatar className="w-8 h-8 bg-accent/20 group-hover:bg-accent/30 transition-colors ring-2 ring-transparent group-hover:ring-accent/40">
+                      <AvatarFallback className="text-accent font-medium text-sm group-hover:scale-105 transition-transform">
+                        {getInitials(currentUserData.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setShowEditModal(true)} className="hover:bg-accent/10 cursor-pointer group/item">
+                    <UIIcons.User className="mr-2 group-hover/item:text-accent group-hover/item:scale-110 transition-all" size={16} />
+                    <span className="group-hover/item:text-accent transition-colors">Editar Perfil</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} variant="destructive" className="hover:bg-destructive/10 cursor-pointer group/item">
+                    <UIIcons.LogOut className="mr-2 group-hover/item:scale-110 transition-all" size={16} />
+                    <span className="group-hover/item:opacity-90 transition-opacity">Sair</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          
+          {/* Bottom Row: Navigation Tabs */}
+          <div className="pb-3">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full justify-start bg-card/50 backdrop-blur-sm dark:bg-card/70 p-1 flex-wrap">
+                <TabsTrigger value="guide" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 hover:scale-105 transition-all duration-200 flex items-center gap-2">
+                  <BookOpen size={16} className="text-blue-500 dark:text-blue-400" />
+                  Seu Guia Pessoal
+                </TabsTrigger>
+                <TabsTrigger value="overview" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 hover:scale-105 transition-all duration-200 flex items-center gap-2">
+                  <Eye size={16} className="text-purple-500 dark:text-purple-400" />
+                  Visão Geral
+                </TabsTrigger>
+                <TabsTrigger value="biorhythms" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 hover:scale-105 transition-all duration-200 flex items-center gap-2">
+                  <Activity size={16} className="text-green-500 dark:text-green-400" />
+                  Biorritmos
+                </TabsTrigger>
+                <TabsTrigger value="synastry" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 flex items-center gap-2">
+                  <Heart size={16} className="text-pink-500 dark:text-pink-400" />
+                  Sinastria
+                </TabsTrigger>
+                <TabsTrigger value="guide2026" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 flex items-center gap-2">
+                  <Calendar size={16} className="text-orange-500 dark:text-orange-400" />
+                  Guia 2026
+                </TabsTrigger>
+                <TabsTrigger value="lunarNodes" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 flex items-center gap-2">
+                  <Moon size={16} className="text-indigo-500 dark:text-indigo-400" />
+                  Nodos Lunares
+                </TabsTrigger>
+                <TabsTrigger value="planets" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 flex items-center gap-2">
+                  <Star size={16} className="text-yellow-500 dark:text-yellow-400" />
+                  Planetas
+                </TabsTrigger>
+                <TabsTrigger value="houses" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 flex items-center gap-2">
+                  <Home size={16} className="text-amber-600 dark:text-amber-500" />
+                  Casas
+                </TabsTrigger>
+                <TabsTrigger value="aspects" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent dark:data-[state=active]:bg-accent/30 dark:data-[state=active]:text-accent dark:text-foreground/90 dark:hover:text-accent hover:bg-accent/10 flex items-center gap-2">
+                  <Zap size={16} className="text-cyan-500 dark:text-cyan-400" />
+                  Aspectos
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
       </header>
@@ -1336,37 +1716,7 @@ export const AdvancedDashboard = ({
 
           {/* Right Content Area - Tabs */}
           <main className="lg:col-span-8 xl:col-span-9">
-            <Tabs defaultValue="guide" className="space-y-6">
-              <TabsList className="w-full justify-start bg-card/50 backdrop-blur-sm p-1 flex-wrap">
-                <TabsTrigger value="guide" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent hover:bg-accent/10 hover:scale-105 transition-all duration-200">
-                  Seu Guia Pessoal
-                </TabsTrigger>
-                <TabsTrigger value="overview" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent hover:bg-accent/10 hover:scale-105 transition-all duration-200">
-                  Visão Geral
-                </TabsTrigger>
-                <TabsTrigger value="biorhythms" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent hover:bg-accent/10 hover:scale-105 transition-all duration-200">
-                  Biorritmos
-                </TabsTrigger>
-                <TabsTrigger value="synastry" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                  Sinastria
-                </TabsTrigger>
-                <TabsTrigger value="guide2026" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                  Guia 2026
-                </TabsTrigger>
-                <TabsTrigger value="lunarNodes" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                  Nodos Lunares
-                </TabsTrigger>
-                <TabsTrigger value="planets" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                  Planetas
-                </TabsTrigger>
-                <TabsTrigger value="houses" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                  Casas
-                </TabsTrigger>
-                <TabsTrigger value="aspects" className="data-[state=active]:bg-accent/20 data-[state=active]:text-accent">
-                  Aspectos
-                </TabsTrigger>
-              </TabsList>
-
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
               {/* Tab 0: Seu Guia Pessoal */}
               <TabsContent value="guide" className="space-y-8">
                 {/* Seção 1: Regente do Mapa 
@@ -1475,6 +1825,7 @@ export const AdvancedDashboard = ({
                   isMercuryRetrograde={true}
                   isMoonVoidOfCourse={false}
                   voidEndsAt="16:30"
+                  planetaryData={planetaryData}
                 />
 
                 {/* Seção 3: Horizontes Futuros 
@@ -1488,11 +1839,22 @@ export const AdvancedDashboard = ({
               {/* Tab 1: Overview */}
               <TabsContent value="overview" className="space-y-6">
                 {/* Cosmic Balance */}
-                <AstroCard>
+                <AstroCard className="relative">
                   <h2 className="text-accent mb-6">Balanço de Elementos e Modalidades</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <ElementChart data={elementsData} title="Elementos" />
                     <ElementChart data={modalitiesData} title="Modalidades" />
+                  </div>
+                  <div className="mt-6 flex justify-start">
+                    <AstroButton
+                      onClick={() => {
+                        setShowElementsModal(true);
+                      }}
+                      className="text-sm inline-flex items-center gap-2"
+                    >
+                      <UIIcons.BookOpen className="w-4 h-4" />
+                      Leia mais
+                    </AstroButton>
                   </div>
                 </AstroCard>
 
@@ -2125,14 +2487,36 @@ export const AdvancedDashboard = ({
                           >
                             <AccordionItem value={aspect.id} className="border-0 px-4">
                               <AccordionTrigger className="hover:no-underline group/aspect">
-                                <div className="flex items-center gap-4 w-full">
-                                  {planet1 && (
-                                    <planet1.icon size={24} className="text-accent group-hover/aspect:scale-110 group-hover/aspect:rotate-12 transition-all duration-200" />
-                                  )}
-                                  <AspectIcon size={20} className={`${aspectColor} group-hover/aspect:scale-110 transition-all duration-200`} />
-                                  {planet2 && (
-                                    <planet2.icon size={24} className="text-accent group-hover/aspect:scale-110 group-hover/aspect:-rotate-12 transition-all duration-200" />
-                                  )}
+                                <div className="flex items-start gap-4 w-full">
+                                  <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                                    <div className="flex items-center gap-2">
+                                      {planet1 && (
+                                        <planet1.icon size={24} className="text-accent group-hover/aspect:scale-110 group-hover/aspect:rotate-12 transition-all duration-200" />
+                                      )}
+                                      <AspectIcon size={20} className={`${aspectColor} group-hover/aspect:scale-110 transition-all duration-200`} />
+                                      {planet2 && (
+                                        <planet2.icon size={24} className="text-accent group-hover/aspect:scale-110 group-hover/aspect:-rotate-12 transition-all duration-200" />
+                                      )}
+                                    </div>
+                                    {/* Botão Leia mais - pequeno abaixo dos símbolos */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        loadAspectDetailedInterpretation(aspect.id, aspect.planet1, aspect.planet2, aspect.type);
+                                      }}
+                                      disabled={loadingAspectInterpretations[aspect.id]}
+                                      className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-medium text-accent hover:text-accent/80 bg-accent/10 hover:bg-accent/20 rounded transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {loadingAspectInterpretations[aspect.id] ? (
+                                        <UIIcons.Loader className="w-2 h-2 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <UIIcons.BookOpen className="w-2 h-2" />
+                                          <span>Leia mais</span>
+                                        </>
+                                      )}
+                                    </button>
+                                  </div>
                                   <div className="flex-1 text-left">
                                     <h3 className="text-foreground">
                                       {aspect.planet1} em {aspectData[aspect.type].name} com{' '}
@@ -2153,13 +2537,33 @@ export const AdvancedDashboard = ({
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent className="pt-4">
-                                <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
+                                <div className="p-4 rounded-lg bg-accent/5 border border-accent/20 space-y-4">
                                   <p className="text-secondary leading-relaxed">
                                     {aspect.interpretation}
                                   </p>
-                                  <p className="text-xs text-secondary/70 mt-3">
+                                  <p className="text-xs text-secondary/70">
                                     Orb: {aspect.orb}°
                                   </p>
+
+                                  {/* Interpretação Detalhada */}
+                                  {showDetailedAspects[aspect.id] && aspectDetailedInterpretations[aspect.id] && (
+                                    <div className="mt-4 p-4 rounded-lg bg-gradient-to-br from-secondary/10 to-secondary/5 border border-secondary/20">
+                                      <div className="flex items-center justify-between mb-2">
+                                        <h4 className="text-secondary font-medium" style={{ fontFamily: 'var(--font-sans)' }}>
+                                          Interpretação Detalhada:
+                                        </h4>
+                                        <button
+                                          onClick={() => setShowDetailedAspects(prev => ({ ...prev, [aspect.id]: false }))}
+                                          className="text-secondary/70 hover:text-secondary transition-colors"
+                                        >
+                                          <UIIcons.X className="w-4 h-4" />
+                                        </button>
+                                      </div>
+                                      <p className="text-secondary leading-relaxed whitespace-pre-wrap">
+                                        {aspectDetailedInterpretations[aspect.id]}
+                                      </p>
+                                    </div>
+                                  )}
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
@@ -2222,6 +2626,47 @@ export const AdvancedDashboard = ({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Elements and Modalities Detail Modal */}
+      <Dialog open={showElementsModal} onOpenChange={setShowElementsModal}>
+        <DialogContent className="max-w-3xl bg-card backdrop-blur-md border border-border max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-accent flex items-center gap-3">
+              <UIIcons.Star size={20} className="text-accent" />
+              <span>Elementos e Modalidades na Sua Vida</span>
+            </DialogTitle>
+            <DialogDescription className="text-secondary">
+              Entenda como os elementos e modalidades influenciam sua personalidade e comportamento
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            {loadingElementsInterpretation ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
+                  <p className="text-secondary">Buscando informações na base de conhecimento...</p>
+                </div>
+              </div>
+            ) : elementsInterpretation ? (
+              <div className="prose prose-invert max-w-none">
+                <div className="text-secondary leading-relaxed whitespace-pre-wrap space-y-4">
+                  {elementsInterpretation.split('\n\n').map((paragraph, index) => (
+                    paragraph.trim() && (
+                      <p key={index} className="mb-4">
+                        {paragraph.trim()}
+                      </p>
+                    )
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-secondary">Clique em "Leia mais" para carregar a interpretação.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       <EditUserModal
         open={showEditModal}
         onOpenChange={setShowEditModal}
@@ -2234,8 +2679,13 @@ export const AdvancedDashboard = ({
         onOpenChange={setShowThemeModal}
         onSave={handleThemeSave}
         onFontSizeChange={handleFontSizeChange}
+        onTypographyChange={(newTypography) => {
+          setTypography(newTypography);
+          localStorage.setItem('astro-typography', JSON.stringify(newTypography));
+        }}
         initialValue={customTheme}
         initialFontSize={fontSize}
+        initialTypography={typography}
       />
       {isApplyingTheme && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm">

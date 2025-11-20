@@ -61,7 +61,8 @@ class ApiService {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    timeout: number = 30000
   ): Promise<T> {
     try {
       const token = this.getAuthToken();
@@ -74,9 +75,13 @@ class ApiService {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Adicionar timeout de 30 segundos
+      // Adicionar timeout configurável (padrão 30 segundos, 60 para interpretações)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      let timeoutTriggered = false;
+      const timeoutId = setTimeout(() => {
+        timeoutTriggered = true;
+        controller.abort();
+      }, timeout);
 
       const url = `${API_BASE_URL}${endpoint}`;
       console.log(`[API] Fazendo requisição para: ${url}`, options.method || 'GET');
@@ -121,22 +126,31 @@ class ApiService {
         return null as T;
       } catch (fetchError) {
         clearTimeout(timeoutId);
-        console.error('[API] Erro na requisição:', fetchError);
         
         if (fetchError instanceof Error) {
-          if (fetchError.name === 'AbortError') {
-            throw new Error('Tempo de espera esgotado. Verifique se o servidor está rodando.');
-          }
-          // Verificar se é erro de conexão
-          if (
-            fetchError.message.includes('Failed to fetch') || 
+          // Verificar se é erro de conexão primeiro (TypeError com "Failed to fetch" é o mais comum)
+          const isConnectionError = 
+            (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) ||
             fetchError.message.includes('NetworkError') ||
             fetchError.message.includes('Network request failed') ||
             fetchError.message.includes('ERR_CONNECTION_REFUSED') ||
-            fetchError.message.includes('ERR_NETWORK')
-          ) {
-            throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://localhost:8000');
+            fetchError.message.includes('ERR_NETWORK') ||
+            fetchError.message.includes('ERR_INTERNET_DISCONNECTED');
+            
+          if (isConnectionError) {
+            console.error('[API] Erro de conexão:', fetchError);
+            throw new Error(`Não foi possível conectar ao backend em ${API_BASE_URL}.\n\nO backend não está rodando ou não está respondendo.\n\nPara iniciar:\n1. Abra um terminal\n2. Execute: cd backend && python3 run.py\n\nOu use: ./start-backend.sh`);
           }
+          
+          if (fetchError.name === 'AbortError' || fetchError.message.includes('aborted')) {
+            // Verificar se foi timeout ou cancelamento
+            if (timeoutTriggered) {
+              throw new Error(`Tempo de espera esgotado (${timeout / 1000}s). A requisição está demorando mais que o esperado. Tente novamente.`);
+            }
+            throw new Error('Requisição cancelada. Verifique se o servidor está rodando.');
+          }
+          
+          console.error('[API] Erro na requisição:', fetchError);
           throw fetchError;
         }
         throw new Error('Erro desconhecido na requisição');
@@ -238,10 +252,11 @@ class ApiService {
     query_used: string;
     generated_by?: string;
   }> {
+    // Timeout maior para interpretações com RAG/Groq (60 segundos)
     return await this.request('/api/interpretation', {
       method: 'POST',
       body: JSON.stringify(params),
-    });
+    }, 60000);
   }
 
   async searchDocuments(query: string, top_k: number = 5): Promise<{
@@ -299,9 +314,10 @@ class ApiService {
     }
     
     const query = queryParams.toString();
+    // Timeout maior para cálculos de trânsitos (45 segundos)
     return await this.request(`/api/transits/future${query ? `?${query}` : ''}`, {
       method: 'GET',
-    });
+    }, 45000);
   }
 
   // Interpretações específicas usando RAG + Groq
@@ -319,10 +335,11 @@ class ApiService {
     query_used: string;
     generated_by?: string;
   }> {
+    // Timeout maior para interpretações com RAG/Groq (60 segundos)
     return await this.request('/api/interpretation/planet', {
       method: 'POST',
       body: JSON.stringify(params),
-    });
+    }, 60000);
   }
 
   async getChartRulerInterpretation(params: {
@@ -340,10 +357,11 @@ class ApiService {
     query_used: string;
     generated_by?: string;
   }> {
+    // Timeout maior para interpretações com RAG/Groq (60 segundos)
     return await this.request('/api/interpretation/chart-ruler', {
       method: 'POST',
       body: JSON.stringify(params),
-    });
+    }, 60000);
   }
 
   async getPlanetHouseInterpretation(params: {
@@ -359,10 +377,11 @@ class ApiService {
     query_used: string;
     generated_by?: string;
   }> {
+    // Timeout maior para interpretações com RAG/Groq (60 segundos)
     return await this.request('/api/interpretation/planet-house', {
       method: 'POST',
       body: JSON.stringify(params),
-    });
+    }, 60000);
   }
 
   async getAspectInterpretation(params: {
@@ -379,10 +398,37 @@ class ApiService {
     query_used: string;
     generated_by?: string;
   }> {
+    // Timeout maior para interpretações com RAG/Groq (60 segundos)
     return await this.request('/api/interpretation/aspect', {
       method: 'POST',
       body: JSON.stringify(params),
-    });
+    }, 60000);
+  }
+
+  async getDailyAdvice(params: {
+    moonHouse: number;
+    category: string;
+    moonSign?: string;
+    planetaryPositions?: Array<{
+      name: string;
+      house: number;
+      sign?: string;
+    }>;
+  }): Promise<{
+    interpretation: string;
+    sources: Array<{
+      source: string;
+      page: number;
+      relevance: number;
+    }>;
+    query_used: string;
+    generated_by?: string;
+  }> {
+    // Timeout maior para interpretações com RAG/Groq (60 segundos)
+    return await this.request('/api/interpretation/daily-advice', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 60000);
   }
 }
 

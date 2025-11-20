@@ -12,6 +12,7 @@ import { AstroInput } from './components/astro-input';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
 import { Toaster } from './components/ui/sonner';
+import { ScrollToTop } from './components/scroll-to-top';
 import { apiService } from './services/api';
 import { toast } from 'sonner';
 
@@ -250,6 +251,7 @@ export default function App() {
         handleBackToDashboard={handleBackToDashboard}
       />
       <Toaster richColors position="top-center" />
+      <ScrollToTop />
     </ThemeProvider>
   );
 }

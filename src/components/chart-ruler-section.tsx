@@ -19,6 +19,9 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
     influence: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [detailedInterpretation, setDetailedInterpretation] = useState<string>('');
+  const [showDetailed, setShowDetailed] = useState(false);
+  const [loadingDetailed, setLoadingDetailed] = useState(false);
 
   const AscendantIcon = zodiacSigns.find(z => z.name === ascendant)?.icon;
   const RulerIcon = planets.find(p => p.name === ruler)?.icon;
@@ -51,7 +54,11 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
           influence,
         });
       } catch (error) {
-        console.error('Erro ao buscar interpretação do regente:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        // Log apenas se não for timeout (timeout é esperado em algumas situações)
+        if (!errorMessage.includes('Tempo de espera esgotado')) {
+          console.error('Erro ao buscar interpretação do regente:', error);
+        }
         // Fallback para interpretação padrão
         setInterpretation({
           concept: `Seu Ascendente é ${ascendant}, portanto, seu planeta regente é ${ruler}.`,
@@ -65,6 +72,59 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
 
     fetchInterpretation();
   }, [ascendant, ruler, rulerSign, rulerHouse]);
+
+  const loadDetailedInterpretation = async () => {
+    if (loadingDetailed || detailedInterpretation) {
+      setShowDetailed(true);
+      return;
+    }
+
+    try {
+      setLoadingDetailed(true);
+      
+      // Construir query específica sobre o regente
+      const query = `regente do mapa ${ruler} em ${rulerSign} casa ${rulerHouse} significado interpretação orientação autoconhecimento características personalidade comportamento influência prática vida`;
+      
+      const result = await apiService.getInterpretation({
+        custom_query: query,
+        use_groq: true,
+      });
+
+      if (result.interpretation) {
+        // Limpar a interpretação
+        let cleanInterpretation = result.interpretation;
+        
+        // Remover referências a fontes e contexto
+        cleanInterpretation = cleanInterpretation.replace(/\[Fonte:[^\]]+\]/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/--- Documento \d+[^-]+---/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/Fonte:[^\n]+/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/Página \d+/g, '');
+        cleanInterpretation = cleanInterpretation.replace(/Contexto da consulta:[^\n]+/g, '');
+        
+        // Melhorar formatação
+        cleanInterpretation = cleanInterpretation
+          .replace(/\*\*(.*?)\*\*/g, '$1')
+          .replace(/\n{3,}/g, '\n\n')
+          .trim();
+
+        if (cleanInterpretation && cleanInterpretation.length > 50) {
+          setDetailedInterpretation(cleanInterpretation);
+        } else {
+          setDetailedInterpretation('Não foi possível carregar informações detalhadas sobre o regente no momento. Tente novamente mais tarde.');
+        }
+      } else {
+        setDetailedInterpretation('Não foi possível carregar informações detalhadas sobre o regente no momento. Tente novamente mais tarde.');
+      }
+      
+      setShowDetailed(true);
+    } catch (error: any) {
+      console.error('Erro ao carregar interpretação detalhada:', error);
+      setDetailedInterpretation('Erro ao carregar informações detalhadas. Tente novamente mais tarde.');
+      setShowDetailed(true);
+    } finally {
+      setLoadingDetailed(false);
+    }
+  };
 
   if (isLoading || !interpretation) {
     return (
@@ -118,15 +178,52 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
           </div>
         </div>
 
-        {/* Influência Prática */}
-        <div className="space-y-3">
-          <h3 className="text-foreground" style={{ fontFamily: 'var(--font-sans)' }}>
-            A Influência Prática (O que isso significa):
-          </h3>
-          <p className="text-secondary leading-relaxed">
-            {interpretation.influence}
-          </p>
+        {/* Botão Leia mais */}
+        <div className="pt-2">
+          <button
+            onClick={loadDetailedInterpretation}
+            disabled={loadingDetailed}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-accent hover:text-accent/80 bg-accent/10 hover:bg-accent/20 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loadingDetailed ? (
+              <>
+                <UIIcons.Loader className="w-4 h-4 animate-spin" />
+                Carregando...
+              </>
+            ) : (
+              <>
+                <UIIcons.BookOpen className="w-4 h-4" />
+                Leia mais
+              </>
+            )}
+          </button>
         </div>
+
+        {/* Interpretação Detalhada */}
+        {showDetailed && (
+          <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-secondary/10 to-secondary/5 border border-secondary/20">
+            <div className="flex items-center justify-between">
+              <h4 className="text-secondary font-medium" style={{ fontFamily: 'var(--font-sans)' }}>
+                A Influência Prática (O que isso significa):
+              </h4>
+              <button
+                onClick={() => setShowDetailed(false)}
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <UIIcons.X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="prose prose-sm max-w-none text-secondary">
+              {detailedInterpretation.split('\n').map((paragraph, index) => (
+                paragraph.trim() && (
+                  <p key={index} className="mb-3 leading-relaxed">
+                    {paragraph.trim()}
+                  </p>
+                )
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </AstroCard>
   );

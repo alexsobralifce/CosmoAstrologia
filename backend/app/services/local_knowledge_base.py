@@ -319,6 +319,190 @@ class LocalKnowledgeBase:
         subject = planet or "os planetas envolvidos"
         return f"O aspecto de {aspect.lower()} envolvendo {subject} lembra que {meaning}"
 
+    def _get_element_interpretation(self, query: str) -> Optional[str]:
+        """Gera interpretação específica sobre elementos e modalidades."""
+        query_lower = query.lower()
+        
+        # Definir interpretações específicas para cada elemento
+        element_interpretations = {
+            "fogo": {
+                "predominante": "Quando o elemento Fogo é predominante no mapa astral, você possui uma natureza energética, entusiástica e dinâmica. Sua personalidade é marcada pela iniciativa, coragem e desejo de liderar. Você tende a agir de forma espontânea e direta, com grande capacidade de inspirar outros. Seu comportamento é caracterizado pela busca de novos desafios e experiências que permitam expressar sua criatividade e paixão pela vida.",
+                "ausente": "A ausência ou baixa presença do elemento Fogo pode indicar dificuldades para tomar iniciativas ou expressar entusiasmo de forma natural. Você pode se beneficiar desenvolvendo mais confiança em suas capacidades e permitindo-se assumir riscos calculados. Busque atividades que despertem sua paixão e energia vital."
+            },
+            "terra": {
+                "predominante": "Com o elemento Terra predominante, você possui uma natureza prática, estável e focada na realidade concreta. Sua personalidade é marcada pela perseverança, senso de responsabilidade e capacidade de construir bases sólidas. Você valoriza a segurança, a tradição e tem facilidade para materializar seus projetos. Seu comportamento reflete prudência e metodismo na abordagem dos desafios da vida.",
+                "ausente": "A ausência do elemento Terra pode indicar dificuldades para lidar com questões práticas e materiais do dia a dia. Você pode tender a ser muito idealista ou disperso, tendo dificuldade para concretizar seus planos. É importante desenvolver mais disciplina, organização e atenção aos detalhes práticos da vida."
+            },
+            "ar": {
+                "predominante": "Com o elemento Ar predominante no seu mapa astral, você possui uma natureza mental ágil, comunicativa e sociável. Sua personalidade é caracterizada pela curiosidade intelectual, facilidade de expressão e necessidade de troca de ideias. Você tem uma mente versátil que busca constantemente novos conhecimentos e conexões. Seu comportamento reflete uma abordagem racional e objetiva da vida, priorizando a comunicação e o relacionamento social.",
+                "ausente": "A ausência do elemento Ar pode indicar dificuldades na comunicação e no pensamento abstrato. Você pode tender a ser mais emocional ou prático, mas com menor habilidade para verbalizar seus sentimentos ou analisar situações de forma objetiva. Desenvolver habilidades de comunicação e buscar mais interação social pode ser benéfico."
+            },
+            "água": {
+                "predominante": "Quando o elemento Água é predominante, você possui uma natureza emocional profunda, intuitiva e empática. Sua personalidade é marcada pela sensibilidade, capacidade de compreender os sentimentos alheios e forte conexão com o mundo inconsciente. Você tende a ser receptivo, imaginativo e possui uma rica vida interior. Seu comportamento reflete a busca por vínculos emocionais significativos e experiências que nutram sua alma.",
+                "ausente": "A ausência do elemento Água pode indicar dificuldades para acessar e expressar emoções de forma saudável. Você pode tender a ser muito racional ou prático, mas com menor capacidade empática ou intuição. É importante desenvolver sua sensibilidade emocional e permitir-se ser mais receptivo aos sentimentos próprios e alheios."
+            }
+        }
+        
+        # Identificar qual elemento está sendo consultado (procurar padrões específicos)
+        interpretacao_parts = []
+        
+        # Procurar por padrões específicos de "elemento X predominante"
+        import re
+        predominante_match = re.search(r'elemento\s+(\w+)\s+predominante', query_lower)
+        if predominante_match:
+            elemento_pred = predominante_match.group(1)
+            if elemento_pred in element_interpretations:
+                interpretacao_parts.append(element_interpretations[elemento_pred]["predominante"])
+        
+        # Procurar por padrões específicos de "elemento X ausente" ou "falta"
+        ausente_match = re.search(r'elemento\s+(\w+)\s+(?:ausente|falta)', query_lower)
+        if ausente_match:
+            elemento_aus = ausente_match.group(1)
+            if elemento_aus in element_interpretations:
+                interpretacao_parts.append(f"\n\nQuanto à ausência do elemento {elemento_aus.title()}: {element_interpretations[elemento_aus]['ausente']}")
+        
+        # Adicionar informações sobre modalidades se mencionadas
+        if "modalidade" in query_lower:
+            modalidade_info = self._get_modality_info()
+            if modalidade_info:
+                interpretacao_parts.append(f"\n\n{modalidade_info}")
+        
+        if interpretacao_parts:
+            return "\n\n".join(interpretacao_parts)
+        
+        # Se não encontrou elemento específico, retornar interpretação geral
+        if "elemento" in query_lower and "predominante" in query_lower:
+            return "O elemento predominante no seu mapa astral influencia significativamente sua personalidade e comportamento. Ele representa a energia principal que guia suas ações e reações no mundo. Compreender essa influência ajuda a reconhecer seus talentos naturais e áreas de maior facilidade na vida."
+        
+        if "elemento" in query_lower and ("ausente" in query_lower or "falta" in query_lower):
+            return "A ausência ou baixa presença de um elemento no mapa astral indica áreas que podem requerer maior atenção e desenvolvimento consciente. Não significa uma deficiência, mas sim uma oportunidade de crescimento através da integração consciente dessas qualidades em sua vida."
+        
+        return None
+
+    def _get_modality_info(self) -> str:
+        """Retorna informações sobre modalidades astrológicas."""
+        return """As modalidades astrológicas representam diferentes formas de expressão da energia:
+
+**Cardinal**: Signos de iniciação (Áries, Câncer, Libra, Capricórnio). Pessoas com predominância cardinal são líderes naturais, iniciadoras de projetos e mudanças. Gostam de começar coisas novas e têm facilidade para tomar decisões.
+
+**Fixo**: Signos de estabilização (Touro, Leão, Escorpião, Aquário). Pessoas com predominância fixa são persistentes, determinadas e focadas. Têm grande capacidade de concentração e preferem aprofundar-se em projetos já iniciados.
+
+**Mutável**: Signos de adaptação (Gêmeos, Virgem, Sagitário, Peixes). Pessoas com predominância mutável são flexíveis, adaptáveis e versáteis. Têm facilidade para se ajustar a mudanças e lidar com múltiplas situações simultaneamente."""
+
+    def _get_regent_interpretation(self, query: str) -> Optional[str]:
+        """Gera interpretação específica sobre regentes do mapa."""
+        query_lower = query.lower()
+        
+        # Definir interpretações específicas para cada regente
+        regent_interpretations = {
+            "sol": {
+                "core": "Como regente do seu mapa, o Sol representa sua essência vital e sua jornada de autodescobrimento. Você está aqui para brilhar, liderar e expressar sua individualidade única.",
+                "practical": "Na vida prática, isso significa que você se realiza quando está no centro das atenções, liderando projetos ou inspirando outros. Sua confiança e criatividade são seus maiores recursos. Busque atividades que permitam expressar sua personalidade autêntica e desenvolver seus talentos únicos."
+            },
+            "lua": {
+                "core": "A Lua como regente do seu mapa indica uma jornada profundamente emocional e intuitiva. Sua missão de vida está conectada ao cuidado, nutrição e criação de vínculos emocionais significativos.",
+                "practical": "Você se realiza cuidando de outros, criando ambientes acolhedores ou trabalhando com temas relacionados à família, lar e bem-estar emocional. Sua intuição é um guia poderoso - confie nela. Desenvolva sua capacidade empática e use sua sensibilidade como força."
+            },
+            "mercúrio": {
+                "core": "Mercúrio como regente revela uma jornada centrada na comunicação, aprendizado e troca de ideias. Você está aqui para conectar pessoas, informações e conceitos.",
+                "practical": "Sua realização vem através da escrita, ensino, comunicação ou trabalho com informações. Você tem facilidade para aprender rapidamente e adaptar-se a novas situações. Desenvolva suas habilidades comunicativas e use sua versatilidade mental para resolver problemas complexos."
+            },
+            "vênus": {
+                "core": "Com Vênus como regente, sua jornada está centrada na busca pela beleza, harmonia e relacionamentos significativos. Você veio para criar conexões e trazer mais amor ao mundo.",
+                "practical": "Você se realiza em atividades relacionadas à arte, beleza, relacionamentos ou diplomacia. Sua capacidade de harmonizar conflitos e criar ambientes belos é um dom natural. Cultive relacionamentos saudáveis e use sua sensibilidade estética para inspirar outros."
+            },
+            "marte": {
+                "core": "Marte como regente indica uma jornada de ação, coragem e pioneirismo. Você está aqui para iniciar, conquistar e abrir novos caminhos.",
+                "practical": "Sua energia se manifesta melhor em situações que exigem liderança, competição saudável ou defesa de causas importantes. Você tem a capacidade natural de iniciar projetos e motivar outros. Canalize sua energia de forma construtiva e não tenha medo de assumir riscos calculados."
+            },
+            "júpiter": {
+                "core": "Júpiter como regente revela uma jornada de expansão, sabedoria e busca por significado. Você está aqui para ensinar, inspirar e expandir horizontes.",
+                "practical": "Você se realiza através do ensino, viagens, filosofia ou trabalho com culturas diferentes. Sua visão ampla e otimismo natural são recursos valiosos. Busque oportunidades de crescimento pessoal e compartilhe sua sabedoria com outros de forma generosa."
+            },
+            "saturno": {
+                "core": "Saturno como regente indica uma jornada de responsabilidade, estrutura e conquistas duradouras. Você veio para construir algo sólido e deixar um legado.",
+                "practical": "Sua realização vem através da disciplina, trabalho árduo e construção de estruturas duradouras. Você tem a capacidade de transformar obstáculos em degraus para o sucesso. Desenvolva paciência e persistência - seus esforços serão recompensados a longo prazo."
+            },
+            "urano": {
+                "core": "Urano como regente revela uma jornada de inovação, originalidade e quebra de padrões. Você está aqui para revolucionar e trazer mudanças necessárias.",
+                "practical": "Você se realiza quando pode expressar sua individualidade única e contribuir para mudanças progressivas. Sua mente inovadora e capacidade de ver o futuro são dons especiais. Abrace sua originalidade e não tenha medo de ser diferente."
+            },
+            "netuno": {
+                "core": "Netuno como regente indica uma jornada espiritual e criativa profunda. Você está aqui para inspirar, curar e conectar-se com dimensões mais sutis da existência.",
+                "practical": "Sua realização vem através da arte, espiritualidade, cura ou serviço compassivo aos outros. Sua intuição e sensibilidade são extraordinárias. Desenvolva práticas espirituais e use sua imaginação criativa para inspirar e curar."
+            },
+            "plutão": {
+                "core": "Plutão como regente revela uma jornada de transformação profunda e regeneração. Você está aqui para transformar a si mesmo e ajudar outros em processos de mudança.",
+                "practical": "Você se realiza em situações que envolvem transformação, cura psicológica ou trabalho com crises. Sua capacidade de ver além das aparências e promover mudanças profundas é um dom raro. Use seu poder de transformação de forma ética e construtiva."
+            }
+        }
+        
+        # Detectar qual regente está sendo consultado
+        regent_mentioned = None
+        for regent_key, interpretations in regent_interpretations.items():
+            if regent_key in query_lower:
+                regent_mentioned = regent_key
+                break
+        
+        # Também verificar pelos nomes completos
+        regent_names = {
+            "sol": "sol",
+            "lua": "lua", 
+            "mercúrio": "mercurio",
+            "vênus": "venus",
+            "marte": "marte",
+            "júpiter": "jupiter",
+            "saturno": "saturno",
+            "urano": "urano",
+            "netuno": "netuno",
+            "plutão": "plutao"
+        }
+        
+        if not regent_mentioned:
+            for full_name, key in regent_names.items():
+                if full_name in query_lower or key in query_lower:
+                    regent_mentioned = full_name if full_name in regent_interpretations else key
+                    break
+        
+        if regent_mentioned and regent_mentioned in regent_interpretations:
+            interpretation = regent_interpretations[regent_mentioned]
+            
+            # Detectar casa se mencionada
+            casa_info = ""
+            import re
+            casa_match = re.search(r'casa\s+(\d+)', query_lower)
+            if casa_match:
+                casa_num = int(casa_match.group(1))
+                casa_meanings = {
+                    1: "A Casa 1 amplifica sua necessidade de expressar sua identidade pessoal e liderar pelo exemplo.",
+                    2: "A Casa 2 conecta sua missão aos recursos materiais, valores pessoais e talentos naturais.",
+                    3: "A Casa 3 enfatiza a comunicação, aprendizado e conexões com o ambiente próximo.",
+                    4: "A Casa 4 conecta sua jornada às raízes familiares, lar e fundamentos emocionais.",
+                    5: "A Casa 5 amplifica sua criatividade, autoexpressão e capacidade de inspirar alegria nos outros.",
+                    6: "A Casa 6 conecta sua missão ao serviço, saúde e aperfeiçoamento de rotinas diárias.",
+                    7: "A Casa 7 enfatiza parcerias, relacionamentos e capacidade de cooperação.",
+                    8: "A Casa 8 intensifica sua jornada de transformação, cura e regeneração pessoal.",
+                    9: "A Casa 9 expande sua busca por sabedoria, filosofia e conexões com culturas diferentes.",
+                    10: "A Casa 10 conecta sua missão à carreira, reputação e contribuição pública.",
+                    11: "A Casa 11 enfatiza sua conexão com grupos, amizades e ideais coletivos.",
+                    12: "A Casa 12 aprofunda sua jornada espiritual, intuição e capacidade de transcendência."
+                }
+                
+                if casa_num in casa_meanings:
+                    casa_info = f"\n\n{casa_meanings[casa_num]}"
+            
+            return f"{interpretation['core']}\n\n{interpretation['practical']}{casa_info}"
+        
+        # Interpretação geral sobre regentes
+        if "regente do mapa" in query_lower:
+            return """O regente do mapa é o planeta que governa seu signo ascendente e representa o 'CEO' da sua personalidade. Este planeta atua como seu guia principal, influenciando como você aborda a vida e quais são suas prioridades naturais.
+
+O regente revela sua missão de vida fundamental e as qualidades que você deve desenvolver para alcançar seu potencial máximo. Compreender seu regente oferece insights profundos sobre seus talentos naturais, desafios principais e a melhor forma de navegar sua jornada pessoal.
+
+Quando você alinha suas ações com as qualidades do seu regente, experimenta maior fluidez, realização e autenticidade na vida."""
+        
+        return None
+
     def get_context(
         self,
         planet: Optional[str] = None,
@@ -351,8 +535,18 @@ class LocalKnowledgeBase:
         if aspect_section:
             sections.append(aspect_section)
 
-        if query:
-            sections.append(f"Contexto da consulta: {query}")
+        # Verificar se é uma consulta sobre elementos ou modalidades
+        if query and ("elemento" in query.lower() or "modalidade" in query.lower()):
+            element_interpretation = self._get_element_interpretation(query)
+            if element_interpretation:
+                sections.append(element_interpretation)
+        elif query and "regente do mapa" in query.lower():
+            regent_interpretation = self._get_regent_interpretation(query)
+            if regent_interpretation:
+                sections.append(regent_interpretation)
+        elif query:
+            # Para outras queries, não incluir o contexto diretamente
+            pass
 
         if not sections:
             return []

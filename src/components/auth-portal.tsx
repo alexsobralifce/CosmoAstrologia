@@ -378,7 +378,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData }: AuthPortalProps)
               {/* Login Social */}
               <button
                 onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white hover:bg-gray-50 text-gray-800 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg border border-gray-200"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-card/80 text-gray-800 dark:text-foreground rounded-lg transition-all duration-200 shadow-md hover:shadow-lg border border-gray-200 dark:border-border"
               >
                 <Chrome size={20} className="text-[#4285F4]" />
                 <span className="font-medium">Google</span>

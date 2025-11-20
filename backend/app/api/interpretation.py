@@ -16,6 +16,14 @@ from app.models.database import BirthChart
 router = APIRouter()
 
 
+class DailyAdviceRequest(BaseModel):
+    """Request para conselhos diários."""
+    moonHouse: int
+    category: str  # 'love', 'career', 'family', 'health', 'period'
+    planetaryPositions: Optional[List[Dict[str, any]]] = None  # Lista de {name, house, sign}
+    moonSign: Optional[str] = None
+
+
 class InterpretationRequest(BaseModel):
     """Request para interpretação astrológica."""
     planet: Optional[str] = None
@@ -645,5 +653,127 @@ def get_aspect_interpretation(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao obter interpretação: {str(e)}"
+        )
+
+
+@router.post("/interpretation/daily-advice")
+def get_daily_advice(
+    request: DailyAdviceRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Obtém conselhos diários baseados na casa lunar e posições planetárias.
+    Usa RAG para buscar informações localmente e Groq para organizar e formatar.
+    
+    Body:
+    {
+        "moonHouse": 5,
+        "category": "love",
+        "moonSign": "Câncer",
+        "planetaryPositions": [
+            {"name": "Vênus", "house": 7, "sign": "Libra"},
+            {"name": "Lua", "house": 4, "sign": "Câncer"}
+        ]
+    }
+    """
+    try:
+        rag_service = get_rag_service()
+        
+        # Construir query baseada na categoria e casa lunar
+        category_queries = {
+            'love': ['amor relacionamentos romance parcerias', 'Vênus Lua Júpiter'],
+            'career': ['carreira profissão trabalho dinheiro', 'Sol Saturno Marte Júpiter'],
+            'family': ['família lar raízes parentes', 'Lua Vênus Saturno'],
+            'health': ['saúde bem-estar corpo físico', 'Marte Saturno Lua Sol'],
+            'period': ['período atual momento presente', 'Sol Lua Mercúrio Vênus Marte']
+        }
+        
+        # Query base para a categoria
+        base_query = category_queries.get(request.category, ['conselho astrológico'])
+        
+        # Construir query detalhada
+        query_parts = []
+        
+        # Adicionar informação sobre casa lunar
+        house_themes = {
+            1: 'identidade autoconfiança novos começos',
+            2: 'valores recursos financeiros segurança',
+            3: 'comunicação aprendizado irmãos',
+            4: 'lar família raízes',
+            5: 'criatividade romance diversão',
+            6: 'rotina saúde trabalho',
+            7: 'parcerias relacionamentos',
+            8: 'transformação intimidade',
+            9: 'filosofia viagens expansão',
+            10: 'carreira reconhecimento público',
+            11: 'amizades grupos futuro',
+            12: 'introspecção espiritualidade'
+        }
+        
+        query_parts.append(f"casa {request.moonHouse} {house_themes.get(request.moonHouse, '')}")
+        query_parts.extend(base_query)
+        
+        # Adicionar informações sobre planetas relevantes
+        if request.planetaryPositions:
+            relevant_planets = {
+                'love': ['Vênus', 'Lua', 'Júpiter', 'Marte'],
+                'career': ['Sol', 'Saturno', 'Marte', 'Júpiter'],
+                'family': ['Lua', 'Vênus', 'Saturno'],
+                'health': ['Marte', 'Saturno', 'Lua', 'Sol'],
+                'period': ['Sol', 'Lua', 'Mercúrio', 'Vênus', 'Marte']
+            }
+            
+            planets_to_include = relevant_planets.get(request.category, [])
+            for planet_pos in request.planetaryPositions:
+                planet_name = planet_pos.get('name', '')
+                if planet_name in planets_to_include:
+                    house = planet_pos.get('house')
+                    sign = planet_pos.get('sign', '')
+                    if house:
+                        query_parts.append(f"{planet_name} casa {house}")
+                    if sign:
+                        query_parts.append(f"{planet_name} {sign}")
+        
+        # Construir query final
+        query = " ".join(query_parts)
+        
+        # Buscar interpretação usando RAG + Groq
+        interpretation = rag_service.get_interpretation(
+            custom_query=query,
+            use_groq=True
+        )
+        
+        # Se Groq não estiver disponível ou falhar, usar fallback
+        if interpretation.get('generated_by') != 'groq' and rag_service.groq_client:
+            # Tentar gerar com Groq usando contexto mais específico
+            try:
+                # Buscar documentos relevantes
+                rag_results = rag_service.search(query, top_k=8)
+                if rag_results:
+                    interpretation_text = rag_service._generate_with_groq(
+                        f"Conselho astrológico sobre {request.category} considerando Lua na casa {request.moonHouse}",
+                        rag_results
+                    )
+                    interpretation['interpretation'] = interpretation_text
+                    interpretation['generated_by'] = 'groq'
+            except Exception as e:
+                print(f"[WARNING] Erro ao gerar com Groq: {e}")
+        
+        return {
+            "interpretation": interpretation['interpretation'],
+            "sources": interpretation['sources'],
+            "query_used": interpretation['query_used'],
+            "generated_by": interpretation.get('generated_by', 'rag_only')
+        }
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter conselho diário: {str(e)}"
         )
 

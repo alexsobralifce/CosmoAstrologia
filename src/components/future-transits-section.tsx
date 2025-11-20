@@ -79,7 +79,11 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
           setTransits(defaultTransits);
         }
       } catch (err) {
-        console.error('Erro ao buscar trânsitos:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+        // Log apenas se não for timeout (timeout é esperado em algumas situações)
+        if (!errorMessage.includes('Tempo de espera esgotado')) {
+          console.error('Erro ao buscar trânsitos:', err);
+        }
         setError('Não foi possível carregar os trânsitos futuros');
         // Usar transits padrão em caso de erro
         setTransits(defaultTransits);

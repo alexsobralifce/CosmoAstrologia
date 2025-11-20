@@ -5,6 +5,7 @@ Processa PDFs e cria um banco vetorial para consultas semânticas.
 
 import os
 import pickle
+import re
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import numpy as np
@@ -257,36 +258,43 @@ class RAGService:
         if not self.groq_client:
             raise ValueError("Cliente Groq não disponível")
         
-        # Preparar contexto dos documentos
+        # Preparar contexto dos documentos (sem informações de fonte)
         context_text = "\n\n".join([
-            f"--- Documento {i+1} (Fonte: {doc['source']}, Página {doc['page']}) ---\n{doc['text']}"
-            for i, doc in enumerate(context_documents)
+            doc['text']
+            for doc in context_documents
         ])
         
         # Criar prompt para o Groq
         system_prompt = """Você é um astrólogo experiente e especializado em interpretação de mapas astrais. 
 Sua tarefa é criar interpretações astrológicas precisas, profundas e úteis baseadas nos documentos fornecidos.
 
-Diretrizes:
+Diretrizes IMPORTANTES:
 - Use APENAS as informações dos documentos fornecidos como base
 - Seja claro, objetivo e prático
-- Mantenha o tom profissional mas acessível
-- Estruture a interpretação de forma organizada
-- Cite aspectos específicos mencionados nos documentos
+- Use linguagem simples e acessível, evitando termos muito técnicos
+- NÃO mencione fontes, páginas ou documentos na sua resposta
+- NÃO inclua referências como "[Fonte: ...]" ou "Página X" na interpretação
+- Crie uma interpretação fluida e natural, como se você estivesse explicando diretamente para a pessoa
+- SEMPRE escreva pelo menos 2 parágrafos completos e detalhados (cada parágrafo com 4-5 frases)
+- Seja específico e detalhado sobre o significado e impacto na vida da pessoa
 - Se os documentos não contiverem informações suficientes, indique isso claramente"""
         
-        user_prompt = f"""Com base nos seguintes documentos sobre astrologia, crie uma interpretação detalhada e útil sobre: {query}
+        user_prompt = f"""Você é um astrólogo experiente. Com base nos documentos fornecidos sobre astrologia, explique de forma clara e prática sobre: {query}
 
 Documentos de referência:
 {context_text}
 
-Por favor, crie uma interpretação estruturada que:
-1. Explique o significado astrológico do tema consultado
-2. Descreva as características e influências
-3. Forneça insights práticos e aplicáveis
-4. Seja baseada exclusivamente nas informações dos documentos fornecidos
+INSTRUÇÕES IMPORTANTES:
+- Escreva uma interpretação completa e detalhada sobre o tema consultado
+- Use APENAS as informações dos documentos fornecidos
+- Escreva pelo menos 2 parágrafos completos (cada parágrafo com 4-5 frases)
+- Use linguagem simples e direta, como se estivesse conversando com a pessoa
+- NÃO mencione "Contexto da consulta", "Documentos de referência" ou qualquer referência a fontes
+- NÃO repita a query na sua resposta
+- Comece diretamente explicando o significado e impacto
+- Seja específico sobre características, personalidade e comportamento
 
-Interpretação:"""
+Comece sua resposta diretamente com a explicação, sem introduções ou referências à consulta."""
         
         try:
             # Chamar Groq API
@@ -303,15 +311,93 @@ Interpretação:"""
                 ],
                 model="llama-3.1-70b-versatile",  # Modelo rápido e eficiente do Groq
                 temperature=0.7,
-                max_tokens=2000,
+                max_tokens=3000,  # Aumentado para garantir espaço para pelo menos 2 parágrafos
                 top_p=1,
             )
             
             interpretation = chat_completion.choices[0].message.content
-            return interpretation.strip()
+            
+            # Log da interpretação original para debug
+            print(f"[RAG] Interpretação original do Groq (tamanho: {len(interpretation) if interpretation else 0} chars)")
+            if interpretation:
+                print(f"[RAG] Primeiros 500 chars da interpretação original: {interpretation[:500]}")
+            
+            # Verificar se a interpretação não está vazia ou é apenas a query
+            if not interpretation:
+                print(f"[RAG] Aviso: Groq retornou interpretação vazia")
+                raise ValueError("Interpretação vazia retornada pelo Groq")
+            
+            # Remover possíveis referências à query no início da resposta
+            interpretation_clean = interpretation.strip()
+            
+            # Limpeza menos agressiva: remover apenas linhas específicas que são claramente cabeçalhos
+            lines = interpretation_clean.split('\n')
+            filtered_lines = []
+            skip_next = False
+            
+            for i, line in enumerate(lines):
+                line_lower = line.lower().strip()
+                
+                # Ignorar apenas linhas que são claramente cabeçalhos ou referências
+                if any(phrase in line_lower for phrase in [
+                    'contexto da consulta:',
+                    'documentos de referência:',
+                    'query:',
+                    'consulta:'
+                ]):
+                    # Se a linha é apenas um cabeçalho, pular ela e a próxima linha se for vazia ou a query
+                    skip_next = True
+                    continue
+                
+                # Se estamos pulando e a linha é vazia ou é exatamente a query, pular
+                if skip_next:
+                    if not line.strip() or line.strip() == query.strip():
+                        skip_next = False
+                        continue
+                    skip_next = False
+                
+                filtered_lines.append(line)
+            
+            interpretation_clean = '\n'.join(filtered_lines).strip()
+            
+            print(f"[RAG] Interpretação após primeira limpeza (tamanho: {len(interpretation_clean)} chars)")
+            
+            # Se após limpeza ficou muito curta, usar a versão original com limpeza mínima
+            if len(interpretation_clean) < 100:
+                print(f"[RAG] Aviso: Interpretação muito curta após limpeza ({len(interpretation_clean)} chars), usando versão original com limpeza mínima")
+                # Limpeza mínima: apenas remover referências explícitas a fontes
+                interpretation_clean = interpretation.strip()
+                # Remover apenas padrões muito específicos
+                interpretation_clean = interpretation_clean.replace('[Fonte:', '')
+                interpretation_clean = re.sub(r'Página \d+', '', interpretation_clean)
+                interpretation_clean = interpretation_clean.strip()
+            
+            # Verificar se ainda há conteúdo válido após limpeza mínima
+            if not interpretation_clean or len(interpretation_clean) < 50:
+                print(f"[RAG] ERRO: Interpretação ainda muito curta após limpeza mínima: {len(interpretation_clean)} chars")
+                print(f"[RAG] Conteúdo original completo: {interpretation}")
+                raise ValueError(f"Interpretação muito curta após limpeza: {len(interpretation_clean)} chars")
+            
+            # Verificar se não é apenas a query (validação mais flexível)
+            query_words = set(query.lower().split())
+            interpretation_words = set(interpretation_clean.lower().split())
+            # Se mais de 80% das palavras da query estão na interpretação E a interpretação é muito curta
+            if len(query_words) > 0:
+                matching_words = query_words.intersection(interpretation_words)
+                similarity = len(matching_words) / len(query_words)
+                if similarity > 0.8 and len(interpretation_clean) < 150:
+                    print(f"[RAG] Aviso: Interpretação parece ser apenas a query (similaridade: {similarity:.2f})")
+                    # Mesmo assim, se tiver algum conteúdo, usar
+                    if len(interpretation_clean) < 50:
+                        raise ValueError("Interpretação muito similar à query retornada pelo Groq")
+            
+            print(f"[RAG] Interpretação final gerada pelo Groq (tamanho: {len(interpretation_clean)} chars, primeiros 200 chars): {interpretation_clean[:200]}...")
+            return interpretation_clean
             
         except Exception as e:
             print(f"[ERROR] Erro ao gerar interpretação com Groq: {e}")
+            import traceback
+            print(f"[ERROR] Traceback completo: {traceback.format_exc()}")
             # Fallback: retornar documentos sem processamento
             raise
     
@@ -360,9 +446,11 @@ Interpretação:"""
             query = " ".join(query_parts) if query_parts else "interpretação mapa astral"
         
         # Buscar documentos relevantes (RAG ou base local)
+        # Para queries sobre elementos, buscar mais documentos para ter mais contexto
+        top_k = 8 if "elemento" in query.lower() or "modalidade" in query.lower() else 5
         results: List[Dict[str, any]] = []
         try:
-            results = self.search(query, top_k=5)
+            results = self.search(query, top_k=top_k)
         except Exception as e:
             print(f"[RAG] Falha ao consultar índice vetorial ({e}). Usando base local.")
         
@@ -408,14 +496,30 @@ Interpretação:"""
                         'generated_by': 'groq'
                     }
                 except Exception as e:
-                    # Fallback silencioso: retornar documentos sem processamento
-                    pass
+                    # Log do erro para debug
+                    print(f"[RAG] Erro ao gerar interpretação com Groq: {e}")
+                    print(f"[RAG] Tipo do erro: {type(e).__name__}")
+                    import traceback
+                    print(f"[RAG] Traceback: {traceback.format_exc()}")
+                    # Continuar para o fallback: retornar documentos sem processamento
+                    # Não passar silenciosamente, vamos tentar o fallback
         
         # Fallback: Combinar textos dos resultados sem processamento LLM
+        # Remover informações de fonte do texto para manter consistência
         interpretation_text = "\n\n".join([
-            f"[Fonte: {r['source']}, Página {r['page']}]\n{r['text']}"
+            r['text'].strip()
             for r in results
+            if r.get('text') and len(r['text'].strip()) > 20  # Filtrar textos muito curtos
         ])
+        
+        # Se não há texto suficiente, retornar mensagem
+        if not interpretation_text or len(interpretation_text.strip()) < 100:
+            return {
+                'interpretation': "Não foi possível encontrar informações suficientes sobre este tema na base de conhecimento. Por favor, tente uma consulta diferente.",
+                'sources': [],
+                'query_used': query,
+                'generated_by': 'none'
+            }
         
         # Criar resposta estruturada
         return {

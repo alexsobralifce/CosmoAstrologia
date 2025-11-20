@@ -19,13 +19,29 @@ export interface FontSizeConfig {
   base: number; // Tamanho base em px (padrão: 16)
 }
 
+export interface TypographyConfig {
+  fontSize: FontSizeConfig;
+  fontFamily: string;
+  fontWeight: 'normal' | 'medium' | 'semibold' | 'bold';
+  fontStyle: 'normal' | 'italic';
+  textColor: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+  letterSpacing: 'tight' | 'normal' | 'wide';
+  lineHeight: 'tight' | 'normal' | 'relaxed';
+}
+
 interface ThemeCustomizationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (theme: ThemeConfig) => void;
   onFontSizeChange?: (fontSize: FontSizeConfig) => void;
+  onTypographyChange?: (typography: TypographyConfig) => void;
   initialValue?: ThemeConfig | null;
   initialFontSize?: FontSizeConfig | null;
+  initialTypography?: TypographyConfig | null;
 }
 
 const DEFAULT_LIGHT: ThemeColors = {
@@ -42,13 +58,29 @@ const DEFAULT_DARK: ThemeColors = {
   neutral: '#1A1F4A',
 };
 
+const DEFAULT_TYPOGRAPHY: TypographyConfig = {
+  fontSize: { base: 16 },
+  fontFamily: 'system-ui, -apple-system, sans-serif',
+  fontWeight: 'normal',
+  fontStyle: 'normal',
+  textColor: {
+    primary: '#0A0E2F',
+    secondary: '#6B7280',
+    accent: '#D4A024',
+  },
+  letterSpacing: 'normal',
+  lineHeight: 'normal',
+};
+
 export const ThemeCustomizationModal = ({
   open,
   onOpenChange,
   onSave,
   onFontSizeChange,
+  onTypographyChange,
   initialValue,
   initialFontSize,
+  initialTypography,
 }: ThemeCustomizationModalProps) => {
   const [lightTheme, setLightTheme] = useState<ThemeColors>(
     initialValue?.light ?? DEFAULT_LIGHT
@@ -59,6 +91,9 @@ export const ThemeCustomizationModal = ({
   const [fontSize, setFontSize] = useState<FontSizeConfig>(
     initialFontSize ?? { base: 16 }
   );
+  const [typography, setTypography] = useState<TypographyConfig>(
+    initialTypography ?? DEFAULT_TYPOGRAPHY
+  );
   const [activeTab, setActiveTab] = useState<'light' | 'dark' | 'typography'>('light');
 
   useEffect(() => {
@@ -68,13 +103,20 @@ export const ThemeCustomizationModal = ({
     }
     if (initialFontSize) {
       setFontSize(initialFontSize);
+      setTypography(prev => ({ ...prev, fontSize: initialFontSize }));
     }
-  }, [initialValue, initialFontSize, open]);
+    if (initialTypography) {
+      setTypography(initialTypography);
+    }
+  }, [initialValue, initialFontSize, initialTypography, open]);
 
   const handleSave = () => {
     onSave({ light: lightTheme, dark: darkTheme });
     if (onFontSizeChange) {
       onFontSizeChange(fontSize);
+    }
+    if (onTypographyChange) {
+      onTypographyChange({ ...typography, fontSize });
     }
     onOpenChange(false);
   };
@@ -82,8 +124,23 @@ export const ThemeCustomizationModal = ({
   const handleFontSizeChange = (newSize: number) => {
     const newFontSize = { base: newSize };
     setFontSize(newFontSize);
+    setTypography(prev => ({ ...prev, fontSize: newFontSize }));
     if (onFontSizeChange) {
       onFontSizeChange(newFontSize);
+    }
+  };
+
+  const handleTypographyChange = (updates: Partial<TypographyConfig>) => {
+    const newTypography = { ...typography, ...updates };
+    setTypography(newTypography);
+    if (updates.fontSize) {
+      setFontSize(updates.fontSize);
+      if (onFontSizeChange) {
+        onFontSizeChange(updates.fontSize);
+      }
+    }
+    if (onTypographyChange) {
+      onTypographyChange(newTypography);
     }
   };
 
@@ -182,16 +239,16 @@ export const ThemeCustomizationModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Personalização do Sistema</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'light' | 'dark' | 'typography')}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="light">Tema Claro</TabsTrigger>
-              <TabsTrigger value="dark">Tema Escuro</TabsTrigger>
-              <TabsTrigger value="typography">Tipografia</TabsTrigger>
+            <TabsList className="w-full flex gap-1 p-1 bg-card/50 backdrop-blur-sm">
+              <TabsTrigger value="light" className="flex-1">Tema Claro</TabsTrigger>
+              <TabsTrigger value="dark" className="flex-1">Tema Escuro</TabsTrigger>
+              <TabsTrigger value="typography" className="flex-1">Tipografia</TabsTrigger>
             </TabsList>
             <TabsContent value="light" className="mt-4">
               <ThemeSection
@@ -208,19 +265,23 @@ export const ThemeCustomizationModal = ({
               />
             </TabsContent>
             <TabsContent value="typography" className="mt-4">
-              <div className="space-y-6">
-                <div>
-                  <p className="text-sm text-secondary mb-4">
-                    Ajuste o tamanho base das fontes do sistema. Isso afetará todos os textos da aplicação.
-                  </p>
+              <div className="space-y-4 max-h-[calc(90vh-200px)] overflow-y-auto pr-2">
+                <p className="text-sm text-secondary">
+                  Personalize a tipografia do sistema: tamanho, família, peso, estilo e cores das fontes.
+                </p>
+
+                {/* Grid de 2 colunas para layout mais horizontal */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Coluna Esquerda */}
                   <div className="space-y-4">
+                    {/* Tamanho da Fonte */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-sm font-medium">
                           Tamanho Base da Fonte
                         </label>
                         <span className="text-sm text-accent font-mono">
-                          {fontSize.base}px
+                          {typography.fontSize.base}px
                         </span>
                       </div>
                       <input
@@ -228,35 +289,232 @@ export const ThemeCustomizationModal = ({
                         min="12"
                         max="24"
                         step="1"
-                        value={fontSize.base}
-                        onChange={(e) => handleFontSizeChange(Number(e.target.value))}
+                        value={typography.fontSize.base}
+                        onChange={(e) => handleTypographyChange({ fontSize: { base: Number(e.target.value) } })}
                         className="w-full h-2 bg-border/40 rounded-lg appearance-none cursor-pointer accent-accent"
                         style={{
-                          background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${((fontSize.base - 12) / (24 - 12)) * 100}%, var(--border) ${((fontSize.base - 12) / (24 - 12)) * 100}%, var(--border) 100%)`
+                          background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${((typography.fontSize.base - 12) / (24 - 12)) * 100}%, var(--border) ${((typography.fontSize.base - 12) / (24 - 12)) * 100}%, var(--border) 100%)`
                         }}
                       />
                       <div className="flex justify-between text-xs text-secondary/70 mt-1">
-                        <span>Pequeno (12px)</span>
-                        <span>Médio (16px)</span>
-                        <span>Grande (20px)</span>
-                        <span>Extra Grande (24px)</span>
+                        <span>12px</span>
+                        <span>16px</span>
+                        <span>20px</span>
+                        <span>24px</span>
                       </div>
                     </div>
-                    <div className="p-4 rounded-lg border border-border/40 bg-card/30 space-y-3">
+
+                    {/* Família da Fonte */}
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Família da Fonte</label>
+                      <select
+                        value={typography.fontFamily}
+                        onChange={(e) => handleTypographyChange({ fontFamily: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg border border-border/50 bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent/50"
+                      >
+                        <option value="system-ui, -apple-system, sans-serif">Sistema (Padrão)</option>
+                        <option value="'Inter', sans-serif">Inter</option>
+                        <option value="'Roboto', sans-serif">Roboto</option>
+                        <option value="'Open Sans', sans-serif">Open Sans</option>
+                        <option value="'Lato', sans-serif">Lato</option>
+                        <option value="'Montserrat', sans-serif">Montserrat</option>
+                        <option value="'Poppins', sans-serif">Poppins</option>
+                        <option value="'Playfair Display', serif">Playfair Display (Serifada)</option>
+                        <option value="'Merriweather', serif">Merriweather (Serifada)</option>
+                        <option value="'Courier New', monospace">Courier New (Monospace)</option>
+                      </select>
+                    </div>
+
+                    {/* Peso e Estilo da Fonte - lado a lado */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Peso da Fonte</label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(['normal', 'medium', 'semibold', 'bold'] as const).map((weight) => (
+                            <button
+                              key={weight}
+                              onClick={() => handleTypographyChange({ fontWeight: weight })}
+                              className={`px-2 py-1.5 rounded border text-xs transition-all ${
+                                typography.fontWeight === weight
+                                  ? 'bg-accent/20 border-accent text-accent'
+                                  : 'border-border/50 hover:border-accent/50'
+                              }`}
+                              style={{ fontWeight: weight === 'normal' ? 400 : weight === 'medium' ? 500 : weight === 'semibold' ? 600 : 700 }}
+                            >
+                              {weight === 'normal' ? 'Normal' : weight === 'medium' ? 'Médio' : weight === 'semibold' ? 'Semi' : 'Negrito'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Estilo</label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {(['normal', 'italic'] as const).map((style) => (
+                            <button
+                              key={style}
+                              onClick={() => handleTypographyChange({ fontStyle: style })}
+                              className={`px-2 py-1.5 rounded border text-xs transition-all ${
+                                typography.fontStyle === style
+                                  ? 'bg-accent/20 border-accent text-accent'
+                                  : 'border-border/50 hover:border-accent/50'
+                              }`}
+                              style={{ fontStyle: style }}
+                            >
+                              {style === 'normal' ? 'Normal' : 'Itálico'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Espaçamento e Altura - lado a lado */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Espaçamento</label>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {(['tight', 'normal', 'wide'] as const).map((spacing) => (
+                            <button
+                              key={spacing}
+                              onClick={() => handleTypographyChange({ letterSpacing: spacing })}
+                              className={`px-2 py-1.5 rounded border text-xs transition-all ${
+                                typography.letterSpacing === spacing
+                                  ? 'bg-accent/20 border-accent text-accent'
+                                  : 'border-border/50 hover:border-accent/50'
+                              }`}
+                              style={{ 
+                                letterSpacing: spacing === 'tight' ? '-0.025em' : spacing === 'normal' ? '0' : '0.05em' 
+                              }}
+                            >
+                              {spacing === 'tight' ? 'Apertado' : spacing === 'normal' ? 'Normal' : 'Amplo'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Altura da Linha</label>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {(['tight', 'normal', 'relaxed'] as const).map((lineHeight) => (
+                            <button
+                              key={lineHeight}
+                              onClick={() => handleTypographyChange({ lineHeight })}
+                              className={`px-2 py-1.5 rounded border text-xs transition-all ${
+                                typography.lineHeight === lineHeight
+                                  ? 'bg-accent/20 border-accent text-accent'
+                                  : 'border-border/50 hover:border-accent/50'
+                              }`}
+                            >
+                              {lineHeight === 'tight' ? 'Apertado' : lineHeight === 'normal' ? 'Normal' : 'Relaxado'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Coluna Direita */}
+                  <div className="space-y-4">
+                    {/* Cores do Texto */}
+                    <div>
+                      <label className="text-sm font-medium mb-3 block">Cores do Texto</label>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-secondary/70 mb-1 block">Cor Primária</label>
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="color"
+                              value={typography.textColor.primary}
+                              onChange={(e) => handleTypographyChange({ 
+                                textColor: { ...typography.textColor, primary: e.target.value } 
+                              })}
+                              className="h-10 w-16 rounded border border-border/50 cursor-pointer flex-shrink-0"
+                            />
+                            <input
+                              type="text"
+                              value={typography.textColor.primary}
+                              onChange={(e) => handleTypographyChange({ 
+                                textColor: { ...typography.textColor, primary: e.target.value } 
+                              })}
+                              className="flex-1 px-2 py-1.5 rounded border border-border/50 bg-card text-foreground text-xs font-mono"
+                              placeholder="#000000"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-secondary/70 mb-1 block">Cor Secundária</label>
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="color"
+                              value={typography.textColor.secondary}
+                              onChange={(e) => handleTypographyChange({ 
+                                textColor: { ...typography.textColor, secondary: e.target.value } 
+                              })}
+                              className="h-10 w-16 rounded border border-border/50 cursor-pointer flex-shrink-0"
+                            />
+                            <input
+                              type="text"
+                              value={typography.textColor.secondary}
+                              onChange={(e) => handleTypographyChange({ 
+                                textColor: { ...typography.textColor, secondary: e.target.value } 
+                              })}
+                              className="flex-1 px-2 py-1.5 rounded border border-border/50 bg-card text-foreground text-xs font-mono"
+                              placeholder="#6B7280"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs text-secondary/70 mb-1 block">Cor de Acento</label>
+                          <div className="flex gap-2 items-center">
+                            <input
+                              type="color"
+                              value={typography.textColor.accent}
+                              onChange={(e) => handleTypographyChange({ 
+                                textColor: { ...typography.textColor, accent: e.target.value } 
+                              })}
+                              className="h-10 w-16 rounded border border-border/50 cursor-pointer flex-shrink-0"
+                            />
+                            <input
+                              type="text"
+                              value={typography.textColor.accent}
+                              onChange={(e) => handleTypographyChange({ 
+                                textColor: { ...typography.textColor, accent: e.target.value } 
+                              })}
+                              className="flex-1 px-2 py-1.5 rounded border border-border/50 bg-card text-foreground text-xs font-mono"
+                              placeholder="#D4A024"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preview */}
+                    <div className="p-3 rounded-lg border border-border/40 bg-card/30">
                       <p className="text-xs uppercase tracking-wide text-secondary mb-2">Preview</p>
-                      <div className="space-y-2" style={{ fontSize: `${fontSize.base}px` }}>
-                        <p className="text-foreground font-medium">
-                          Texto de exemplo com tamanho {fontSize.base}px
+                      <div 
+                        className="space-y-2"
+                        style={{
+                          fontSize: `${typography.fontSize.base}px`,
+                          fontFamily: typography.fontFamily,
+                          fontWeight: typography.fontWeight === 'normal' ? 400 : typography.fontWeight === 'medium' ? 500 : typography.fontWeight === 'semibold' ? 600 : 700,
+                          fontStyle: typography.fontStyle,
+                          letterSpacing: typography.letterSpacing === 'tight' ? '-0.025em' : typography.letterSpacing === 'normal' ? '0' : '0.05em',
+                          lineHeight: typography.lineHeight === 'tight' ? '1.25' : typography.lineHeight === 'normal' ? '1.5' : '1.75',
+                        }}
+                      >
+                        <p style={{ color: typography.textColor.primary }}>
+                          Texto primário
                         </p>
-                        <p className="text-secondary text-sm">
-                          Este é um texto secundário para você ver como ficará o tamanho das fontes em diferentes contextos.
+                        <p style={{ color: typography.textColor.secondary, fontSize: `${typography.fontSize.base * 0.875}px` }}>
+                          Texto secundário
                         </p>
-                        <div className="flex gap-2">
-                          <button className="px-3 py-1.5 rounded bg-accent text-accent-foreground text-sm">
-                            Botão de exemplo
-                          </button>
-                          <button className="px-3 py-1.5 rounded border border-border text-foreground text-sm">
-                            Botão secundário
+                        <p style={{ color: typography.textColor.accent }}>
+                          Texto de destaque
+                        </p>
+                        <div className="flex gap-2 flex-wrap mt-2">
+                          <button 
+                            className="px-2 py-1 rounded bg-accent text-accent-foreground text-xs"
+                            style={{ fontFamily: typography.fontFamily }}
+                          >
+                            Botão
                           </button>
                         </div>
                       </div>
@@ -270,7 +528,7 @@ export const ThemeCustomizationModal = ({
             <AstroButton variant="ghost" onClick={() => onOpenChange(false)}>
               Cancelar
             </AstroButton>
-            <AstroButton onClick={handleSave}>Salvar cores</AstroButton>
+            <AstroButton onClick={handleSave}>Salvar configurações</AstroButton>
           </div>
         </div>
       </DialogContent>

@@ -208,6 +208,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'venusHarmony'),
       icon: UIIcons.Heart,
       color: 'bg-red-500',
+      textColor: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-50 dark:bg-red-500/10',
     },
     {
@@ -217,6 +218,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'jupiterOpportunities'),
       icon: UIIcons.Briefcase,
       color: 'bg-amber-500',
+      textColor: 'text-amber-600 dark:text-amber-400',
       bgColor: 'bg-amber-50 dark:bg-amber-500/10',
     },
     {
@@ -226,6 +228,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'marsEnergy'),
       icon: UIIcons.Activity,
       color: 'bg-emerald-500',
+      textColor: 'text-emerald-600 dark:text-emerald-400',
       bgColor: 'bg-emerald-50 dark:bg-emerald-500/10',
     },
     {
@@ -235,6 +238,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'moonRelations'),
       icon: UIIcons.Users,
       color: 'bg-purple-500',
+      textColor: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-50 dark:bg-purple-500/10',
     },
   ];
@@ -551,9 +555,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                   <div className={`w-12 h-12 rounded-lg ${insight.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                     <insight.icon size={24} className={insight.textColor} />
                   </div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">{insight.title}</h4>
+                  <h4 className="text-sm font-medium text-foreground/70 dark:text-foreground/80 mb-1">{insight.title}</h4>
                   <p className={`text-2xl font-bold ${insight.textColor} mb-2`}>{insight.value}</p>
-                  <p className="text-xs text-foreground/70">{insight.description}</p>
+                  <p className="text-xs text-foreground/70 dark:text-foreground/80">{insight.description}</p>
                 </div>
               ))}
             </div>
@@ -572,18 +576,18 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg ${area.bgColor} flex items-center justify-center`}>
-                        <area.icon size={20} className={area.color.replace('bg-', 'text-')} />
+                        <area.icon size={20} className={`${area.textColor || area.color.replace('bg-', 'text-')}`} />
                       </div>
-                      <h4 className="font-semibold text-foreground">{area.title}</h4>
+                      <h4 className={`font-semibold ${area.textColor || 'text-foreground'}`}>{area.title}</h4>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm text-muted-foreground">{texts.intensity}</span>
-                      <p className="text-xl font-bold text-foreground">{area.intensity}/10</p>
+                      <span className="text-sm text-foreground/70 dark:text-foreground/80">{texts.intensity}</span>
+                      <p className={`text-xl font-bold ${area.textColor || area.color.replace('bg-', 'text-')}`}>{area.intensity}/10</p>
                     </div>
                   </div>
-                  <p className="text-sm text-foreground/70 mb-4">{area.description}</p>
+                  <p className="text-sm text-foreground/80 dark:text-foreground/90 mb-4">{area.description}</p>
                   {/* Barra de progresso */}
-                  <div className="h-1.5 bg-white/50 dark:bg-black/20 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-muted dark:bg-muted/50 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${area.color} rounded-full transition-all duration-500`}
                       style={{ width: `${area.intensity * 10}%` }}

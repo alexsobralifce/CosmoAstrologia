@@ -555,9 +555,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                   <div className={`w-12 h-12 rounded-lg ${insight.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                     <insight.icon size={24} className={insight.textColor} />
                   </div>
-                  <h4 className="text-sm font-medium text-foreground mb-1">{insight.title}</h4>
+                  <h4 className="text-sm font-medium text-foreground/90 mb-1">{insight.title}</h4>
                   <p className={`text-2xl font-bold ${insight.textColor} mb-2`}>{insight.value}</p>
-                  <p className="text-xs text-muted-foreground">{insight.description}</p>
+                  <p className="text-xs text-foreground/70">{insight.description}</p>
                 </div>
               ))}
             </div>
@@ -581,13 +581,13 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                       <h4 className={`font-semibold ${area.textColor}`}>{area.title}</h4>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm text-muted-foreground">{texts.intensity}</span>
+                      <span className="text-sm text-foreground/70">{texts.intensity}</span>
                       <p className={`text-xl font-bold ${area.textColor}`}>{area.intensity}/10</p>
                     </div>
                   </div>
-                  <p className="text-sm text-foreground mb-4">{area.description}</p>
+                  <p className="text-sm text-foreground/90 mb-4">{area.description}</p>
                   {/* Barra de progresso */}
-                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-white/30 dark:bg-black/20 rounded-full overflow-hidden">
                     <div
                       className={`h-full ${area.color} rounded-full transition-all duration-500`}
                       style={{ width: `${area.intensity * 10}%` }}

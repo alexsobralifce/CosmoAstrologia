@@ -7,6 +7,7 @@ Sistema completo para cálculo e visualização de mapas astrais com interface m
 ### Opção 1: Scripts Automáticos (Recomendado)
 
 **Linux/Mac:**
+
 ```bash
 # Iniciar apenas o backend
 ./scripts/start-backend.sh
@@ -16,6 +17,7 @@ Sistema completo para cálculo e visualização de mapas astrais com interface m
 ```
 
 **Windows:**
+
 ```powershell
 # Iniciar apenas o backend
 .\scripts\start-backend.ps1
@@ -44,8 +46,7 @@ pip install -r requirements.txt
 python run.py
 ```
 
-O backend estará disponível em: `http://localhost:8000`
-Documentação da API: `http://localhost:8000/docs`
+O backend estará disponível em: `http://localhost:8000` Documentação da API: `http://localhost:8000/docs`
 
 #### Frontend
 
@@ -111,15 +112,18 @@ Astrologia/
 ## 🐛 Troubleshooting
 
 ### Backend não inicia
+
 - Verifique se a porta 8000 está livre
 - Certifique-se de que todas as dependências estão instaladas
 - Verifique os logs em `backend.log`
 
 ### Frontend não conecta ao backend
+
 - Certifique-se de que o backend está rodando em `http://localhost:8000`
 - Verifique a variável `VITE_API_URL` no `.env` (se configurada)
 
 ### Erro de banco de dados
+
 - Delete `backend/astrologia.db` e reinicie o servidor para recriar o banco
 
 ## 📝 Licença

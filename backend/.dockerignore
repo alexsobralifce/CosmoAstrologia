@@ -1,0 +1,28 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.env
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+astrologia.db
+
+# IMPORTANT: Do NOT exclude these RAG files - they are needed for the service:
+# rag_index.pkl  (processed embeddings - 21MB)
+# docs/          (source PDFs - 617MB, needed if index needs rebuilding)

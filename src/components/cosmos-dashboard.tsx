@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { OnboardingData } from './onboarding';
 import { UIIcons } from './ui-icons';
 import { zodiacSigns } from './zodiac-icons';
@@ -585,7 +585,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                   </div>
                   <h4 className="text-sm font-medium text-foreground mb-1">{insight.title}</h4>
                   <p className={`text-2xl font-bold ${insight.textColor} mb-2`}>{insight.value}</p>
-                  <p className="text-xs text-foreground dark:text-gray-300">{insight.description}</p>
+                  <p className="text-xs text-foreground/90 dark:text-gray-200">{insight.description}</p>
                 </div>
               ))}
             </div>
@@ -609,11 +609,11 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                       <h4 className={`font-semibold ${area.textColor}`}>{area.title}</h4>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm text-foreground dark:text-gray-400">{texts.intensity}</span>
+                      <span className="text-sm text-foreground/90 dark:text-gray-300">{texts.intensity}</span>
                       <p className={`text-xl font-bold ${area.textColor}`}>{area.intensity}/10</p>
                     </div>
                   </div>
-                  <p className="text-sm text-foreground dark:text-gray-300 mb-4">{area.description}</p>
+                  <p className="text-sm text-foreground/90 dark:text-gray-200 mb-4">{area.description}</p>
                   {/* Barra de progresso */}
                   <div className="h-1.5 bg-white/30 dark:bg-black/20 rounded-full overflow-hidden">
                     <div

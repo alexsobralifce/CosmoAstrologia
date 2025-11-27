@@ -1,20 +1,34 @@
 /* 
- * Figma Design Theme - Cores Exatas do Design
+ * Figma Design Theme - Cores Exatas Extraídas via MCP
  * Baseado em: https://www.figma.com/design/aI95Nh89jEv6YtxGq1ksnj
- * Extraído via screenshot em: 2025-01-28
+ * Extraído via MCP Figma Tool em: 2025-11-27
  */
 
 :root {
-  /* === TEMA ESCURO (NOITE) - Figma Design Exact Colors === */
-  --figma-bg-dark: #1E1B2E;            /* Roxo/azul escuro - Background principal */
-  --figma-fg-dark: #E8E6F0;            /* Texto principal claro */
-  --figma-card-dark: #2A2742;          /* Cards levemente mais claros */
-  --figma-card-border-dark: #3D3A52;   /* Bordas sutis */
-  --figma-input-dark: #32304A;         /* Background de inputs */
-  --figma-primary-dark: #9F86C0;       /* Roxo claro - Primary */
-  --figma-secondary-dark: #FF8A3D;     /* Laranja do botão 2026 Guide */
-  --figma-muted-dark: #9892AC;         /* Texto secundário */
-  --figma-sidebar-dark: #181625;       /* Sidebar mais escura */
+  /* === TEMA ESCURO (NOITE) - Figma MCP Exact Colors === */
+  --figma-bg-dark: #120E1B;            /* Background principal (fill_ASJWH5) */
+  --figma-fg-dark: #F2F1F4;            /* Texto principal (fill_435LWC) */
+  --figma-card-dark: #1C1726;          /* Cards (fill_V0XCJL) */
+  --figma-card-border-dark: #30293D;   /* Bordas (stroke_T3M10S) */
+  --figma-input-dark: rgba(48, 41, 61, 0.3);  /* Inputs (fill_FNCHKU) */
+  --figma-primary-dark: #C27AFF;       /* Roxo claro primary (fill_IHG2UL) */
+  --figma-secondary-dark: #FF8904;     /* Laranja accent (fill_PQQTAK) */
+  --figma-muted-dark: #ADA3C2;         /* Texto secundário (fill_2QWPE6) */
+  --figma-sidebar-dark: #1C1726;       /* Sidebar (fill_V0XCJL) */
+  --figma-sidebar-highlight: #2D324D;  /* Destaque sidebar (fill_OPFA8P) */
+  
+  /* === Cores de Áreas (Predictions Cards) === */
+  --figma-love-bg: rgba(130, 24, 26, 0.05);      /* fill_9ILP0P */
+  --figma-love-accent: #FB2C36;                  /* fill_67KY8V */
+  --figma-career-bg: rgba(123, 51, 6, 0.05);     /* fill_22WDWH */
+  --figma-career-accent: #E17100;                /* fill_PO7L2H */
+  --figma-health-bg: rgba(0, 79, 59, 0.05);      /* fill_ZCGS9I */
+  --figma-health-accent: #009966;                /* fill_4O0GSU */
+  --figma-family-bg: rgba(89, 22, 139, 0.05);    /* fill_JWJKE1 */
+  --figma-family-accent: #9810FA;                /* fill_CB058K */
+  
+  /* === Progress Bars === */
+  --figma-progress-bg: rgba(255, 255, 255, 0.1); /* fill_1KU0CP */
   
   /* === TEMA CLARO (DIA) === */
   --figma-bg-light: #FBFAF9;
@@ -23,7 +37,7 @@
   --figma-card-border-light: #CAC7D1;
   --figma-input-light: #E5E0EB;
   --figma-primary-light: #7C3AED;
-  --figma-secondary-light: #FF8A3D;
+  --figma-secondary-light: #FF8904;
   --figma-muted-light: #635C70;
   
   /* === MEDIDAS EXATAS === */
@@ -54,7 +68,7 @@
   --radius: var(--figma-input-radius);
 }
 
-/* ===== TEMA ESCURO - Figma Design Exato ===== */
+/* ===== TEMA ESCURO - Figma Design MCP Exato ===== */
 .dark {
   --background: var(--figma-bg-dark);
   --foreground: var(--figma-fg-dark);
@@ -62,11 +76,11 @@
   --card-foreground: var(--figma-fg-dark);
   --primary: var(--figma-primary-dark);
   --primary-foreground: #FFFFFF;
-  --secondary: #B8B5C7; /* Texto secundário claro */
+  --secondary: var(--figma-muted-dark);
   --secondary-foreground: var(--figma-bg-dark);
   --accent: var(--figma-secondary-dark);
   --accent-foreground: #FFFFFF;
-  --muted: #32304A; /* Fundo muted */
+  --muted: rgba(48, 41, 61, 0.5);
   --muted-foreground: var(--figma-muted-dark);
   --input: var(--figma-input-dark);
   --input-background: var(--figma-input-dark);
@@ -75,11 +89,11 @@
   --radius: var(--figma-input-radius);
   --sidebar: var(--figma-sidebar-dark);
   --sidebar-foreground: var(--figma-fg-dark);
-  --sidebar-primary: var(--figma-card-dark);
+  --sidebar-primary: var(--figma-sidebar-highlight);
   --sidebar-primary-foreground: var(--figma-fg-dark);
   --sidebar-accent: var(--figma-secondary-dark);
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: var(--figma-card-dark);
+  --sidebar-border: var(--figma-card-border-dark);
   --sidebar-ring: var(--figma-primary-dark);
 }
 

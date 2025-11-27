@@ -1,0 +1,21 @@
+# Production requirements (without heavy RAG dependencies)
+# RAG features will be disabled in production
+
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+sqlalchemy==2.0.36
+pydantic==2.10.0
+pydantic-settings==2.6.0
+pydantic[email]==2.10.0
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.0
+python-multipart==0.0.12
+ephem==4.1.5
+email-validator==2.2.0
+# Database drivers
+psycopg2-binary>=2.9.0
+# Numpy (usado em cálculos astrológicos)
+numpy<2.0
+# Groq para geração de interpretações (leve)
+groq>=0.4.1
+

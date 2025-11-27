@@ -23,6 +23,6 @@ coverage.xml
 .hypothesis
 astrologia.db
 
-# IMPORTANT: Do NOT exclude these RAG files - they are needed for the service:
-# rag_index.pkl  (processed embeddings - 21MB)
-# docs/          (source PDFs - 617MB, needed if index needs rebuilding)
+# Exclude heavy RAG files for production (to keep image under 4GB)
+docs/
+rag_index.pkl

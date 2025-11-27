@@ -33,7 +33,7 @@
   --figma-input-padding: 16px 20px;    /* Padding dos inputs */
 }
 
-/* Aplicar tema claro por padrão (CORES EXATAS DO FIGMA) */
+/* ===== TEMA CLARO - Ajustado para bom contraste ===== */
 .light {
   --background: var(--figma-bg-light);
   --foreground: var(--figma-fg-light);
@@ -41,12 +41,12 @@
   --card-foreground: var(--figma-fg-light);
   --primary: var(--figma-primary-light);
   --primary-foreground: #FFFFFF;
-  --secondary: var(--figma-secondary-light);
+  --secondary: #4B5563; /* Texto secundário com bom contraste */
   --secondary-foreground: #FFFFFF;
   --accent: var(--figma-secondary-light);
   --accent-foreground: #FFFFFF;
-  --muted: var(--figma-input-light);
-  --muted-foreground: var(--figma-muted-light);
+  --muted: #F3F4F6; /* Fundo muted mais claro */
+  --muted-foreground: #6B7280; /* Texto muted com contraste */
   --input: var(--figma-input-light);
   --input-background: var(--figma-input-light);
   --border: var(--figma-card-border-light);
@@ -54,20 +54,20 @@
   --radius: var(--figma-input-radius);
 }
 
-/* Aplicar tema escuro */
+/* ===== TEMA ESCURO - Ajustado para bom contraste ===== */
 .dark {
   --background: var(--figma-bg-dark);
   --foreground: var(--figma-fg-dark);
   --card: var(--figma-card-dark);
   --card-foreground: var(--figma-fg-dark);
   --primary: var(--figma-primary-dark);
-  --primary-foreground: var(--figma-bg-dark);
-  --secondary: var(--figma-secondary-dark);
+  --primary-foreground: var(--figma-fg-dark);
+  --secondary: #CBD5E1; /* Texto secundário claro para dark mode */
   --secondary-foreground: var(--figma-bg-dark);
   --accent: var(--figma-secondary-dark);
   --accent-foreground: var(--figma-bg-dark);
-  --muted: var(--figma-input-dark);
-  --muted-foreground: var(--figma-muted-dark);
+  --muted: #1F2937; /* Fundo muted escuro */
+  --muted-foreground: #9CA3AF; /* Texto muted com contraste */
   --input: var(--figma-input-dark);
   --input-background: var(--figma-input-dark);
   --border: var(--figma-card-border-dark);

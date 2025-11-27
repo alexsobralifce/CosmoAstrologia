@@ -165,8 +165,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('insights', 'favorableMoment'),
       icon: UIIcons.Zap,
       color: 'orange',
-      bgColor: 'bg-orange-50 dark:bg-orange-500/10',
-      textColor: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-orange-100 dark:bg-orange-500/15',
+      textColor: 'text-orange-700 dark:text-orange-300',
     },
     {
       id: 'signo',
@@ -175,8 +175,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('insights', 'focusStability'),
       icon: zodiacSigns[1].icon,
       color: 'emerald',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-500/10',
-      textColor: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-500/15',
+      textColor: 'text-emerald-700 dark:text-emerald-300',
     },
     {
       id: 'fase-lunar',
@@ -185,8 +185,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('insights', 'expansionGrowth'),
       icon: UIIcons.Moon,
       color: 'amber',
-      bgColor: 'bg-amber-50 dark:bg-amber-500/10',
-      textColor: 'text-amber-600 dark:text-amber-400',
+      bgColor: 'bg-amber-100 dark:bg-amber-500/15',
+      textColor: 'text-amber-700 dark:text-amber-300',
     },
     {
       id: 'elemento',
@@ -195,8 +195,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('insights', 'practicalityRealization'),
       icon: UIIcons.Globe,
       color: 'emerald',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-500/10',
-      textColor: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-500/15',
+      textColor: 'text-emerald-700 dark:text-emerald-300',
     },
   ];
 
@@ -208,8 +208,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'venusHarmony'),
       icon: UIIcons.Heart,
       color: 'bg-red-500',
-      textColor: 'text-red-600 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-500/10',
+      textColor: 'text-red-700 dark:text-red-300',
+      bgColor: 'bg-red-100 dark:bg-red-500/15',
     },
     {
       id: 'carreira',
@@ -218,8 +218,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'jupiterOpportunities'),
       icon: UIIcons.Briefcase,
       color: 'bg-amber-500',
-      textColor: 'text-amber-600 dark:text-amber-400',
-      bgColor: 'bg-amber-50 dark:bg-amber-500/10',
+      textColor: 'text-amber-700 dark:text-amber-300',
+      bgColor: 'bg-amber-100 dark:bg-amber-500/15',
     },
     {
       id: 'saude',
@@ -228,8 +228,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'marsEnergy'),
       icon: UIIcons.Activity,
       color: 'bg-emerald-500',
-      textColor: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-500/10',
+      textColor: 'text-emerald-700 dark:text-emerald-300',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-500/15',
     },
     {
       id: 'familia',
@@ -238,8 +238,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'moonRelations'),
       icon: UIIcons.Users,
       color: 'bg-purple-500',
-      textColor: 'text-purple-600 dark:text-purple-400',
-      bgColor: 'bg-purple-50 dark:bg-purple-500/10',
+      textColor: 'text-purple-700 dark:text-purple-300',
+      bgColor: 'bg-purple-100 dark:bg-purple-500/15',
     },
   ];
 
@@ -249,28 +249,28 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       sign: language === 'pt' ? 'Capricórnio' : 'Capricorn', 
       status: t('planets', 'retrograde'), 
       icon: planets[2].icon, 
-      statusColor: 'bg-red-100 text-red-600 dark:bg-red-500/20 dark:text-red-400' 
+      statusColor: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300' 
     },
     { 
       planet: t('planets', 'venus'), 
       sign: language === 'pt' ? 'Escorpião' : 'Scorpio', 
       status: t('planets', 'direct'), 
       icon: planets[3].icon, 
-      statusColor: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
+      statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' 
     },
     { 
       planet: t('planets', 'mars'), 
       sign: language === 'pt' ? 'Leão' : 'Leo', 
       status: t('planets', 'direct'), 
       icon: planets[4].icon, 
-      statusColor: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
+      statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' 
     },
     { 
       planet: t('planets', 'jupiter'), 
       sign: language === 'pt' ? 'Gêmeos' : 'Gemini', 
       status: t('planets', 'direct'), 
       icon: planets[5].icon, 
-      statusColor: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' 
+      statusColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' 
     },
   ];
 
@@ -521,23 +521,23 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
             
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-3">
-                <UIIcons.Sparkles size={20} className="text-primary" />
-                <span className="text-sm text-primary font-medium">{texts.astralForecast}</span>
+                <UIIcons.Sparkles size={20} className="text-purple-400" />
+                <span className="text-sm text-purple-300 font-medium">{texts.astralForecast}</span>
               </div>
-              <h2 className="font-serif text-4xl font-bold text-foreground mb-4">
+              <h2 className="font-serif text-4xl font-bold text-white mb-4">
                 {texts.welcome}
               </h2>
-              <p className="text-foreground/80 text-lg max-w-2xl">
+              <p className="text-gray-200 text-lg max-w-2xl">
                 {texts.heroText}
               </p>
               <div className="flex gap-4 mt-6">
                 <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <UIIcons.Calendar size={16} className="inline mr-2 text-foreground" />
-                  <span className="text-foreground text-sm">{texts.monday}, 24 {texts.of} {texts.november}</span>
+                  <UIIcons.Calendar size={16} className="inline mr-2 text-white" />
+                  <span className="text-white text-sm">{texts.monday}, 24 {texts.of} {texts.november}</span>
                 </div>
                 <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <UIIcons.Moon size={16} className="inline mr-2 text-amber" />
-                  <span className="text-foreground text-sm">{texts.waxingMoonIn}</span>
+                  <UIIcons.Moon size={16} className="inline mr-2 text-amber-400" />
+                  <span className="text-white text-sm">{texts.waxingMoonIn}</span>
                 </div>
               </div>
             </div>
@@ -550,14 +550,14 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               {insights.map((insight) => (
                 <div
                   key={insight.id}
-                  className={`${insight.bgColor} rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all cursor-pointer group`}
+                  className={`${insight.bgColor} rounded-xl p-6 border border-border hover:border-primary/30 transition-all cursor-pointer group`}
                 >
                   <div className={`w-12 h-12 rounded-lg ${insight.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                     <insight.icon size={24} className={insight.textColor} />
                   </div>
-                  <h4 className="text-sm font-medium text-foreground/70 dark:text-foreground/80 mb-1">{insight.title}</h4>
+                  <h4 className="text-sm font-medium text-foreground mb-1">{insight.title}</h4>
                   <p className={`text-2xl font-bold ${insight.textColor} mb-2`}>{insight.value}</p>
-                  <p className="text-xs text-foreground/70 dark:text-foreground/80">{insight.description}</p>
+                  <p className="text-xs text-muted-foreground">{insight.description}</p>
                 </div>
               ))}
             </div>
@@ -570,24 +570,24 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               {areas.map((area) => (
                 <div
                   key={area.id}
-                  className={`${area.bgColor} rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all cursor-pointer`}
+                  className={`${area.bgColor} rounded-xl p-6 border border-border hover:border-primary/30 transition-all cursor-pointer`}
                   onClick={() => onViewInterpretation(area.id)}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-lg ${area.bgColor} flex items-center justify-center`}>
-                        <area.icon size={20} className={`${area.textColor || area.color.replace('bg-', 'text-')}`} />
+                        <area.icon size={20} className={area.textColor} />
                       </div>
-                      <h4 className={`font-semibold ${area.textColor || 'text-foreground'}`}>{area.title}</h4>
+                      <h4 className={`font-semibold ${area.textColor}`}>{area.title}</h4>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm text-foreground/70 dark:text-foreground/80">{texts.intensity}</span>
-                      <p className={`text-xl font-bold ${area.textColor || area.color.replace('bg-', 'text-')}`}>{area.intensity}/10</p>
+                      <span className="text-sm text-muted-foreground">{texts.intensity}</span>
+                      <p className={`text-xl font-bold ${area.textColor}`}>{area.intensity}/10</p>
                     </div>
                   </div>
-                  <p className="text-sm text-foreground/80 dark:text-foreground/90 mb-4">{area.description}</p>
+                  <p className="text-sm text-foreground mb-4">{area.description}</p>
                   {/* Barra de progresso */}
-                  <div className="h-1.5 bg-muted dark:bg-muted/50 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className={`h-full ${area.color} rounded-full transition-all duration-500`}
                       style={{ width: `${area.intensity * 10}%` }}

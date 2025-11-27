@@ -94,47 +94,47 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
 
       {/* Big Three Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-orange-500/20 to-orange-500/5 rounded-xl p-6 border border-orange-500/30">
+        <div className="bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-500/20 dark:to-orange-500/5 rounded-xl p-6 border border-orange-300 dark:border-orange-500/30">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center">
-              <SunIcon size={28} className="text-orange-500" />
+            <div className="w-12 h-12 rounded-lg bg-orange-200 dark:bg-orange-500/20 flex items-center justify-center">
+              <SunIcon size={28} className="text-orange-600 dark:text-orange-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Sol' : 'Sun'}</p>
               <p className="font-bold text-xl text-foreground">{sunSign}</p>
             </div>
           </div>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-foreground">
             {language === 'pt' ? 'Sua essência e identidade central' : 'Your essence and core identity'}
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-xl p-6 border border-purple-500/30">
+        <div className="bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-500/20 dark:to-purple-500/5 rounded-xl p-6 border border-purple-300 dark:border-purple-500/30">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <MoonIcon size={28} className="text-purple-500" />
+            <div className="w-12 h-12 rounded-lg bg-purple-200 dark:bg-purple-500/20 flex items-center justify-center">
+              <MoonIcon size={28} className="text-purple-600 dark:text-purple-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Lua' : 'Moon'}</p>
               <p className="font-bold text-xl text-foreground">{moonSign}</p>
             </div>
           </div>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-foreground">
             {language === 'pt' ? 'Suas emoções e mundo interior' : 'Your emotions and inner world'}
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-500/20 to-blue-500/5 rounded-xl p-6 border border-blue-500/30">
+        <div className="bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-500/20 dark:to-blue-500/5 rounded-xl p-6 border border-blue-300 dark:border-blue-500/30">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <AscIcon size={28} className="text-blue-500" />
+            <div className="w-12 h-12 rounded-lg bg-blue-200 dark:bg-blue-500/20 flex items-center justify-center">
+              <AscIcon size={28} className="text-blue-600 dark:text-blue-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Ascendente' : 'Ascendant'}</p>
               <p className="font-bold text-xl text-foreground">{ascendantSign}</p>
             </div>
           </div>
-          <p className="text-sm text-foreground/70">
+          <p className="text-sm text-foreground">
             {language === 'pt' ? 'Como você se apresenta ao mundo' : 'How you present yourself to the world'}
           </p>
         </div>
@@ -786,35 +786,35 @@ export const Guide2026Section = ({ userData, onBack }: Guide2026SectionProps) =>
           {language === 'pt' ? 'Tipos de Trânsitos' : 'Transit Types'}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[#E8B95A]/10">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30">
             <span className="text-lg">🌟</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Expansão' : 'Expansion'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Júpiter' : 'Jupiter'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[#8B7355]/10">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-stone-100 dark:bg-stone-500/15 border border-stone-200 dark:border-stone-500/30">
             <span className="text-lg">🏛️</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Estrutura' : 'Structure'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[#4ECDC4]/10">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-teal-100 dark:bg-teal-500/15 border border-teal-200 dark:border-teal-500/30">
             <span className="text-lg">⚡</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Mudança' : 'Change'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Urano' : 'Uranus'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[#9B59B6]/10">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-100 dark:bg-purple-500/15 border border-purple-200 dark:border-purple-500/30">
             <span className="text-lg">🌊</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Espiritualidade' : 'Spirituality'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Netuno' : 'Neptune'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-[#E74C3C]/10">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-red-100 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30">
             <span className="text-lg">🔥</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Transformação' : 'Transformation'}</p>
@@ -1460,21 +1460,21 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
       {/* Nodes, Saturn and Chiron Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* North Node */}
-        <div className="bg-gradient-to-br from-amber-500/20 to-amber-500/5 rounded-xl p-6 border border-amber-500/30">
+        <div className="bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-500/20 dark:to-amber-500/5 rounded-xl p-6 border border-amber-300 dark:border-amber-500/30">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <UIIcons.ArrowUp size={32} className="text-amber-500" />
+            <div className="w-16 h-16 rounded-full bg-amber-200 dark:bg-amber-500/20 flex items-center justify-center">
+              <UIIcons.ArrowUp size={32} className="text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Nodo Norte' : 'North Node'}</p>
               <div className="flex items-center gap-2">
-                {NorthIcon && <NorthIcon size={20} className="text-amber-500" />}
+                {NorthIcon && <NorthIcon size={20} className="text-amber-600 dark:text-amber-400" />}
                 <p className="font-bold text-xl text-foreground">{northNode}</p>
               </div>
               <p className="text-sm text-muted-foreground">{northNodeDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground/80">
+          <p className="text-foreground">
             {language === 'pt' 
               ? 'O destino e o propósito que você deve buscar nesta vida' 
               : 'The destiny and purpose you should seek in this life'}
@@ -1482,21 +1482,21 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
         </div>
 
         {/* South Node */}
-        <div className="bg-gradient-to-br from-indigo-500/20 to-indigo-500/5 rounded-xl p-6 border border-indigo-500/30">
+        <div className="bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-500/20 dark:to-indigo-500/5 rounded-xl p-6 border border-indigo-300 dark:border-indigo-500/30">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-indigo-500/20 flex items-center justify-center">
-              <UIIcons.ArrowDown size={32} className="text-indigo-500" />
+            <div className="w-16 h-16 rounded-full bg-indigo-200 dark:bg-indigo-500/20 flex items-center justify-center">
+              <UIIcons.ArrowDown size={32} className="text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Nodo Sul' : 'South Node'}</p>
               <div className="flex items-center gap-2">
-                {SouthIcon && <SouthIcon size={20} className="text-indigo-500" />}
+                {SouthIcon && <SouthIcon size={20} className="text-indigo-600 dark:text-indigo-400" />}
                 <p className="font-bold text-xl text-foreground">{southNode}</p>
               </div>
               <p className="text-sm text-muted-foreground">{southNodeDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground/80">
+          <p className="text-foreground">
             {language === 'pt' 
               ? 'Padrões do passado que você traz como zona de conforto' 
               : 'Past patterns you bring as a comfort zone'}
@@ -1504,21 +1504,21 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
         </div>
 
         {/* Saturn */}
-        <div className="bg-gradient-to-br from-gray-500/20 to-gray-500/5 rounded-xl p-6 border border-gray-500/30">
+        <div className="bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-500/20 dark:to-gray-500/5 rounded-xl p-6 border border-gray-300 dark:border-gray-500/30">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-gray-500/20 flex items-center justify-center">
-              <UIIcons.AlertCircle size={32} className="text-muted-foreground" />
+            <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-500/20 flex items-center justify-center">
+              <UIIcons.AlertCircle size={32} className="text-gray-600 dark:text-gray-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
               <div className="flex items-center gap-2">
-                {SaturnIcon && <SaturnIcon size={20} className="text-muted-foreground" />}
+                {SaturnIcon && <SaturnIcon size={20} className="text-gray-600 dark:text-gray-400" />}
                 <p className="font-bold text-xl text-foreground">{saturnSign}</p>
               </div>
               <p className="text-sm text-muted-foreground">{saturnDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground/80">
+          <p className="text-foreground">
             {language === 'pt' 
               ? 'Onde estão seus maiores desafios e lições de vida' 
               : 'Where your greatest challenges and life lessons are'}
@@ -1526,21 +1526,21 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
         </div>
 
         {/* Chiron - A ferida do curador */}
-        <div className="bg-gradient-to-br from-rose-500/20 to-rose-500/5 rounded-xl p-6 border border-rose-500/30">
+        <div className="bg-gradient-to-br from-rose-100 to-rose-50 dark:from-rose-500/20 dark:to-rose-500/5 rounded-xl p-6 border border-rose-300 dark:border-rose-500/30">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-rose-500/20 flex items-center justify-center">
-              <UIIcons.Heart size={32} className="text-rose-500" />
+            <div className="w-16 h-16 rounded-full bg-rose-200 dark:bg-rose-500/20 flex items-center justify-center">
+              <UIIcons.Heart size={32} className="text-rose-600 dark:text-rose-400" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Quíron' : 'Chiron'}</p>
               <div className="flex items-center gap-2">
-                {ChironIcon && <ChironIcon size={20} className="text-rose-500" />}
+                {ChironIcon && <ChironIcon size={20} className="text-rose-600 dark:text-rose-400" />}
                 <p className="font-bold text-xl text-foreground">{chironSign}</p>
               </div>
               <p className="text-sm text-muted-foreground">{chironDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground/80">
+          <p className="text-foreground">
             {language === 'pt' 
               ? 'A ferida que pode se tornar seu maior dom de cura' 
               : 'The wound that can become your greatest healing gift'}
@@ -1600,9 +1600,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         }
         currentSection = {
           title: language === 'pt' ? '🌙 Passado / Karma' : '🌙 Past / Karma',
-          icon: <UIIcons.Moon className="w-6 h-6 text-indigo-500" />,
+          icon: <UIIcons.Moon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />,
           content: [],
-          color: 'from-indigo-500/20 to-indigo-500/5 border-indigo-500/30'
+          color: 'from-indigo-100 to-indigo-50 dark:from-indigo-500/20 dark:to-indigo-500/5 border-indigo-300 dark:border-indigo-500/30'
         };
         // Remover o título do parágrafo
         const cleaned = trimmed.replace(patterns.passado, '').replace(/^\*+|\*+$/g, '').trim();
@@ -1614,9 +1614,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         }
         currentSection = {
           title: language === 'pt' ? '☀️ Presente / Essência' : '☀️ Present / Essence',
-          icon: <UIIcons.Sun className="w-6 h-6 text-amber-500" />,
+          icon: <UIIcons.Sun className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
           content: [],
-          color: 'from-amber-500/20 to-amber-500/5 border-amber-500/30'
+          color: 'from-amber-100 to-amber-50 dark:from-amber-500/20 dark:to-amber-500/5 border-amber-300 dark:border-amber-500/30'
         };
         const cleaned = trimmed.replace(patterns.presente, '').replace(/^\*+|\*+$/g, '').trim();
         if (cleaned) currentSection.content.push(cleaned);
@@ -1627,9 +1627,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         }
         currentSection = {
           title: language === 'pt' ? '⭐ Futuro / Evolução' : '⭐ Future / Evolution',
-          icon: <UIIcons.Star className="w-6 h-6 text-emerald-500" />,
+          icon: <UIIcons.Star className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
           content: [],
-          color: 'from-emerald-500/20 to-emerald-500/5 border-emerald-500/30'
+          color: 'from-emerald-100 to-emerald-50 dark:from-emerald-500/20 dark:to-emerald-500/5 border-emerald-300 dark:border-emerald-500/30'
         };
         const cleaned = trimmed.replace(patterns.futuro, '').replace(/^\*+|\*+$/g, '').trim();
         if (cleaned) currentSection.content.push(cleaned);
@@ -1645,9 +1645,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         if (!result.find(r => r.title.includes('Resumo') || r.title.includes('Summary'))) {
           currentSection = {
             title: language === 'pt' ? '📋 Resumo' : '📋 Summary',
-            icon: <UIIcons.BookOpen className="w-6 h-6 text-muted-foreground" />,
+            icon: <UIIcons.BookOpen className="w-6 h-6 text-gray-600 dark:text-gray-400" />,
             content: [trimmed],
-            color: 'from-gray-500/20 to-gray-500/5 border-gray-500/30'
+            color: 'from-gray-100 to-gray-50 dark:from-gray-500/20 dark:to-gray-500/5 border-gray-300 dark:border-gray-500/30'
           };
         } else if (currentSection) {
           currentSection.content.push(trimmed);

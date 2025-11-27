@@ -12,45 +12,45 @@
   --radius: 0.5rem; /* 8px rounded corners */
 }
 
-/* Dark Theme - Night Mode (Default) - Baseado no Figma Design */
+/* Dark Theme - Night Mode (Default) - Figma Design Exato via MCP */
 :root, .dark {
-  /* Cosmic Color Palette - Figma Exact Colors */
-  --background: #1E1B2E; /* Roxo/azul escuro do fundo principal */
-  --foreground: #E8E6F0; /* Texto principal claro */
-  --card: #2A2742; /* Card background levemente mais claro */
-  --card-foreground: #E8E6F0;
-  --popover: #2A2742;
-  --popover-foreground: #E8E6F0;
-  --primary: #9F86C0; /* Roxo claro para elementos primários */
+  /* Cosmic Color Palette - Cores Extraídas do Figma via MCP */
+  --background: #120E1B; /* Background principal (fill_ASJWH5) */
+  --foreground: #F2F1F4; /* Texto principal (fill_435LWC) */
+  --card: #1C1726; /* Card background (fill_V0XCJL) */
+  --card-foreground: #F2F1F4;
+  --popover: #1C1726;
+  --popover-foreground: #F2F1F4;
+  --primary: #C27AFF; /* Roxo claro primary (fill_IHG2UL) */
   --primary-foreground: #FFFFFF;
-  --secondary: #B8B5C7; /* Cinza/roxo claro para texto secundário */
-  --secondary-foreground: #1E1B2E;
-  --muted: #32304A; /* Background muted */
-  --muted-foreground: #9892AC; /* Texto muted */
-  --accent: #FF8A3D; /* Laranja vibrante do botão 2026 Guide */
+  --secondary: #ADA3C2; /* Texto secundário (fill_2QWPE6) */
+  --secondary-foreground: #120E1B;
+  --muted: rgba(48, 41, 61, 0.5); /* Background muted (fill_7R2YRS) */
+  --muted-foreground: #ADA3C2; /* Texto muted (fill_2QWPE6) */
+  --accent: #FF8904; /* Laranja accent do Figma (fill_PQQTAK) */
   --accent-foreground: #FFFFFF;
-  --destructive: #EF4444;
+  --destructive: #FB2C36; /* Vermelho (fill_67KY8V) */
   --destructive-foreground: #FFFFFF;
-  --border: #3D3A52; /* Bordas sutis */
+  --border: #30293D; /* Bordas (stroke_T3M10S) */
   --input: transparent;
-  --input-background: #32304A;
-  --input-border: #3D3A52;
-  --input-border-active: #9F86C0;
-  --switch-background: #3D3A52;
-  --ring: #9F86C0;
+  --input-background: rgba(48, 41, 61, 0.3); /* Input (fill_FNCHKU) */
+  --input-border: #30293D;
+  --input-border-active: #C27AFF;
+  --switch-background: #30293D;
+  --ring: #C27AFF;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: #181625; /* Sidebar mais escura que o fundo */
-  --sidebar-foreground: #E8E6F0;
-  --sidebar-primary: #2A2742;
-  --sidebar-primary-foreground: #E8E6F0;
-  --sidebar-accent: #FF8A3D;
+  --sidebar: #1C1726; /* Sidebar (fill_V0XCJL) */
+  --sidebar-foreground: #F2F1F4;
+  --sidebar-primary: #2D324D; /* Destaque sidebar (fill_OPFA8P) */
+  --sidebar-primary-foreground: #F2F1F4;
+  --sidebar-accent: #FF8904;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #2A2742;
-  --sidebar-ring: #9F86C0;
+  --sidebar-border: #30293D;
+  --sidebar-ring: #C27AFF;
 }
 
 /* Light Theme - Day Mode */

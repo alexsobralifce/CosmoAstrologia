@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AstroInput } from './astro-input';
 import { UIIcons } from './ui-icons';
 

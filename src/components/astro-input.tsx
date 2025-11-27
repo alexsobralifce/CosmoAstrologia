@@ -1,4 +1,4 @@
-import { InputHTMLAttributes, forwardRef } from 'react';
+import React, { InputHTMLAttributes, forwardRef } from 'react';
 import { cn } from './ui/utils';
 
 interface AstroInputProps extends InputHTMLAttributes<HTMLInputElement> {

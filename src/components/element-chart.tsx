@@ -1,3 +1,4 @@
+import React from 'react';
 import { AstroCard } from './astro-card';
 
 interface ElementData {

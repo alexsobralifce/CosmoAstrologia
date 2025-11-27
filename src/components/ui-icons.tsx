@@ -1,3 +1,4 @@
+import React from 'react';
 import { 
   Settings, LogOut, User, X, Menu, Eye, EyeOff, Search, Bell, 
   ChevronDown, ChevronLeft, ChevronRight, Calendar, MapPin, Clock, 

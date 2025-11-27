@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTheme } from './theme-provider';
 import { UIIcons } from './ui-icons';
 

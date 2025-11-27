@@ -1,3 +1,4 @@
+import React from 'react';
 import { AstroCard } from './astro-card';
 import { zodiacSigns } from './zodiac-icons';
 import { planets } from './planet-icons';

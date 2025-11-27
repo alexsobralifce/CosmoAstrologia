@@ -1,4 +1,4 @@
-import { HTMLAttributes, ReactNode } from 'react';
+import React, { HTMLAttributes, ReactNode } from 'react';
 import { cn } from './ui/utils';
 
 interface AstroCardProps extends HTMLAttributes<HTMLDivElement> {

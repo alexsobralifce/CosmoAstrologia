@@ -9,19 +9,19 @@ Sistema completo para cálculo e visualização de mapas astrais com interface m
 **Linux/Mac:**
 ```bash
 # Iniciar apenas o backend
-./start-backend.sh
+./scripts/start-backend.sh
 
 # Iniciar frontend e backend juntos
-./start-all.sh
+./scripts/start-all.sh
 ```
 
 **Windows:**
 ```powershell
 # Iniciar apenas o backend
-.\start-backend.ps1
+.\scripts\start-backend.ps1
 
 # Iniciar frontend e backend juntos
-.\start-all.ps1
+.\scripts\start-all.ps1
 ```
 
 ### Opção 2: Manual
@@ -84,7 +84,12 @@ Astrologia/
 ├── src/              # Frontend React + TypeScript
 │   ├── components/   # Componentes React
 │   ├── services/     # Serviços de API
-│   └── utils/        # Utilitários
+│   ├── utils/        # Utilitários
+│   ├── i18n/         # Internacionalização
+│   └── styles/       # Estilos globais
+├── docs/             # Documentação do projeto
+├── tests/            # Arquivos de teste
+├── scripts/          # Scripts de automação
 └── package.json
 ```
 

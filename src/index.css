@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+@import url("./styles/figma-theme.css");
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {
@@ -3053,123 +3054,505 @@
 }
 
 :root, .dark {
-  /* ===== CORES BASE ===== */
-  --background: #1A0F2E;           /* Fundo principal - roxo cósmico profundo */
-  --foreground: #F3F0F7;           /* Texto principal - lavanda branco suave */
+  /* ===== CORES BASE (FIGMA COSMOS ASTRAL) ===== */
+  --background: hsl(260, 30%, 8%);           /* Roxo Profundo (Dark Mode) */
+  --foreground: hsl(260, 10%, 95%);          /* Off-white texto */
 
   /* ===== CARDS & CONTAINERS ===== */
-  --card: rgba(91, 95, 151, 0.35);         /* Cards glassmorphic - Iris Bloom */
-  --card-foreground: #F3F0F7;              /* Texto em cards */
-  --popover: rgba(63, 42, 86, 0.95);       /* Popover/tooltips - Petunia */
-  --popover-foreground: #F3F0F7;           /* Texto em popover */
+  --card: hsl(260, 25%, 12%);                /* Cinza/Roxo Escuro cards */
+  --card-foreground: hsl(260, 10%, 95%);     /* Texto em cards */
+  --popover: hsl(260, 25%, 12%);             /* Popover/tooltips */
+  --popover-foreground: hsl(260, 10%, 95%);  /* Texto em popover */
 
   /* ===== BOTÕES & AÇÕES ===== */
-  --primary: #9F86C0;              /* Botões primários - Purple Hebe vibrante */
-  --primary-foreground: #1A0F2E;   /* Texto em botões primários */
-  --secondary: #B5A5BC;            /* Botões secundários - lavanda cinza */
-  --secondary-foreground: #1A0F2E; /* Texto em botões secundários */
-  --accent: #B59DAB;               /* Acentos - Dusky Orchid rosa acinzentado */
-  --accent-foreground: #1A0F2E;    /* Texto em acentos */
+  --primary: hsl(265, 80%, 65%);             /* Violeta Vibrante (Dark) */
+  --primary-foreground: hsl(260, 10%, 95%);  /* Texto em primários */
+  --secondary: hsl(260, 20%, 25%);           /* Cinza escuro secundário */
+  --secondary-foreground: hsl(260, 10%, 95%); /* Texto em secundários */
+  --accent: hsl(265, 80%, 65%);              /* Violeta para acentos */
+  --accent-foreground: hsl(260, 10%, 95%);   /* Texto em acentos */
 
   /* ===== ESTADOS ===== */
-  --muted: rgba(91, 95, 151, 0.25);  /* Backgrounds sutis */
-  --muted-foreground: #B5A5BC;        /* Texto em elementos muted */
-  --destructive: #D95B7F;             /* Ações destrutivas - rosa pink */
-  --destructive-foreground: #ffffff;  /* Texto em destrutivos */
+  --muted: hsl(260, 20%, 20%);               /* Backgrounds sutis */
+  --muted-foreground: hsl(260, 10%, 60%);    /* Texto muted */
+  --destructive: hsl(0, 70%, 60%);           /* Vermelho destrutivo */
+  --destructive-foreground: hsl(0, 0%, 100%); /* Texto destrutivo */
 
   /* ===== BORDAS & INPUTS ===== */
-  --border: rgba(159, 134, 192, 0.25);    /* Bordas - brilho roxo sutil */
-  --input: transparent;                    /* Input background overlay */
-  --input-background: rgba(63, 42, 86, 0.4);  /* Fundo de inputs - Petunia */
-  --input-border: rgba(181, 165, 188, 0.3);   /* Borda de input normal */
-  --input-border-active: #9F86C0;             /* Borda de input em foco */
-  --ring: #9F86C0;                            /* Indicador de foco */
-  --switch-background: #3F2A56;               /* Background de switches */
+  --border: hsl(260, 20%, 25%);              /* Bordas sutis */
+  --input: hsl(260, 25%, 12%);               /* Input background */
+  --input-background: hsl(260, 25%, 12%);    /* Fundo de inputs */
+  --input-border: hsl(260, 20%, 30%);        /* Borda input normal */
+  --input-border-active: hsl(265, 80%, 65%); /* Borda input foco */
+  --ring: hsl(265, 80%, 65%);                /* Indicador de foco */
+  --switch-background: hsl(260, 20%, 20%);   /* Background switches */
 
-  /* ===== CHARTS/GRÁFICOS ===== */
-  --chart-1: oklch(0.68 0.12 290);  /* Gráfico cor 1 - Purple Hebe */
-  --chart-2: oklch(0.65 0.08 320);  /* Gráfico cor 2 - Dusky Orchid */
-  --chart-3: oklch(0.55 0.1 270);   /* Gráfico cor 3 - Iris Bloom */
-  --chart-4: oklch(0.72 0.11 300);  /* Gráfico cor 4 - Lavanda claro */
-  --chart-5: oklch(0.6 0.09 310);   /* Gráfico cor 5 - Roxo médio */
-
+  /* ===== CORES ESPECÍFICAS FIGMA ===== */
+  --orange: hsl(25, 85%, 60%);               /* Laranja vibrante (botões CTAs) */
+  --orange-light: hsl(25, 85%, 95%);         /* Laranja claro hover */
+  --emerald: hsl(160, 70%, 50%);             /* Verde esmeralda */
+  --amber: hsl(45, 90%, 60%);                /* Amarelo âmbar */
+  --purple: hsl(280, 70%, 60%);              /* Roxo */
+  --blue: hsl(220, 80%, 60%);                /* Azul */
+  
   /* ===== SIDEBAR/NAVEGAÇÃO ===== */
-  --sidebar: #1A0F2E;                         /* Fundo da sidebar */
-  --sidebar-foreground: #F3F0F7;              /* Texto da sidebar */
-  --sidebar-primary: #3F2A56;                 /* Elementos primários - Petunia */
-  --sidebar-primary-foreground: #F3F0F7;      /* Texto em primários */
-  --sidebar-accent: rgba(159, 134, 192, 0.15); /* Acentos sidebar */
-  --sidebar-accent-foreground: #F3F0F7;       /* Texto em acentos */
-  --sidebar-border: rgba(159, 134, 192, 0.2); /* Bordas sidebar */
-  --sidebar-ring: #9F86C0;                    /* Foco sidebar */
-
-  /* ===== GRADIENTES (OPCIONAL) ===== */
-  --gradient-cosmic: linear-gradient(135deg, #3F2A56 0%, #5B5F97 40%, #9F86C0 70%, #B59DAB 100%);
-  --gradient-purple-rose: linear-gradient(to right, #9F86C0, #B59DAB);
-  --gradient-card: linear-gradient(135deg, rgba(91, 95, 151, 0.15) 0%, rgba(159, 134, 192, 0.1) 100%);
-  --gradient-iris: linear-gradient(135deg, #5B5F97 0%, #9F86C0 100%);
+  --sidebar: hsl(260, 30%, 10%);             /* Fundo sidebar mais escuro */
+  --sidebar-foreground: hsl(260, 10%, 95%);  /* Texto sidebar */
+  --sidebar-primary: hsl(260, 25%, 12%);     /* Elementos primários */
+  --sidebar-primary-foreground: hsl(260, 10%, 95%); /* Texto primários */
+  --sidebar-accent: hsl(25, 85%, 60%);       /* Laranja para hover */
+  --sidebar-accent-foreground: hsl(260, 30%, 8%); /* Texto hover */
+  --sidebar-border: hsl(260, 20%, 20%);      /* Bordas sidebar */
+  --sidebar-ring: hsl(265, 80%, 65%);        /* Foco sidebar */
 }
 
 .light {
-  /* ===== CORES BASE ===== */
-  --background: #F5F2E8;           /* Fundo principal - bege suave quente */
-  --foreground: #272757;           /* Texto principal - índigo profundo */
+  /* ===== CORES BASE (FIGMA COSMOS ASTRAL LIGHT) ===== */
+  --background: hsl(40, 20%, 98%);         /* Creme Suave */
+  --foreground: hsl(260, 40%, 10%);        /* Carvão Violeta */
 
   /* ===== CARDS & CONTAINERS ===== */
-  --card: rgba(255, 255, 255, 0.90);   /* Cards glassmorphic brancos */
-  --card-foreground: #272757;          /* Texto em cards */
-  --popover: rgba(255, 255, 255, 0.98); /* Popover/tooltips */
-  --popover-foreground: #272757;        /* Texto em popover */
+  --card: hsl(0, 0%, 100%);                /* Branco Puro cards */
+  --card-foreground: hsl(260, 40%, 10%);   /* Texto em cards */
+  --popover: hsl(0, 0%, 100%);             /* Popover/tooltips */
+  --popover-foreground: hsl(260, 40%, 10%); /* Texto em popover */
 
   /* ===== BOTÕES & AÇÕES ===== */
-  --primary: #E35336;              /* Botões primários - coral vibrante */
-  --primary-foreground: #FFFFFF;   /* Texto em botões primários */
-  --secondary: #98A869;            /* Botões secundários - verde sálvia */
-  --secondary-foreground: #FFFFFF; /* Texto em botões secundários */
-  --accent: #C2B280;               /* Acentos - champanhe bege dourado */
-  --accent-foreground: #272757;    /* Texto em acentos */
+  --primary: hsl(265, 80%, 50%);           /* Violeta Vibrante (Light) */
+  --primary-foreground: hsl(0, 0%, 100%);  /* Texto em primários */
+  --secondary: hsl(260, 15%, 90%);         /* Cinza claro secundário */
+  --secondary-foreground: hsl(260, 40%, 10%); /* Texto em secundários */
+  --accent: hsl(265, 80%, 50%);            /* Violeta para acentos */
+  --accent-foreground: hsl(0, 0%, 100%);   /* Texto em acentos */
 
   /* ===== ESTADOS ===== */
-  --muted: rgba(194, 178, 128, 0.15);  /* Backgrounds sutis */
-  --muted-foreground: #6B6456;         /* Texto em elementos muted */
-  --destructive: #D63920;              /* Ações destrutivas - vermelho coral */
-  --destructive-foreground: #ffffff;   /* Texto em destrutivos */
+  --muted: hsl(260, 15%, 95%);             /* Backgrounds sutis */
+  --muted-foreground: hsl(260, 10%, 50%);  /* Texto muted */
+  --destructive: hsl(0, 70%, 50%);         /* Vermelho destrutivo */
+  --destructive-foreground: hsl(0, 0%, 100%); /* Texto destrutivo */
 
   /* ===== BORDAS & INPUTS ===== */
-  --border: rgba(152, 168, 105, 0.25);    /* Bordas - sálvia suave */
-  --input: transparent;                    /* Input background overlay */
-  --input-background: rgba(255, 255, 255, 0.85);  /* Fundo de inputs */
-  --input-border: rgba(152, 168, 105, 0.3);       /* Borda de input normal */
-  --input-border-active: #E35336;                 /* Borda de input em foco - coral */
-  --ring: #E35336;                                /* Indicador de foco */
-  --switch-background: #D8D4C8;                   /* Background de switches */
+  --border: hsl(260, 15%, 90%);            /* Bordas sutis */
+  --input: hsl(0, 0%, 100%);               /* Input background */
+  --input-background: hsl(260, 15%, 96%);  /* Fundo de inputs cinza claro */
+  --input-border: transparent;             /* Borda input normal transparente */
+  --input-border-active: hsl(265, 80%, 50%); /* Borda input foco */
+  --ring: hsl(265, 80%, 50%);              /* Indicador de foco */
+  --switch-background: hsl(260, 15%, 90%); /* Background switches */
 
-  /* ===== CHARTS/GRÁFICOS ===== */
-  --chart-1: oklch(0.65 0.12 50);   /* Gráfico cor 1 - Coral */
-  --chart-2: oklch(0.68 0.08 110);  /* Gráfico cor 2 - Sálvia */
-  --chart-3: oklch(0.72 0.06 80);   /* Gráfico cor 3 - Bege */
-  --chart-4: oklch(0.45 0.1 265);   /* Gráfico cor 4 - Índigo */
-  --chart-5: oklch(0.6 0.1 30);     /* Gráfico cor 5 - Laranja quente */
-
+  /* ===== CORES ESPECÍFICAS FIGMA ===== */
+  --orange: hsl(25, 85%, 60%);             /* Laranja vibrante (botões CTAs) */
+  --orange-light: hsl(25, 85%, 95%);       /* Laranja claro hover */
+  --emerald: hsl(160, 70%, 50%);           /* Verde esmeralda */
+  --amber: hsl(45, 90%, 60%);              /* Amarelo âmbar */
+  --purple: hsl(280, 70%, 60%);            /* Roxo */
+  --blue: hsl(220, 80%, 60%);              /* Azul */
+  
   /* ===== SIDEBAR/NAVEGAÇÃO ===== */
-  --sidebar: #FFFFFF;                      /* Fundo da sidebar */
-  --sidebar-foreground: #272757;           /* Texto da sidebar */
-  --sidebar-primary: #E35336;              /* Elementos primários - coral */
-  --sidebar-primary-foreground: #FFFFFF;   /* Texto em primários */
-  --sidebar-accent: rgba(227, 83, 54, 0.1); /* Acentos sidebar */
-  --sidebar-accent-foreground: #272757;    /* Texto em acentos */
-  --sidebar-border: rgba(152, 168, 105, 0.15); /* Bordas sidebar */
-  --sidebar-ring: #E35336;                 /* Foco sidebar */
-
-  /* ===== GRADIENTES (OPCIONAL) ===== */
-  --gradient-cosmic: linear-gradient(135deg, #272757 0%, #98A869 40%, #E35336 70%, #C2B280 100%);
-  --gradient-purple-rose: linear-gradient(to right, #E35336, #C2B280);
-  --gradient-card: linear-gradient(135deg, rgba(152, 168, 105, 0.08) 0%, rgba(194, 178, 128, 0.08) 100%);
-  --gradient-iris: linear-gradient(135deg, #98A869 0%, #C2B280 100%);
+  --sidebar: hsl(0, 0%, 100%);             /* Fundo sidebar branco */
+  --sidebar-foreground: hsl(260, 40%, 10%); /* Texto sidebar */
+  --sidebar-primary: hsl(0, 0%, 100%);     /* Elementos primários */
+  --sidebar-primary-foreground: hsl(260, 40%, 10%); /* Texto primários */
+  --sidebar-accent: hsl(25, 85%, 95%);     /* Laranja claro hover */
+  --sidebar-accent-foreground: hsl(25, 85%, 40%); /* Texto hover */
+  --sidebar-border: hsl(260, 15%, 93%);    /* Bordas sidebar */
+  --sidebar-ring: hsl(265, 80%, 50%);      /* Foco sidebar */
 }
 
 html {
   font-size: var(--font-size);
+}
+
+/* Cores customizadas Figma Cosmos Astral */
+.bg-orange {
+  background-color: hsl(25, 85%, 60%);
+}
+
+.text-orange {
+  color: hsl(25, 85%, 60%);
+}
+
+.bg-orange-50 {
+  background-color: hsl(25, 85%, 95%);
+}
+
+.text-orange-600 {
+  color: hsl(25, 85%, 45%);
+}
+
+.dark .text-orange-400 {
+  color: hsl(25, 85%, 65%);
+}
+
+.bg-emerald-50 {
+  background-color: hsl(160, 70%, 95%);
+}
+
+.text-emerald-600 {
+  color: hsl(160, 70%, 40%);
+}
+
+.dark .text-emerald-400 {
+  color: hsl(160, 70%, 60%);
+}
+
+.dark .bg-emerald-500\/10 {
+  background-color: hsl(160, 70%, 50%, 0.1);
+}
+
+.dark .bg-orange-500\/10 {
+  background-color: hsl(25, 85%, 60%, 0.1);
+}
+
+.bg-amber-50 {
+  background-color: hsl(45, 90%, 95%);
+}
+
+.text-amber-600 {
+  color: hsl(45, 90%, 45%);
+}
+
+.dark .text-amber-400 {
+  color: hsl(45, 90%, 65%);
+}
+
+.dark .bg-amber-500\/10 {
+  background-color: hsl(45, 90%, 60%, 0.1);
+}
+
+.bg-purple-50 {
+  background-color: hsl(280, 70%, 95%);
+}
+
+.dark .bg-purple-500\/10 {
+  background-color: hsl(280, 70%, 60%, 0.1);
+}
+
+.bg-red-50 {
+  background-color: hsl(0, 70%, 95%);
+}
+
+.dark .bg-red-500\/10 {
+  background-color: hsl(0, 70%, 60%, 0.1);
+}
+
+.bg-red-500 {
+  background-color: hsl(0, 70%, 60%);
+}
+
+.bg-amber-500 {
+  background-color: hsl(45, 90%, 60%);
+}
+
+.bg-emerald-500 {
+  background-color: hsl(160, 70%, 50%);
+}
+
+.bg-purple-500 {
+  background-color: hsl(280, 70%, 60%);
+}
+
+.bg-pink-500 {
+  background-color: hsl(330, 70%, 60%);
+}
+
+.bg-orange-500 {
+  background-color: hsl(25, 85%, 60%);
+}
+
+/* Text colors Figma */
+.text-red-600 {
+  color: hsl(0, 70%, 45%);
+}
+
+.dark .text-red-400 {
+  color: hsl(0, 70%, 65%);
+}
+
+.text-emerald-600 {
+  color: hsl(160, 70%, 40%);
+}
+
+.dark .text-emerald-400 {
+  color: hsl(160, 70%, 60%);
+}
+
+/* Background colors for status badges */
+.bg-red-100 {
+  background-color: hsl(0, 70%, 90%);
+}
+
+.dark .bg-red-500\/20 {
+  background-color: hsl(0, 70%, 60%, 0.2);
+}
+
+.bg-emerald-100 {
+  background-color: hsl(160, 70%, 90%);
+}
+
+.dark .bg-emerald-500\/20 {
+  background-color: hsl(160, 70%, 50%, 0.2);
+}
+
+.bg-amber-500\/10 {
+  background-color: hsl(45, 90%, 60%, 0.1);
+}
+
+.border-amber-500\/30 {
+  border-color: hsl(45, 90%, 60%, 0.3);
+}
+
+.text-amber-500 {
+  color: hsl(45, 90%, 60%);
+}
+
+/* Hover effects */
+.hover\:bg-orange\/90:hover {
+  background-color: hsl(25, 85%, 60%, 0.9);
+}
+
+/* ===== CLASSES SIDEBAR COSMOS ASTRAL ===== */
+.w-64 {
+  width: 16rem;
+}
+
+.ml-64 {
+  margin-left: 16rem;
+}
+
+.h-screen {
+  height: 100vh;
+}
+
+.left-0 {
+  left: 0;
+}
+
+.h-1\.5 {
+  height: 0.375rem;
+}
+
+.rotate-3 {
+  rotate: 3deg;
+}
+
+.w-10 {
+  width: 2.5rem;
+}
+
+.h-10 {
+  height: 2.5rem;
+}
+
+.w-20 {
+  width: 5rem;
+}
+
+.h-20 {
+  height: 5rem;
+}
+
+.rounded-2xl {
+  border-radius: 1rem;
+}
+
+.rounded-3xl {
+  border-radius: 1.5rem;
+}
+
+.text-4xl {
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
+
+.text-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+.inline {
+  display: inline;
+}
+
+.z-40 {
+  z-index: 40;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.py-2\.5 {
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+.grid-cols-7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+/* Progress bar background colors */
+.bg-white\/50 {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.dark .bg-black\/20 {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Hero section gradient */
+.from-\[\#2D324D\] {
+  --tw-gradient-from: #2D324D;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.to-\[\#1F2337\] {
+  --tw-gradient-to: #1F2337;
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.bg-blue\/20 {
+  background-color: hsl(220, 80%, 60%, 0.2);
+}
+
+.bg-purple\/20 {
+  background-color: hsl(280, 70%, 60%, 0.2);
+}
+
+.bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.text-white\/80 {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.text-amber {
+  color: hsl(45, 90%, 60%);
+}
+
+/* Sidebar specific styles */
+.bg-sidebar {
+  background-color: var(--sidebar);
+}
+
+.text-sidebar-foreground {
+  color: var(--sidebar-foreground);
+}
+
+.border-sidebar-border {
+  border-color: var(--sidebar-border);
+}
+
+.bg-sidebar-accent {
+  background-color: var(--sidebar-accent);
+}
+
+.text-sidebar-accent-foreground {
+  color: var(--sidebar-accent-foreground);
+}
+
+.hover\:bg-sidebar-accent:hover {
+  background-color: var(--sidebar-accent);
+}
+
+.hover\:text-sidebar-accent-foreground:hover {
+  color: var(--sidebar-accent-foreground);
+}
+
+/* Muted styles */
+.hover\:bg-muted\/50:hover {
+  background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+}
+
+.text-foreground\/70 {
+  color: color-mix(in oklab, var(--foreground) 70%, transparent);
+}
+
+/* Primary styles */
+.bg-primary\/10 {
+  background-color: color-mix(in oklab, var(--primary) 10%, transparent);
+}
+
+.border-primary\/30 {
+  border-color: color-mix(in oklab, var(--primary) 30%, transparent);
+}
+
+.hover\:border-primary\/30:hover {
+  border-color: color-mix(in oklab, var(--primary) 30%, transparent);
+}
+
+/* ===== SEARCH BAR STYLES ===== */
+.search-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: 48px;
+  background-color: var(--muted);
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  width: 100%;
+}
+
+.search-bar-header:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+.search-bar-header input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+.search-bar-header input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.search-bar-small {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 40px;
+  background-color: var(--muted);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  width: 100%;
+}
+
+.search-bar-small:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 20%, transparent);
+}
+
+.search-bar-small input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--foreground);
+}
+
+.search-bar-small input::placeholder {
+  color: var(--muted-foreground);
 }
 
 @property --tw-translate-x {

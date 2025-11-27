@@ -5,6 +5,7 @@ import bcrypt
 from typing import Optional
 from app.core.database import get_db
 from app.models.database import User, BirthChart
+from pydantic import BaseModel
 from app.models.schemas import (
     UserRegister, UserResponse, BirthChartResponse, Token, UserCreate, UserUpdateRequest, UserLogin
 )
@@ -163,21 +164,21 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado. Este e-mail não está cadastrado."
         )
     
     # Verificar senha
     if not user.password_hash:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas"
+            detail="Esta conta não possui senha. Tente entrar com Google."
         )
     
     if not verify_password(credentials.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas"
+            detail="Senha incorreta. Verifique e tente novamente."
         )
     
     # Criar token JWT
@@ -278,6 +279,23 @@ def get_user_birth_chart(
             "midheaven_degree": chart_data.get("midheaven_degree"),
             "planets_conjunct_midheaven": chart_data.get("planets_conjunct_midheaven"),
             "uranus_on_midheaven": chart_data.get("uranus_on_midheaven"),
+            # Nodos Lunares
+            "north_node_sign": chart_data.get("north_node_sign"),
+            "north_node_degree": chart_data.get("north_node_degree"),
+            "south_node_sign": chart_data.get("south_node_sign"),
+            "south_node_degree": chart_data.get("south_node_degree"),
+            # Quíron (a ferida do curador)
+            "chiron_sign": chart_data.get("chiron_sign"),
+            "chiron_degree": chart_data.get("chiron_degree"),
+            # Graus dos planetas
+            "mercury_degree": chart_data.get("mercury_degree"),
+            "venus_degree": chart_data.get("venus_degree"),
+            "mars_degree": chart_data.get("mars_degree"),
+            "jupiter_degree": chart_data.get("jupiter_degree"),
+            "saturn_degree": chart_data.get("saturn_degree"),
+            "uranus_degree": chart_data.get("uranus_degree"),
+            "neptune_degree": chart_data.get("neptune_degree"),
+            "pluto_degree": chart_data.get("pluto_degree"),
         }
         
         return birth_chart_dict
@@ -290,6 +308,203 @@ def get_user_birth_chart(
         pass
     
     return birth_chart
+
+
+class GoogleAuthRequest(BaseModel):
+    """Request para autenticação via Google"""
+    email: str
+    name: str
+    google_id: str  # Mantido para referência futura, mas não salvo no banco por enquanto
+
+
+class GoogleAuthResponse(BaseModel):
+    """Resposta da autenticação Google"""
+    access_token: str
+    token_type: str
+    is_new_user: bool
+    needs_onboarding: bool
+
+
+@router.post("/google", response_model=GoogleAuthResponse)
+def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """
+    Autentica um usuário via Google OAuth.
+    - Se o usuário não existe, cria um novo sem senha
+    - Se o usuário existe mas não tem mapa astral, retorna needs_onboarding=True
+    - Se o usuário já tem mapa astral, retorna needs_onboarding=False
+    """
+    try:
+        # Verificar se o usuário já existe pelo email
+        existing_user = db.query(User).filter(User.email == request.email).first()
+        
+        if existing_user:
+            # Usuário já existe - verificar se tem mapa astral
+            birth_chart = db.query(BirthChart).filter(
+                BirthChart.user_id == existing_user.id,
+                BirthChart.is_primary == True
+            ).first()
+            
+            # Criar token JWT
+            access_token = create_access_token(data={"sub": existing_user.email})
+            
+            return GoogleAuthResponse(
+                access_token=access_token,
+                token_type="bearer",
+                is_new_user=False,
+                needs_onboarding=birth_chart is None
+            )
+        else:
+            # Novo usuário via Google - criar sem senha
+            db_user = User(
+                email=request.email,
+                password_hash=None,  # Usuário Google não tem senha
+                name=request.name
+                # google_id será adicionado quando a migração do banco for feita
+            )
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
+            
+            # Criar token JWT
+            access_token = create_access_token(data={"sub": db_user.email})
+            
+            return GoogleAuthResponse(
+                access_token=access_token,
+                token_type="bearer",
+                is_new_user=True,
+                needs_onboarding=True  # Novo usuário sempre precisa de onboarding
+            )
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro na autenticação Google: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro na autenticação Google: {str(e)}"
+        )
+
+
+class OnboardingRequest(BaseModel):
+    """Request para completar onboarding"""
+    name: str
+    birth_date: str  # ISO format
+    birth_time: str  # HH:MM
+    birth_place: str
+    latitude: float
+    longitude: float
+
+
+@router.post("/complete-onboarding", response_model=BirthChartResponse)
+def complete_onboarding(
+    data: OnboardingRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Completa o onboarding de um usuário criando seu mapa astral.
+    Usado após login Google para coletar dados de nascimento.
+    """
+    current_user = get_current_user(authorization, db)
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Não autenticado"
+        )
+    
+    # Verificar se já tem mapa astral
+    existing_chart = db.query(BirthChart).filter(
+        BirthChart.user_id == current_user.id,
+        BirthChart.is_primary == True
+    ).first()
+    
+    if existing_chart:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário já possui mapa astral"
+        )
+    
+    try:
+        # Atualizar nome do usuário se necessário
+        if data.name and data.name != current_user.name:
+            current_user.name = data.name
+        
+        # Converter data de nascimento
+        birth_date = datetime.fromisoformat(data.birth_date.replace('Z', '+00:00'))
+        
+        # Calcular mapa astral
+        chart_data = calculate_birth_chart(
+            birth_date=birth_date,
+            birth_time=data.birth_time,
+            latitude=data.latitude,
+            longitude=data.longitude
+        )
+        
+        # Criar mapa astral
+        db_birth_chart = BirthChart(
+            user_id=current_user.id,
+            name=data.name,
+            birth_date=birth_date,
+            birth_time=data.birth_time,
+            birth_place=data.birth_place,
+            latitude=data.latitude,
+            longitude=data.longitude,
+            sun_sign=chart_data["sun_sign"],
+            moon_sign=chart_data["moon_sign"],
+            ascendant_sign=chart_data["ascendant_sign"],
+            sun_degree=chart_data.get("sun_degree"),
+            moon_degree=chart_data.get("moon_degree"),
+            ascendant_degree=chart_data.get("ascendant_degree"),
+            is_primary=True
+        )
+        db.add(db_birth_chart)
+        db.commit()
+        db.refresh(db_birth_chart)
+        
+        # Retornar dados completos com planetas calculados
+        return {
+            "id": db_birth_chart.id,
+            "user_id": db_birth_chart.user_id,
+            "name": db_birth_chart.name,
+            "birth_date": db_birth_chart.birth_date,
+            "birth_time": db_birth_chart.birth_time,
+            "birth_place": db_birth_chart.birth_place,
+            "latitude": db_birth_chart.latitude,
+            "longitude": db_birth_chart.longitude,
+            "sun_sign": db_birth_chart.sun_sign,
+            "moon_sign": db_birth_chart.moon_sign,
+            "ascendant_sign": db_birth_chart.ascendant_sign,
+            "sun_degree": db_birth_chart.sun_degree,
+            "moon_degree": db_birth_chart.moon_degree,
+            "ascendant_degree": db_birth_chart.ascendant_degree,
+            "is_primary": db_birth_chart.is_primary,
+            "created_at": db_birth_chart.created_at,
+            "updated_at": db_birth_chart.updated_at,
+            # Dados calculados
+            "mercury_sign": chart_data.get("mercury_sign"),
+            "venus_sign": chart_data.get("venus_sign"),
+            "mars_sign": chart_data.get("mars_sign"),
+            "jupiter_sign": chart_data.get("jupiter_sign"),
+            "saturn_sign": chart_data.get("saturn_sign"),
+            "uranus_sign": chart_data.get("uranus_sign"),
+            "neptune_sign": chart_data.get("neptune_sign"),
+            "pluto_sign": chart_data.get("pluto_sign"),
+            "midheaven_sign": chart_data.get("midheaven_sign"),
+            "midheaven_degree": chart_data.get("midheaven_degree"),
+            "north_node_sign": chart_data.get("north_node_sign"),
+            "north_node_degree": chart_data.get("north_node_degree"),
+            "south_node_sign": chart_data.get("south_node_sign"),
+            "south_node_degree": chart_data.get("south_node_degree"),
+            "chiron_sign": chart_data.get("chiron_sign"),
+            "chiron_degree": chart_data.get("chiron_degree"),
+        }
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao completar onboarding: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao criar mapa astral: {str(e)}"
+        )
 
 
 @router.put("/me")

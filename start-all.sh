@@ -3,6 +3,10 @@
 # Script para iniciar frontend e backend simultaneamente
 # Uso: ./start-all.sh
 
+# Obter o diretório do script (raiz do projeto)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
+
 echo "🚀 Iniciando Astrologia (Frontend + Backend)..."
 echo ""
 
@@ -27,7 +31,7 @@ sleep 1
 
 # Iniciar backend em background
 echo "📦 Iniciando backend..."
-cd backend || exit 1
+cd "$SCRIPT_DIR/backend" || exit 1
 
 if [ ! -d "venv" ]; then
     echo "📦 Criando ambiente virtual..."
@@ -47,10 +51,10 @@ if [ ! -f "astrologia.db" ]; then
 fi
 
 echo "🚀 Iniciando servidor backend..."
-python run.py > ../backend.log 2>&1 &
+python run.py > "$SCRIPT_DIR/backend.log" 2>&1 &
 BACKEND_PID=$!
 
-cd ..
+cd "$SCRIPT_DIR"
 
 # Aguardar backend iniciar
 echo "⏳ Aguardando backend iniciar..."
@@ -66,17 +70,38 @@ done
 if ! curl -s http://localhost:8000 > /dev/null 2>&1; then
     echo "⚠️  Backend pode não estar rodando. Verifique backend.log"
     echo "📄 Últimas linhas do log:"
-    tail -5 backend.log
+    tail -5 "$SCRIPT_DIR/backend.log"
+fi
+
+# Verificar se index.html existe
+if [ ! -f "$SCRIPT_DIR/index.html" ]; then
+    echo "❌ Erro: index.html não encontrado na raiz do projeto!"
+    echo "   O Vite precisa de um arquivo index.html na raiz."
+    exit 1
 fi
 
 # Iniciar frontend
 echo "🎨 Iniciando frontend..."
-npm run dev > frontend.log 2>&1 &
+cd "$SCRIPT_DIR" || exit 1
+npm run dev > "$SCRIPT_DIR/frontend.log" 2>&1 &
 FRONTEND_PID=$!
 
 # Aguardar frontend iniciar
 echo "⏳ Aguardando frontend iniciar..."
-sleep 3
+for i in {1..15}; do
+    if curl -s http://localhost:3000 > /dev/null 2>&1; then
+        echo "✅ Frontend iniciado!"
+        break
+    fi
+    sleep 1
+done
+
+# Verificar se frontend está rodando
+if ! curl -s http://localhost:3000 > /dev/null 2>&1; then
+    echo "⚠️  Frontend pode não estar rodando. Verifique frontend.log"
+    echo "📄 Últimas linhas do log:"
+    tail -10 "$SCRIPT_DIR/frontend.log"
+fi
 
 echo ""
 echo "✅ Servidores iniciados!"
@@ -93,3 +118,4 @@ echo ""
 
 # Aguardar processos
 wait
+

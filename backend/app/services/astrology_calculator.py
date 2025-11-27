@@ -173,6 +173,101 @@ def calculate_midheaven(observer: ephem.Observer) -> float:
     return mc_deg
 
 
+def calculate_chiron(observer: ephem.Observer) -> float:
+    """
+    Calcula a posição de Quíron usando elementos orbitais.
+    
+    Quíron é um centauro (corpo menor) descoberto em 1977, conhecido como
+    "a ferida do curador" na astrologia. Sua órbita está entre Saturno e Urano.
+    
+    Elementos orbitais de Quíron (Epoch J2000):
+    - Período orbital: ~50.76 anos
+    - Semi-eixo maior: 13.65 UA
+    - Excentricidade: 0.3786
+    - Inclinação: 6.93°
+    """
+    import math
+    
+    # Data juliana
+    jd = ephem.julian_date(observer.date)
+    
+    # Dias desde J2000.0 (1 Jan 2000, 12:00 UT)
+    days_since_j2000 = jd - 2451545.0
+    
+    # Elementos orbitais de Quíron (simplificados para cálculo)
+    # Longitude média no epoch J2000.0 (em graus) - Quíron estava em ~102° (Câncer/Leão)
+    L0 = 102.5
+    
+    # Movimento médio diário (graus/dia)
+    # Período orbital de Quíron ≈ 50.76 anos ≈ 18537 dias
+    n = 360.0 / (50.76 * 365.25)  # ≈ 0.01942°/dia
+    
+    # Longitude média atual
+    mean_longitude = (L0 + n * days_since_j2000) % 360
+    
+    # Elementos para a equação do centro
+    e = 0.3786  # Excentricidade
+    omega = 339.56  # Longitude do perihélio (graus)
+    
+    # Anomalia média
+    M = mean_longitude - omega
+    M_rad = math.radians(M)
+    
+    # Equação do centro (aproximação para excentricidade moderada)
+    C = (2 * e - 0.25 * e**3) * math.sin(M_rad) + \
+        1.25 * e**2 * math.sin(2 * M_rad) + \
+        (13/12) * e**3 * math.sin(3 * M_rad)
+    C_deg = math.degrees(C)
+    
+    # Longitude verdadeira
+    true_longitude = (mean_longitude + C_deg) % 360
+    
+    if true_longitude < 0:
+        true_longitude += 360
+    
+    return true_longitude
+
+
+def calculate_lunar_nodes(observer: ephem.Observer) -> Dict[str, float]:
+    """
+    Calcula os Nodos Lunares (Norte e Sul) em longitude eclíptica.
+    O Nodo Norte (Cabeça do Dragão) é onde a Lua cruza a eclíptica para o norte.
+    O Nodo Sul (Cauda do Dragão) é exatamente oposto (180°).
+    """
+    import math
+    
+    # Calcular a posição da Lua
+    moon = ephem.Moon()
+    moon.compute(observer)
+    
+    # Obter a longitude do nodo ascendente da Lua
+    # PyEphem fornece isso através de moon.hlat (heliocentric lat) e cálculos
+    
+    # Usar a data juliana para calcular o nodo médio
+    jd = ephem.julian_date(observer.date)
+    
+    # Fórmula para o Nodo Lunar Médio (Mean Node)
+    # Baseado em fórmulas astronômicas padrão
+    T = (jd - 2451545.0) / 36525.0  # Séculos desde J2000
+    
+    # Longitude do Nodo Norte Médio (em graus)
+    # Fórmula de Meeus (Astronomical Algorithms)
+    omega = 125.04452 - 1934.136261 * T + 0.0020708 * T * T + T * T * T / 450000.0
+    
+    # Normalizar para 0-360
+    north_node = omega % 360
+    if north_node < 0:
+        north_node += 360
+    
+    # Nodo Sul é exatamente oposto
+    south_node = (north_node + 180) % 360
+    
+    return {
+        "north_node": north_node,
+        "south_node": south_node
+    }
+
+
 def calculate_birth_chart(
     birth_date: datetime,
     birth_time: str,
@@ -277,6 +372,15 @@ def calculate_birth_chart(
     neptune_data = get_zodiac_sign(neptune_longitude)
     pluto_data = get_zodiac_sign(pluto_longitude)
     
+    # Calcular nodos lunares
+    lunar_nodes = calculate_lunar_nodes(observer)
+    north_node_data = get_zodiac_sign(lunar_nodes["north_node"])
+    south_node_data = get_zodiac_sign(lunar_nodes["south_node"])
+    
+    # Calcular Quíron (a ferida do curador)
+    chiron_longitude = calculate_chiron(observer)
+    chiron_data = get_zodiac_sign(chiron_longitude)
+    
     return {
         "sun_sign": sun_data["sign"],
         "sun_degree": sun_data["degree"],
@@ -305,5 +409,13 @@ def calculate_birth_chart(
         "midheaven_degree": midheaven_data["degree"],
         "planets_conjunct_midheaven": planets_conjunct_midheaven,
         "uranus_on_midheaven": PLANET_DISPLAY_NAMES["uranus"] in planets_conjunct_midheaven,
+        # Nodos Lunares
+        "north_node_sign": north_node_data["sign"],
+        "north_node_degree": north_node_data["degree"],
+        "south_node_sign": south_node_data["sign"],
+        "south_node_degree": south_node_data["degree"],
+        # Quíron (a ferida do curador)
+        "chiron_sign": chiron_data["sign"],
+        "chiron_degree": chiron_data["degree"],
     }
 

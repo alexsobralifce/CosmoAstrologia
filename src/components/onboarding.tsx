@@ -25,6 +25,41 @@ export interface OnboardingData {
     latitude: number;
     longitude: number;
   };
+  // Dados calculados do mapa astral
+  sunSign?: string;
+  sunDegree?: number;
+  moonSign?: string;
+  moonDegree?: number;
+  ascendant?: string;
+  ascendantDegree?: number;
+  // Planetas
+  mercurySign?: string;
+  mercuryDegree?: number;
+  venusSign?: string;
+  venusDegree?: number;
+  marsSign?: string;
+  marsDegree?: number;
+  jupiterSign?: string;
+  jupiterDegree?: number;
+  saturnSign?: string;
+  saturnDegree?: number;
+  uranusSign?: string;
+  uranusDegree?: number;
+  neptuneSign?: string;
+  neptuneDegree?: number;
+  plutoSign?: string;
+  plutoDegree?: number;
+  // Meio do Céu
+  midheavenSign?: string;
+  midheavenDegree?: number;
+  // Nodos Lunares
+  northNodeSign?: string;
+  northNodeDegree?: number;
+  southNodeSign?: string;
+  southNodeDegree?: number;
+  // Quíron (a ferida do curador)
+  chironSign?: string;
+  chironDegree?: number;
 }
 
 const STORAGE_KEY = 'saved_users';

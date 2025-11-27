@@ -184,17 +184,25 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3 flex-1">
                           {PlanetIcon && (
-                            <PlanetIcon size={32} className={`${getTypeColor(transit.type)} flex-shrink-0 mt-1`} />
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              transit.type === 'jupiter' ? 'bg-[#E8B95A]/20' :
+                              transit.type === 'saturn-return' ? 'bg-[#8B7355]/20' :
+                              transit.type === 'uranus' ? 'bg-[#4ECDC4]/20' :
+                              transit.type === 'neptune' ? 'bg-[#9B59B6]/20' :
+                              'bg-[#E74C3C]/20'
+                            }`}>
+                              <PlanetIcon size={28} className={getTypeColor(transit.type)} />
+                            </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-foreground mb-1">{transit.title}</h3>
+                            <h3 className="text-foreground font-semibold text-base mb-2">{transit.title}</h3>
                             <div className="flex flex-wrap items-center gap-2">
                               <Badge variant="outline" className={getTypeBadgeStyle(transit.type)}>
-                                {transit.timeframe}
+                                📅 {transit.timeframe}
                               </Badge>
                               {transit.isActive && (
                                 <Badge variant="outline" className="bg-accent/20 text-accent border-accent/40">
-                                  Em Progresso
+                                  ⚡ Em Progresso
                                 </Badge>
                               )}
                             </div>
@@ -202,11 +210,29 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
                         </div>
                       </div>
 
-                      {/* Descrição */}
-                      <div className="border-l-2 border-accent/20 pl-4">
-                        <p className="text-sm text-secondary leading-relaxed">
+                      {/* Descrição - cor preta/foreground para melhor legibilidade */}
+                      <div className="border-l-2 border-accent/30 pl-4 py-2 bg-muted/30 rounded-r-lg">
+                        <p className="text-sm text-foreground leading-relaxed">
                           {transit.description}
                         </p>
+                      </div>
+
+                      {/* Tags do Tipo de Trânsito */}
+                      <div className="flex items-center gap-2 pt-2">
+                        <span className="text-xs text-muted-foreground">Tipo:</span>
+                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          transit.type === 'jupiter' ? 'bg-[#E8B95A]/10 text-[#E8B95A]' :
+                          transit.type === 'saturn-return' ? 'bg-[#8B7355]/10 text-[#8B7355]' :
+                          transit.type === 'uranus' ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' :
+                          transit.type === 'neptune' ? 'bg-[#9B59B6]/10 text-[#9B59B6]' :
+                          'bg-[#E74C3C]/10 text-[#E74C3C]'
+                        }`}>
+                          {transit.type === 'jupiter' ? '🌟 Expansão' :
+                           transit.type === 'saturn-return' ? '🏛️ Retorno de Saturno' :
+                           transit.type === 'uranus' ? '⚡ Mudança Súbita' :
+                           transit.type === 'neptune' ? '🌊 Espiritualidade' :
+                           '🔥 Transformação'}
+                        </span>
                       </div>
                     </div>
                   </AstroCard>

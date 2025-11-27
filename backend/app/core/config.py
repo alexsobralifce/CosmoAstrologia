@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 
 class Settings(BaseSettings):
@@ -16,8 +17,9 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     
-    # CORS
-    CORS_ORIGINS: List[str] = [
+    # CORS - can be set via environment variable as comma-separated string
+    # Example: CORS_ORIGINS="http://localhost:5173,https://yourapp.com"
+    CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://localhost:3001",
@@ -30,6 +32,15 @@ class Settings(BaseSettings):
     
     # API Keys
     GROQ_API_KEY: str = ""
+    
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS_ORIGINS from string (comma-separated) or list."""
+        if isinstance(v, str):
+            # Split by comma and strip whitespace
+            return [origin.strip() for origin in v.split(',') if origin.strip()]
+        return v
     
     class Config:
         env_file = Path(__file__).parent.parent.parent / ".env"

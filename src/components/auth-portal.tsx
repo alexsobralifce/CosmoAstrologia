@@ -771,7 +771,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
         <div className="text-center space-y-4">
           <div className="flex justify-center">
             <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
-              <UIIcons.Star className="text-white" size={40} />
+              <UIIcons.Star className="text-foreground" size={40} />
             </div>
           </div>
           <div className="space-y-2">
@@ -988,7 +988,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
                   handleGoogleLogin();
                 }}
                 disabled={isLoading || showGoogleModal}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-card/80 text-gray-800 dark:text-foreground rounded-lg transition-all duration-200 shadow-md hover:shadow-lg border border-gray-200 dark:border-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-card/80 text-gray-900 dark:text-foreground rounded-lg transition-all duration-200 shadow-md hover:shadow-lg border border-gray-200 dark:border-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Chrome size={20} className="text-[#4285F4]" />
                 <span className="font-medium">Google</span>

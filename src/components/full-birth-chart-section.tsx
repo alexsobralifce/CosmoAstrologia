@@ -409,7 +409,7 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                     <p className="font-bold text-lg text-foreground">{sunSign}</p>
                   </div>
                 </div>
-                <p className="text-xs text-center mt-2 text-foreground/70">
+                <p className="text-xs text-center mt-2 text-foreground/80">
                   {language === 'pt' ? 'Sua essência e identidade' : 'Your essence and identity'}
                 </p>
               </div>
@@ -437,7 +437,7 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                     <p className="font-bold text-lg text-foreground">{moonSign}</p>
                   </div>
                 </div>
-                <p className="text-xs text-center mt-2 text-foreground/70">
+                <p className="text-xs text-center mt-2 text-foreground/80">
                   {language === 'pt' ? 'Suas emoções e necessidades' : 'Your emotions and needs'}
                 </p>
               </div>
@@ -465,7 +465,7 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                     <p className="font-bold text-lg text-foreground">{ascendant}</p>
                   </div>
                 </div>
-                <p className="text-xs text-center mt-2 text-foreground/70">
+                <p className="text-xs text-center mt-2 text-foreground/80">
                   {language === 'pt' ? 'Sua máscara social' : 'Your social mask'}
                 </p>
               </div>

@@ -279,41 +279,41 @@ export const DailyAdviceSection = ({
       id: 'love',
       title: 'Amor e Relacionamentos',
       icon: Heart,
-      color: 'text-destructive',
-      bgColor: 'bg-destructive/10 dark:bg-destructive/20',
-      borderColor: 'border-destructive/30'
+      color: 'text-red-700 dark:text-red-300',
+      bgColor: 'bg-red-100 dark:bg-red-500/15',
+      borderColor: 'border-red-300 dark:border-red-500/30'
     },
     {
       id: 'career',
       title: 'Dinheiro e Carreira',
       icon: DollarSign,
-      color: 'text-green-500 dark:text-green-400',
-      bgColor: 'bg-green-400/10 dark:bg-green-400/20',
-      borderColor: 'border-green-400/30'
+      color: 'text-green-700 dark:text-green-300',
+      bgColor: 'bg-green-100 dark:bg-green-500/15',
+      borderColor: 'border-green-300 dark:border-green-500/30'
     },
     {
       id: 'family',
       title: 'Família e Amigos',
       icon: Users,
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-400/10 dark:bg-blue-400/20',
-      borderColor: 'border-blue-400/30'
+      color: 'text-blue-700 dark:text-blue-300',
+      bgColor: 'bg-blue-100 dark:bg-blue-500/15',
+      borderColor: 'border-blue-300 dark:border-blue-500/30'
     },
     {
       id: 'health',
       title: 'Saúde e Bem Estar',
       icon: Activity,
-      color: 'text-accent',
-      bgColor: 'bg-accent/10 dark:bg-accent/20',
-      borderColor: 'border-accent/30'
+      color: 'text-purple-700 dark:text-purple-300',
+      bgColor: 'bg-purple-100 dark:bg-purple-500/15',
+      borderColor: 'border-purple-300 dark:border-purple-500/30'
     },
     {
       id: 'period',
       title: 'Período Atual',
       icon: Calendar,
-      color: 'text-orange-400',
-      bgColor: 'bg-orange-400/10 dark:bg-orange-400/20',
-      borderColor: 'border-orange-400/30'
+      color: 'text-orange-700 dark:text-orange-300',
+      bgColor: 'bg-orange-100 dark:bg-orange-500/15',
+      borderColor: 'border-orange-300 dark:border-orange-500/30'
     }
   ];
 
@@ -395,10 +395,10 @@ export const DailyAdviceSection = ({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-accent mb-1" style={{ fontFamily: 'var(--font-serif)' }}>
+        <h2 className="text-primary mb-1" style={{ fontFamily: 'var(--font-serif)' }}>
           Conselhos para Hoje
         </h2>
-        <p className="text-sm text-foreground/80 dark:text-foreground/90">
+        <p className="text-sm text-muted-foreground">
           Guia prático baseado nos trânsitos atuais
         </p>
       </div>
@@ -416,9 +416,9 @@ export const DailyAdviceSection = ({
                     Ativo Hoje
                   </Badge>
                 </div>
-                <p className="text-sm text-foreground/70 dark:text-foreground/80">Casa {moonHouse}</p>
+                <p className="text-sm text-muted-foreground">Casa {moonHouse}</p>
               </div>
-              <p className="text-foreground/95 dark:text-foreground/90">
+              <p className="text-foreground">
                 {getMoonAdvice()}
               </p>
             </div>
@@ -427,39 +427,39 @@ export const DailyAdviceSection = ({
 
         {/* Mercúrio Retrógrado - Condicional */}
         {isMercuryRetrograde && (
-          <AstroCard className="border-l-4 border-l-destructive bg-destructive/15 dark:bg-destructive/20 shadow-lg shadow-destructive/10 hover:shadow-xl hover:shadow-destructive/20 transition-all duration-300 animate-fadeIn">
+          <AstroCard className="border-l-4 border-l-red-500 bg-red-100 dark:bg-red-500/15 shadow-lg shadow-red-200 dark:shadow-red-500/10 hover:shadow-xl transition-all duration-300 animate-fadeIn">
             <div className="flex items-start gap-4">
               <div className="relative flex-shrink-0">
-                {MercuryIcon && <MercuryIcon size={40} className="text-destructive drop-shadow-lg" />}
-                <div className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-md">
+                {MercuryIcon && <MercuryIcon size={40} className="text-red-600 dark:text-red-400 drop-shadow-lg" />}
+                <div className="absolute -top-1 -right-1 bg-red-600 dark:bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow-md">
                   R
                 </div>
               </div>
               <div className="flex-1 space-y-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <AlertCircle size={18} className="text-destructive" />
+                    <AlertCircle size={18} className="text-red-600 dark:text-red-400" />
                     <h3 className="text-foreground font-semibold">Alerta: Mercúrio Retrógrado Ativo</h3>
                   </div>
-                  <p className="text-sm text-foreground/80 dark:text-foreground/70">Em efeito por ~3 semanas</p>
+                  <p className="text-sm text-muted-foreground">Em efeito por ~3 semanas</p>
                 </div>
                 
                 <div className="space-y-3 text-base">
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 dark:bg-destructive/15 border border-destructive/20">
-                    <AlertCircle size={20} className="text-destructive mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-red-100 dark:bg-red-500/15 border border-red-300 dark:border-red-500/30">
+                    <AlertCircle size={20} className="text-red-700 dark:text-red-300 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <span className="text-destructive font-semibold block mb-1">Não Fazer:</span>
-                      <span className="text-foreground/90 dark:text-foreground leading-relaxed">
+                      <span className="text-red-700 dark:text-red-300 font-semibold block mb-1">Não Fazer:</span>
+                      <span className="text-foreground leading-relaxed">
                         Evite assinar contratos, tomar decisões finais ou fazer grandes compras 
                         (especialmente eletrônicos ou veículos). A comunicação pode estar confusa.
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 rounded-lg bg-accent/10 dark:bg-accent/15 border border-accent/30">
-                    <CheckCircle size={20} className="text-accent mt-0.5 flex-shrink-0" />
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-green-100 dark:bg-green-500/15 border border-green-300 dark:border-green-500/30">
+                    <CheckCircle size={20} className="text-green-700 dark:text-green-300 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <span className="text-accent font-semibold block mb-1">Fazer:</span>
-                      <span className="text-foreground/90 dark:text-foreground leading-relaxed">
+                      <span className="text-green-700 dark:text-green-300 font-semibold block mb-1">Fazer:</span>
+                      <span className="text-foreground leading-relaxed">
                         Ótimo momento para Revisar, Reavaliar e Replanejar. Reconecte-se com pessoas 
                         do passado ou revise projetos antigos.
                       </span>
@@ -473,23 +473,23 @@ export const DailyAdviceSection = ({
 
         {/* Lua Fora de Curso - Condicional */}
         {isMoonVoidOfCourse && (
-          <AstroCard className="border-l-4 border-l-muted-foreground bg-muted/30 shadow-lg shadow-muted/10 hover:shadow-xl hover:shadow-muted/20 transition-all duration-300 animate-fadeIn">
+          <AstroCard className="border-l-4 border-l-gray-500 bg-gray-100 dark:bg-gray-500/15 shadow-lg shadow-gray-200 dark:shadow-gray-500/10 hover:shadow-xl transition-all duration-300 animate-fadeIn">
             <div className="flex items-start gap-4">
-              <Clock size={40} className="text-foreground/70 dark:text-foreground/80 flex-shrink-0 drop-shadow-lg" />
+              <Clock size={40} className="text-gray-600 dark:text-gray-400 flex-shrink-0 drop-shadow-lg" />
               <div className="flex-1 space-y-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-foreground">Pausa Cósmica: Lua Fora de Curso</h3>
                   </div>
-                  <p className="text-sm text-foreground/70 dark:text-foreground/80">Termina às {voidEndsAt} hoje</p>
+                  <p className="text-sm text-muted-foreground">Termina às {voidEndsAt} hoje</p>
                 </div>
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex items-start gap-2">
-                    <AlertCircle size={16} className="text-foreground/70 dark:text-foreground/80 mt-0.5 flex-shrink-0" />
+                    <AlertCircle size={16} className="text-gray-600 dark:text-gray-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <span className="text-foreground/70 dark:text-foreground/80 font-medium">Não Fazer:</span>
-                      <span className="text-secondary ml-1">
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">Não Fazer:</span>
+                      <span className="text-foreground ml-1">
                         Evite iniciar qualquer empreendimento significativo (reuniões importantes, 
                         primeiros encontros, lançar um projeto). O que for começado agora tende a não 
                         trazer resultados.
@@ -497,10 +497,10 @@ export const DailyAdviceSection = ({
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle size={16} className="text-accent mt-0.5 flex-shrink-0" />
+                    <CheckCircle size={16} className="text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <span className="text-accent font-medium">Fazer:</span>
-                      <span className="text-secondary ml-1">
+                      <span className="text-green-700 dark:text-green-300 font-medium">Fazer:</span>
+                      <span className="text-foreground ml-1">
                         Perfeito para tarefas rotineiras, organizar sua mesa, meditar ou finalizar 
                         assuntos pendentes.
                       </span>
@@ -537,14 +537,14 @@ export const DailyAdviceSection = ({
               </div>
               
               {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-border/50 animate-fadeIn">
+                <div className="mt-4 pt-4 border-t border-border animate-fadeIn">
                   {loadingAdvice[tab.id] ? (
                     <div className="flex items-center gap-3 py-4">
-                      <Loader2 size={20} className="text-accent animate-spin" />
-                      <p className="text-foreground/70 dark:text-foreground/80">Buscando conselhos personalizados...</p>
+                      <Loader2 size={20} className="text-primary animate-spin" />
+                      <p className="text-muted-foreground">Buscando conselhos personalizados...</p>
                     </div>
                   ) : (
-                    <p className="text-foreground/95 dark:text-foreground/90 leading-relaxed whitespace-pre-line">
+                    <p className="text-foreground leading-relaxed whitespace-pre-line">
                       {getAdviceByCategory(tab.id)}
                     </p>
                   )}

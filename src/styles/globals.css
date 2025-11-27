@@ -15,83 +15,83 @@
 /* Dark Theme - Night Mode (Default) */
 :root, .dark {
   /* Cosmic Color Palette - Night */
-  --background: #0A0E2F; /* Deep indigo cosmic background */
-  --foreground: #F0F0F0; /* Soft white for primary text */
-  --card: rgba(28, 38, 77, 0.6); /* Glassmorphic card background */
-  --card-foreground: #F0F0F0;
-  --popover: rgba(28, 38, 77, 0.95);
-  --popover-foreground: #F0F0F0;
-  --primary: #0A0E2F; /* Cosmic navy */
-  --primary-foreground: #F0F0F0;
-  --secondary: #A0AEC0; /* Light gray for secondary text */
-  --secondary-foreground: #0A0E2F;
-  --muted: rgba(28, 38, 77, 0.4);
-  --muted-foreground: #A0AEC0;
-  --accent: #E8B95A; /* Golden amber accent */
-  --accent-foreground: #0A0E2F;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(232, 185, 90, 0.2); /* Subtle golden border */
+  --background: #0F0720; /* Roxo profundo cosmic */
+  --foreground: #F5F5F5; /* Off-white para texto principal */
+  --card: #1A1A2E; /* Card background sólido para melhor contraste */
+  --card-foreground: #F5F5F5;
+  --popover: #1A1A2E;
+  --popover-foreground: #F5F5F5;
+  --primary: #9F86C0; /* Roxo claro - Primary */
+  --primary-foreground: #0F0720;
+  --secondary: #CBD5E1; /* Cinza claro para texto secundário - mais contraste */
+  --secondary-foreground: #0F0720;
+  --muted: #2A2A3E; /* Background muted mais visível */
+  --muted-foreground: #A1A1AA; /* Texto muted com melhor contraste */
+  --accent: #FF8A3D; /* Laranja vibrante accent */
+  --accent-foreground: #0F0720;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #3A3A4E; /* Bordas mais visíveis */
   --input: transparent;
-  --input-background: rgba(28, 38, 77, 0.4);
-  --input-border: rgba(160, 174, 192, 0.3);
-  --input-border-active: #E8B95A; /* Golden border on focus */
-  --switch-background: #cbced4;
-  --ring: #E8B95A;
+  --input-background: #2A2A3E;
+  --input-border: #4A4A5E;
+  --input-border-active: #9F86C0;
+  --switch-background: #3A3A4E;
+  --ring: #9F86C0;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: rgba(28, 38, 77, 0.6);
-  --sidebar-accent-foreground: #F0F0F0;
-  --sidebar-border: rgba(232, 185, 90, 0.2);
-  --sidebar-ring: #E8B95A;
+  --sidebar: #0F0720;
+  --sidebar-foreground: #F5F5F5;
+  --sidebar-primary: #1A1A2E;
+  --sidebar-primary-foreground: #F5F5F5;
+  --sidebar-accent: #FF8A3D;
+  --sidebar-accent-foreground: #0F0720;
+  --sidebar-border: #3A3A4E;
+  --sidebar-ring: #9F86C0;
 }
 
 /* Light Theme - Day Mode */
 .light {
-  /* Celestial Color Palette - Day - Cores mais claras e suaves */
-  --background: #FDFBF7; /* Fundo quase branco com toque de creme */
-  --foreground: #1A1A2E; /* Deep navy for text */
-  --card: rgba(255, 255, 255, 0.9); /* Glassmorphic white card mais opaco */
-  --card-foreground: #1A1A2E;
-  --popover: rgba(255, 255, 255, 0.98);
-  --popover-foreground: #1A1A2E;
-  --primary: #2D3047; /* Muted navy */
-  --primary-foreground: #FDFBF7;
-  --secondary: #6B7280; /* Medium gray for secondary text */
-  --secondary-foreground: #FDFBF7;
-  --muted: rgba(107, 114, 128, 0.12);
-  --muted-foreground: #6B7280;
-  --accent: #D4A024; /* Dourado vibrante para light mode */
+  /* Celestial Color Palette - Day - Cores claras com bom contraste */
+  --background: #FBFAF9; /* Fundo creme suave */
+  --foreground: #1F1F2E; /* Texto escuro para máximo contraste */
+  --card: #FFFFFF; /* Card branco sólido */
+  --card-foreground: #1F1F2E;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F1F2E;
+  --primary: #7C3AED; /* Roxo vibrante */
+  --primary-foreground: #FFFFFF;
+  --secondary: #4B5563; /* Cinza escuro para texto secundário - bom contraste */
+  --secondary-foreground: #FFFFFF;
+  --muted: #F3F4F6; /* Background muted claro */
+  --muted-foreground: #6B7280; /* Texto muted com bom contraste */
+  --accent: #F97316; /* Laranja vibrante para accent */
   --accent-foreground: #FFFFFF;
   --destructive: #DC2626;
-  --destructive-foreground: #ffffff;
-  --border: rgba(201, 150, 31, 0.2); /* Golden border mais suave */
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB; /* Bordas sutis mas visíveis */
   --input: transparent;
-  --input-background: rgba(255, 255, 255, 0.7);
-  --input-border: rgba(107, 114, 128, 0.25);
-  --input-border-active: #D4A024; /* Golden border on focus */
+  --input-background: #F3F4F6;
+  --input-border: #D1D5DB;
+  --input-border-active: #7C3AED;
   --switch-background: #E5E7EB;
-  --ring: #D4A024;
+  --ring: #7C3AED;
   --chart-1: oklch(0.746 0.15 41.116);
   --chart-2: oklch(0.7 0.118 184.704);
   --chart-3: oklch(0.498 0.07 227.392);
   --chart-4: oklch(0.728 0.12 84.429);
   --chart-5: oklch(0.669 0.13 70.08);
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1A1A2E;
-  --sidebar-primary: #2D3047;
-  --sidebar-primary-foreground: #FDFBF7;
-  --sidebar-accent: rgba(212, 160, 36, 0.12);
-  --sidebar-accent-foreground: #1A1A2E;
-  --sidebar-border: rgba(201, 150, 31, 0.15);
-  --sidebar-ring: #D4A024;
+  --sidebar-foreground: #1F1F2E;
+  --sidebar-primary: #7C3AED;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFF7ED; /* Fundo laranja claro para hover */
+  --sidebar-accent-foreground: #C2410C; /* Texto laranja escuro */
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #7C3AED;
 }
 
 @theme inline {

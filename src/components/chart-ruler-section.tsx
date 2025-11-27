@@ -131,7 +131,7 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
       <AstroCard className="border border-accent/30 shadow-lg shadow-accent/10">
         <div className="flex items-center justify-center gap-3 py-8">
           <UIIcons.Loader className="w-5 h-5 animate-spin text-accent" />
-          <p className="text-secondary">Gerando interpretação do regente...</p>
+          <p className="text-muted-foreground">Gerando interpretação do regente...</p>
         </div>
       </AstroCard>
     );
@@ -166,15 +166,15 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
         </div>
 
         {/* Posicionamento */}
-        <div className="flex items-start gap-4 p-4 rounded-lg bg-card/50">
+        <div className="flex items-start gap-4 p-4 rounded-lg bg-card/50 border border-border/30">
           <div className="flex gap-2 items-center mt-1">
             {RulerIcon && <RulerIcon size={28} className="text-accent" />}
             <span className="text-muted-foreground">em</span>
-            {RulerSignIcon && <RulerSignIcon size={28} className="text-secondary" />}
+            {RulerSignIcon && <RulerSignIcon size={28} className="text-primary" />}
           </div>
           <div className="flex-1">
             <h3 className="text-foreground mb-2">Posicionamento no Mapa</h3>
-            <p className="text-secondary">{interpretation.positioning}</p>
+            <p className="text-foreground/90">{interpretation.positioning}</p>
           </div>
         </div>
 
@@ -201,9 +201,9 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
 
         {/* Interpretação Detalhada */}
         {showDetailed && (
-          <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-secondary/10 to-secondary/5 border border-secondary/20">
+          <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20">
             <div className="flex items-center justify-between">
-              <h4 className="text-secondary font-medium" style={{ fontFamily: 'var(--font-sans)' }}>
+              <h4 className="text-accent font-medium" style={{ fontFamily: 'var(--font-sans)' }}>
                 A Influência Prática (O que isso significa):
               </h4>
               <button
@@ -213,7 +213,7 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
                 <UIIcons.X className="w-4 h-4" />
               </button>
             </div>
-            <div className="prose prose-sm max-w-none text-secondary">
+            <div className="prose prose-sm max-w-none text-foreground/90">
               {detailedInterpretation.split('\n').map((paragraph, index) => (
                 paragraph.trim() && (
                   <p key={index} className="mb-3 leading-relaxed">

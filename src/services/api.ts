@@ -113,40 +113,43 @@ class ApiService {
 
         console.log(`[API] Resposta recebida:`, response.status, response.statusText);
 
-        // Ler o corpo da resposta apenas uma vez
-        const contentType = response.headers.get('content-type');
-        const isJson = contentType && contentType.includes('application/json');
-        
-        let responseData: any = null;
+        // Ler o corpo da resposta como texto primeiro (sempre seguro)
+        // Depois tentaremos parsear como JSON se necessário
         let responseText: string = '';
         
         try {
-          if (isJson) {
-            responseData = await response.json();
-          } else {
-            responseText = await response.text();
-          }
+          // Clonar o response antes de ler para evitar problemas
+          // Mas na verdade, vamos ler apenas uma vez mesmo
+          responseText = await response.text();
         } catch (readError) {
           console.error('[API] Erro ao ler resposta:', readError);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+          }
           throw new Error(`Erro ao ler resposta do servidor: ${response.status} ${response.statusText}`);
+        }
+
+        // Tentar parsear como JSON se houver conteúdo
+        let responseData: any = null;
+        if (responseText) {
+          try {
+            responseData = JSON.parse(responseText);
+          } catch {
+            // Não é JSON, manter como texto
+            responseData = null;
+          }
         }
 
         if (!response.ok) {
           let errorMessage = `HTTP error! status: ${response.status}`;
           
-          if (responseData) {
+          if (responseData && typeof responseData === 'object') {
             // Se temos dados JSON, usar eles
             errorMessage = responseData.detail || responseData.message || errorMessage;
             console.error('[API] Erro da resposta:', responseData);
           } else if (responseText) {
-            // Tentar parsear como JSON se for texto
-            try {
-              const parsed = JSON.parse(responseText);
-              errorMessage = parsed.detail || parsed.message || errorMessage;
-            } catch {
-              // Se não for JSON, usar o texto como mensagem
-              errorMessage = responseText;
-            }
+            // Usar o texto como mensagem
+            errorMessage = responseText;
             console.error('[API] Erro da resposta (texto):', responseText);
           }
           

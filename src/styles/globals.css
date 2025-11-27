@@ -12,44 +12,44 @@
   --radius: 0.5rem; /* 8px rounded corners */
 }
 
-/* Dark Theme - Night Mode (Default) */
+/* Dark Theme - Night Mode (Default) - Baseado no Figma Design */
 :root, .dark {
-  /* Cosmic Color Palette - Night */
-  --background: #0F0720; /* Roxo profundo cosmic */
-  --foreground: #F5F5F5; /* Off-white para texto principal */
-  --card: #1A1A2E; /* Card background sólido para melhor contraste */
-  --card-foreground: #F5F5F5;
-  --popover: #1A1A2E;
-  --popover-foreground: #F5F5F5;
-  --primary: #9F86C0; /* Roxo claro - Primary */
-  --primary-foreground: #0F0720;
-  --secondary: #CBD5E1; /* Cinza claro para texto secundário - mais contraste */
-  --secondary-foreground: #0F0720;
-  --muted: #2A2A3E; /* Background muted mais visível */
-  --muted-foreground: #A1A1AA; /* Texto muted com melhor contraste */
-  --accent: #FF8A3D; /* Laranja vibrante accent */
-  --accent-foreground: #0F0720;
+  /* Cosmic Color Palette - Figma Exact Colors */
+  --background: #1E1B2E; /* Roxo/azul escuro do fundo principal */
+  --foreground: #E8E6F0; /* Texto principal claro */
+  --card: #2A2742; /* Card background levemente mais claro */
+  --card-foreground: #E8E6F0;
+  --popover: #2A2742;
+  --popover-foreground: #E8E6F0;
+  --primary: #9F86C0; /* Roxo claro para elementos primários */
+  --primary-foreground: #FFFFFF;
+  --secondary: #B8B5C7; /* Cinza/roxo claro para texto secundário */
+  --secondary-foreground: #1E1B2E;
+  --muted: #32304A; /* Background muted */
+  --muted-foreground: #9892AC; /* Texto muted */
+  --accent: #FF8A3D; /* Laranja vibrante do botão 2026 Guide */
+  --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #3A3A4E; /* Bordas mais visíveis */
+  --border: #3D3A52; /* Bordas sutis */
   --input: transparent;
-  --input-background: #2A2A3E;
-  --input-border: #4A4A5E;
+  --input-background: #32304A;
+  --input-border: #3D3A52;
   --input-border-active: #9F86C0;
-  --switch-background: #3A3A4E;
+  --switch-background: #3D3A52;
   --ring: #9F86C0;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: #0F0720;
-  --sidebar-foreground: #F5F5F5;
-  --sidebar-primary: #1A1A2E;
-  --sidebar-primary-foreground: #F5F5F5;
+  --sidebar: #181625; /* Sidebar mais escura que o fundo */
+  --sidebar-foreground: #E8E6F0;
+  --sidebar-primary: #2A2742;
+  --sidebar-primary-foreground: #E8E6F0;
   --sidebar-accent: #FF8A3D;
-  --sidebar-accent-foreground: #0F0720;
-  --sidebar-border: #3A3A4E;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2A2742;
   --sidebar-ring: #9F86C0;
 }
 

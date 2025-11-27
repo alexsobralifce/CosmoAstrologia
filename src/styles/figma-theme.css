@@ -1,36 +1,36 @@
 /* 
- * Figma Design Theme Override
- * Baseado em: https://galaxy-blanch-96364503.figma.site
- * Extraído via MCP em: 2025-11-25
- * CORES EXATAS DO DESIGN PUBLICADO
+ * Figma Design Theme - Cores Exatas do Design
+ * Baseado em: https://www.figma.com/design/aI95Nh89jEv6YtxGq1ksnj
+ * Extraído via screenshot em: 2025-01-28
  */
 
 :root {
-  /* === TEMA CLARO (DIA) - Figma Site Exact Colors === */
-  --figma-bg-light: #FBFAF9;           /* rgb(251, 250, 249) - Background geral */
-  --figma-fg-light: #160F24;           /* rgb(22, 15, 36) - Texto principal */
-  --figma-card-light: #FFFFFF;         /* rgb(255, 255, 255) - Cards brancos */
-  --figma-card-border-light: #CAC7D1;  /* rgb(202, 199, 209) - Borda dos cards */
-  --figma-input-light: #E5E0EB;        /* rgb(229, 224, 235) - Background inputs */
-  --figma-primary-light: #7C3AED;      /* Roxo vibrante - Logo/Primary */
-  --figma-secondary-light: #FF8A3D;    /* Laranja vibrante - Botão CTA (Figma Exact) */
-  --figma-muted-light: #635C70;        /* rgb(99, 92, 112) - Texto secundário */
-  
-  /* === TEMA ESCURO (NOITE) - Figma Spec === */
-  --figma-bg-dark: #0F0720;            /* Roxo profundo - Background */
-  --figma-fg-dark: #F5F5F5;            /* Off-white - Texto */
-  --figma-card-dark: #1A1A2E;          /* Azul escuro - Cards */
-  --figma-card-border-dark: #2A2A3E;   /* Borda escura */
-  --figma-input-dark: #1F2937;         /* Cinza escuro - Inputs */
+  /* === TEMA ESCURO (NOITE) - Figma Design Exact Colors === */
+  --figma-bg-dark: #1E1B2E;            /* Roxo/azul escuro - Background principal */
+  --figma-fg-dark: #E8E6F0;            /* Texto principal claro */
+  --figma-card-dark: #2A2742;          /* Cards levemente mais claros */
+  --figma-card-border-dark: #3D3A52;   /* Bordas sutis */
+  --figma-input-dark: #32304A;         /* Background de inputs */
   --figma-primary-dark: #9F86C0;       /* Roxo claro - Primary */
-  --figma-secondary-dark: #FF8A3D;     /* Laranja vibrante - Botões (Figma Exact) */
-  --figma-muted-dark: #9CA3AF;         /* Cinza claro - Texto secundário */
+  --figma-secondary-dark: #FF8A3D;     /* Laranja do botão 2026 Guide */
+  --figma-muted-dark: #9892AC;         /* Texto secundário */
+  --figma-sidebar-dark: #181625;       /* Sidebar mais escura */
+  
+  /* === TEMA CLARO (DIA) === */
+  --figma-bg-light: #FBFAF9;
+  --figma-fg-light: #160F24;
+  --figma-card-light: #FFFFFF;
+  --figma-card-border-light: #CAC7D1;
+  --figma-input-light: #E5E0EB;
+  --figma-primary-light: #7C3AED;
+  --figma-secondary-light: #FF8A3D;
+  --figma-muted-light: #635C70;
   
   /* === MEDIDAS EXATAS === */
-  --figma-card-radius: 24px;           /* Border radius dos cards principais */
-  --figma-input-radius: 16.4px;        /* Border radius dos inputs e botões */
-  --figma-button-padding: 16px 24px;   /* Padding dos botões principais */
-  --figma-input-padding: 16px 20px;    /* Padding dos inputs */
+  --figma-card-radius: 24px;
+  --figma-input-radius: 16.4px;
+  --figma-button-padding: 16px 24px;
+  --figma-input-padding: 16px 20px;
 }
 
 /* ===== TEMA CLARO - Ajustado para bom contraste ===== */
@@ -54,25 +54,33 @@
   --radius: var(--figma-input-radius);
 }
 
-/* ===== TEMA ESCURO - Ajustado para bom contraste ===== */
+/* ===== TEMA ESCURO - Figma Design Exato ===== */
 .dark {
   --background: var(--figma-bg-dark);
   --foreground: var(--figma-fg-dark);
   --card: var(--figma-card-dark);
   --card-foreground: var(--figma-fg-dark);
   --primary: var(--figma-primary-dark);
-  --primary-foreground: var(--figma-fg-dark);
-  --secondary: #CBD5E1; /* Texto secundário claro para dark mode */
+  --primary-foreground: #FFFFFF;
+  --secondary: #B8B5C7; /* Texto secundário claro */
   --secondary-foreground: var(--figma-bg-dark);
   --accent: var(--figma-secondary-dark);
-  --accent-foreground: var(--figma-bg-dark);
-  --muted: #1F2937; /* Fundo muted escuro */
-  --muted-foreground: #9CA3AF; /* Texto muted com contraste */
+  --accent-foreground: #FFFFFF;
+  --muted: #32304A; /* Fundo muted */
+  --muted-foreground: var(--figma-muted-dark);
   --input: var(--figma-input-dark);
   --input-background: var(--figma-input-dark);
   --border: var(--figma-card-border-dark);
   --ring: var(--figma-primary-dark);
   --radius: var(--figma-input-radius);
+  --sidebar: var(--figma-sidebar-dark);
+  --sidebar-foreground: var(--figma-fg-dark);
+  --sidebar-primary: var(--figma-card-dark);
+  --sidebar-primary-foreground: var(--figma-fg-dark);
+  --sidebar-accent: var(--figma-secondary-dark);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: var(--figma-card-dark);
+  --sidebar-ring: var(--figma-primary-dark);
 }
 
 /* Override de radius para cards maiores */

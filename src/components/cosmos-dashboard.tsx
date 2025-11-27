@@ -5,6 +5,8 @@ import { zodiacSigns } from './zodiac-icons';
 import { planets } from './planet-icons';
 import { useTheme } from './theme-provider';
 import { useLanguage } from '../i18n';
+import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
+import { InactivityWarningModal } from './inactivity-warning-modal';
 import { 
   OverviewSection, 
   PlanetsSection, 
@@ -137,6 +139,32 @@ interface CosmosDashboardProps {
 export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: CosmosDashboardProps) => {
   const [activeSection, setActiveSection] = useState('inicio');
   const { language, t } = useLanguage();
+  
+  // Estado para modal de aviso de inatividade
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const [warningCountdown, setWarningCountdown] = useState(120); // 2 minutos em segundos
+
+  // Sistema de timeout de inatividade
+  useInactivityTimeout({
+    timeout: 30 * 60 * 1000, // 30 minutos de inatividade
+    warningTime: 2 * 60 * 1000, // Avisar 2 minutos antes
+    onWarning: (remainingSeconds) => {
+      setWarningCountdown(remainingSeconds);
+      setShowInactivityWarning(true);
+    },
+    onTimeout: () => {
+      console.log('[CosmosDashboard] Sessão expirada por inatividade');
+      setShowInactivityWarning(false);
+      onLogout();
+    },
+    enabled: true // Sempre ativo quando o dashboard está montado
+  });
+
+  // Handler para continuar conectado
+  const handleContinueSession = () => {
+    setShowInactivityWarning(false);
+    // O hook já reseta o timer automaticamente ao detectar atividade
+  };
 
   // Ícone do signo do usuário baseado no signo solar
   const userSunSign = userData.sunSign || 'Áries';
@@ -688,6 +716,14 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
           )}
         </main>
       </div>
+
+      {/* Modal de Aviso de Inatividade */}
+      <InactivityWarningModal
+        isOpen={showInactivityWarning}
+        remainingSeconds={warningCountdown}
+        onContinue={handleContinueSession}
+        onLogout={onLogout}
+      />
     </div>
   );
 };

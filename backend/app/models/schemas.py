@@ -63,17 +63,33 @@ class BirthChartResponse(BirthChartCreate):
     updated_at: Optional[datetime] = None
     # Planetas principais (opcionais, calculados mas não salvos no banco)
     mercury_sign: Optional[str] = None
+    mercury_degree: Optional[float] = None
     venus_sign: Optional[str] = None
+    venus_degree: Optional[float] = None
     mars_sign: Optional[str] = None
+    mars_degree: Optional[float] = None
     jupiter_sign: Optional[str] = None
+    jupiter_degree: Optional[float] = None
     saturn_sign: Optional[str] = None
+    saturn_degree: Optional[float] = None
     uranus_sign: Optional[str] = None
+    uranus_degree: Optional[float] = None
     neptune_sign: Optional[str] = None
+    neptune_degree: Optional[float] = None
     pluto_sign: Optional[str] = None
+    pluto_degree: Optional[float] = None
     midheaven_sign: Optional[str] = None
     midheaven_degree: Optional[float] = None
     planets_conjunct_midheaven: Optional[List[str]] = None
     uranus_on_midheaven: Optional[bool] = None
+    # Nodos Lunares
+    north_node_sign: Optional[str] = None
+    north_node_degree: Optional[float] = None
+    south_node_sign: Optional[str] = None
+    south_node_degree: Optional[float] = None
+    # Quíron (a ferida do curador)
+    chiron_sign: Optional[str] = None
+    chiron_degree: Optional[float] = None
     
     class Config:
         from_attributes = True

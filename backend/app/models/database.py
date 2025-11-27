@@ -11,6 +11,8 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=True)  # Nullable for OAuth users
     name = Column(String, nullable=True)
+    # google_id será adicionado em uma migração futura
+    # google_id = Column(String, nullable=True, unique=True)  # Google OAuth ID
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -1,27 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Onboarding, OnboardingData } from './components/onboarding';
-import { AdvancedDashboard } from './components/advanced-dashboard';
+import { GoogleOnboarding, GoogleOnboardingData } from './components/google-onboarding';
+import { CosmosDashboard } from './components/cosmos-dashboard';
 import { InterpretationPage } from './components/interpretation-page';
 import { AuthPortal, AuthUserData } from './components/auth-portal';
-import { AstroButton } from './components/astro-button';
-import { zodiacSigns } from './components/zodiac-icons';
-import { planets } from './components/planet-icons';
 import { UIIcons } from './components/ui-icons';
-import { AstroCard } from './components/astro-card';
-import { AstroInput } from './components/astro-input';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
+import { LanguageToggle } from './components/language-toggle';
 import { Toaster } from './components/ui/sonner';
 import { ScrollToTop } from './components/scroll-to-top';
 import { apiService } from './services/api';
 import { toast } from 'sonner';
 
-type AppView = 'landing' | 'auth' | 'onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
+type AppView = 'auth' | 'onboarding' | 'google-onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
+
+interface GoogleUserData {
+  email: string;
+  name: string;
+  googleId: string;
+}
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<AppView>('landing');
+  const [currentView, setCurrentView] = useState<AppView>('auth');
   const [userData, setUserData] = useState<OnboardingData | null>(null);
   const [authData, setAuthData] = useState<AuthUserData | null>(null);
+  const [googleData, setGoogleData] = useState<GoogleUserData | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -61,6 +65,41 @@ export default function App() {
               latitude: birthChart.latitude,
               longitude: birthChart.longitude,
             },
+            // Dados calculados do mapa astral
+            sunSign: birthChart.sun_sign,
+            sunDegree: birthChart.sun_degree,
+            moonSign: birthChart.moon_sign,
+            moonDegree: birthChart.moon_degree,
+            ascendant: birthChart.ascendant_sign,
+            ascendantDegree: birthChart.ascendant_degree,
+            // Planetas
+            mercurySign: birthChart.mercury_sign,
+            mercuryDegree: birthChart.mercury_degree,
+            venusSign: birthChart.venus_sign,
+            venusDegree: birthChart.venus_degree,
+            marsSign: birthChart.mars_sign,
+            marsDegree: birthChart.mars_degree,
+            jupiterSign: birthChart.jupiter_sign,
+            jupiterDegree: birthChart.jupiter_degree,
+            saturnSign: birthChart.saturn_sign,
+            saturnDegree: birthChart.saturn_degree,
+            uranusSign: birthChart.uranus_sign,
+            uranusDegree: birthChart.uranus_degree,
+            neptuneSign: birthChart.neptune_sign,
+            neptuneDegree: birthChart.neptune_degree,
+            plutoSign: birthChart.pluto_sign,
+            plutoDegree: birthChart.pluto_degree,
+            // Meio do Céu
+            midheavenSign: birthChart.midheaven_sign,
+            midheavenDegree: birthChart.midheaven_degree,
+            // Nodos Lunares
+            northNodeSign: birthChart.north_node_sign,
+            northNodeDegree: birthChart.north_node_degree,
+            southNodeSign: birthChart.south_node_sign,
+            southNodeDegree: birthChart.south_node_degree,
+            // Quíron (a ferida do curador)
+            chironSign: birthChart.chiron_sign,
+            chironDegree: birthChart.chiron_degree,
           });
           setAuthData({
             email: userInfo.email || '',
@@ -108,6 +147,41 @@ export default function App() {
               latitude: birthChart.latitude,
               longitude: birthChart.longitude,
             },
+            // Dados calculados do mapa astral
+            sunSign: birthChart.sun_sign,
+            sunDegree: birthChart.sun_degree,
+            moonSign: birthChart.moon_sign,
+            moonDegree: birthChart.moon_degree,
+            ascendant: birthChart.ascendant_sign,
+            ascendantDegree: birthChart.ascendant_degree,
+            // Planetas
+            mercurySign: birthChart.mercury_sign,
+            mercuryDegree: birthChart.mercury_degree,
+            venusSign: birthChart.venus_sign,
+            venusDegree: birthChart.venus_degree,
+            marsSign: birthChart.mars_sign,
+            marsDegree: birthChart.mars_degree,
+            jupiterSign: birthChart.jupiter_sign,
+            jupiterDegree: birthChart.jupiter_degree,
+            saturnSign: birthChart.saturn_sign,
+            saturnDegree: birthChart.saturn_degree,
+            uranusSign: birthChart.uranus_sign,
+            uranusDegree: birthChart.uranus_degree,
+            neptuneSign: birthChart.neptune_sign,
+            neptuneDegree: birthChart.neptune_degree,
+            plutoSign: birthChart.pluto_sign,
+            plutoDegree: birthChart.pluto_degree,
+            // Meio do Céu
+            midheavenSign: birthChart.midheaven_sign,
+            midheavenDegree: birthChart.midheaven_degree,
+            // Nodos Lunares
+            northNodeSign: birthChart.north_node_sign,
+            northNodeDegree: birthChart.north_node_degree,
+            southNodeSign: birthChart.south_node_sign,
+            southNodeDegree: birthChart.south_node_degree,
+            // Quíron (a ferida do curador)
+            chironSign: birthChart.chiron_sign,
+            chironDegree: birthChart.chiron_degree,
           });
         } else {
           // Fallback se não conseguir buscar
@@ -144,6 +218,91 @@ export default function App() {
       setTempPassword(password);
     }
     setCurrentView('onboarding');
+  };
+
+  // Handler para login do Google que precisa de onboarding
+  const handleGoogleNeedsOnboarding = (email: string, name: string, googleId: string) => {
+    setGoogleData({ email, name, googleId });
+    setAuthData({ email, name, hasCompletedOnboarding: false });
+    setCurrentView('google-onboarding');
+  };
+
+  // Handler para completar onboarding do Google
+  const handleGoogleOnboardingComplete = async (data: GoogleOnboardingData) => {
+    if (!googleData) {
+      toast.error('Dados do Google não encontrados');
+      return;
+    }
+
+    try {
+      // Chamar API para completar onboarding
+      const birthChart = await apiService.completeOnboarding({
+        name: data.name,
+        birth_date: data.birthDate.toISOString(),
+        birth_time: data.birthTime,
+        birth_place: data.birthPlace,
+        latitude: data.coordinates.latitude,
+        longitude: data.coordinates.longitude,
+      });
+
+      toast.success('Mapa astral criado com sucesso!');
+
+      // Atualizar dados do usuário
+      setUserData({
+        name: data.name,
+        birthDate: data.birthDate,
+        birthTime: data.birthTime,
+        birthPlace: data.birthPlace,
+        email: googleData.email,
+        coordinates: data.coordinates,
+        sunSign: birthChart.sun_sign,
+        sunDegree: birthChart.sun_degree,
+        moonSign: birthChart.moon_sign,
+        moonDegree: birthChart.moon_degree,
+        ascendant: birthChart.ascendant_sign,
+        ascendantDegree: birthChart.ascendant_degree,
+        mercurySign: birthChart.mercury_sign,
+        mercuryDegree: birthChart.mercury_degree,
+        venusSign: birthChart.venus_sign,
+        venusDegree: birthChart.venus_degree,
+        marsSign: birthChart.mars_sign,
+        marsDegree: birthChart.mars_degree,
+        jupiterSign: birthChart.jupiter_sign,
+        jupiterDegree: birthChart.jupiter_degree,
+        saturnSign: birthChart.saturn_sign,
+        saturnDegree: birthChart.saturn_degree,
+        uranusSign: birthChart.uranus_sign,
+        uranusDegree: birthChart.uranus_degree,
+        neptuneSign: birthChart.neptune_sign,
+        neptuneDegree: birthChart.neptune_degree,
+        plutoSign: birthChart.pluto_sign,
+        plutoDegree: birthChart.pluto_degree,
+        midheavenSign: birthChart.midheaven_sign,
+        midheavenDegree: birthChart.midheaven_degree,
+        northNodeSign: birthChart.north_node_sign,
+        northNodeDegree: birthChart.north_node_degree,
+        southNodeSign: birthChart.south_node_sign,
+        southNodeDegree: birthChart.south_node_degree,
+        chironSign: birthChart.chiron_sign,
+        chironDegree: birthChart.chiron_degree,
+      });
+
+      setAuthData({
+        email: googleData.email,
+        name: data.name,
+        hasCompletedOnboarding: true,
+      });
+
+      setGoogleData(null);
+      setCurrentView('dashboard');
+    } catch (error: unknown) {
+      console.error('Erro ao completar onboarding Google:', error);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Erro ao criar mapa astral. Tente novamente.';
+      toast.error(errorMessage);
+      throw error;
+    }
   };
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
@@ -240,12 +399,16 @@ export default function App() {
         setUserData={setUserData}
         authData={authData}
         setAuthData={setAuthData}
+        googleData={googleData}
+        setGoogleData={setGoogleData}
         selectedTopic={selectedTopic}
         tempPassword={tempPassword}
         setTempPassword={setTempPassword}
         isCheckingAuth={isCheckingAuth}
         handleAuthSuccess={handleAuthSuccess}
         handleNeedsBirthData={handleNeedsBirthData}
+        handleGoogleNeedsOnboarding={handleGoogleNeedsOnboarding}
+        handleGoogleOnboardingComplete={handleGoogleOnboardingComplete}
         handleOnboardingComplete={handleOnboardingComplete}
         handleViewInterpretation={handleViewInterpretation}
         handleBackToDashboard={handleBackToDashboard}
@@ -263,12 +426,16 @@ interface AppContentProps {
   setUserData: (data: OnboardingData | null) => void;
   authData: AuthUserData | null;
   setAuthData: (data: AuthUserData | null) => void;
+  googleData: GoogleUserData | null;
+  setGoogleData: (data: GoogleUserData | null) => void;
   selectedTopic: string;
   tempPassword: string | null;
   setTempPassword: (password: string | null) => void;
   isCheckingAuth: boolean;
   handleAuthSuccess: (data: AuthUserData) => void;
   handleNeedsBirthData: (email: string, name?: string, password?: string) => void;
+  handleGoogleNeedsOnboarding: (email: string, name: string, googleId: string) => void;
+  handleGoogleOnboardingComplete: (data: GoogleOnboardingData) => Promise<void>;
   handleOnboardingComplete: (data: OnboardingData) => void;
   handleViewInterpretation: (topicId: string) => void;
   handleBackToDashboard: () => void;
@@ -281,12 +448,16 @@ function AppContent({
   setUserData,
   authData,
   setAuthData,
+  googleData,
+  setGoogleData,
   selectedTopic,
   tempPassword,
   setTempPassword,
   isCheckingAuth,
   handleAuthSuccess,
   handleNeedsBirthData,
+  handleGoogleNeedsOnboarding,
+  handleGoogleOnboardingComplete,
   handleOnboardingComplete,
   handleViewInterpretation,
   handleBackToDashboard,
@@ -318,105 +489,41 @@ function AppContent({
     );
   }
 
-  // Landing Page
-  if (currentView === 'landing') {
+  // Auth Portal (sem landing page)
+  if (currentView === 'auth') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-background to-[#1a1f4a] dark:to-[#1a1f4a] light:to-[#F0E6D2] relative overflow-hidden">
-        {/* Theme Toggle in Corner */}
-        <div className="absolute top-4 right-4 z-50">
+      <>
+        <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
           <ThemeToggle />
+          <div className="w-px h-6 bg-border/50"></div>
+          <LanguageToggle />
         </div>
-        {/* Starry background effect */}
-        <div className="absolute inset-0 opacity-30">
-          {Array.from({ length: 50 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-accent rounded-full"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                opacity: Math.random() * 0.5 + 0.3,
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="max-w-4xl w-full relative z-10">
-          <AstroCard className="text-center space-y-8">
-            {/* Logo/Icon */}
-            <div className="flex justify-center">
-              <div className="w-24 h-24 rounded-full bg-accent/20 flex items-center justify-center">
-                <UIIcons.Star size={48} className="text-accent" />
-              </div>
-            </div>
-
-            {/* Hero Text */}
-            <div className="space-y-4">
-              <h1 className="text-accent">Descubra Seu Mapa Astral</h1>
-              <p className="text-secondary max-w-2xl mx-auto">
-                Uma experiência premium de astrologia. Explore as posições planetárias do momento
-                do seu nascimento e desvende os segredos escritos nas estrelas.
-              </p>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-              <AstroButton
-                variant="primary"
-                size="lg"
-                onClick={() => setCurrentView('auth')}
-              >
-                Calcular Meu Mapa Astral
-              </AstroButton>
-              <AstroButton
-                variant="secondary"
-                size="lg"
-                onClick={() => setCurrentView('style-guide')}
-              >
-                Ver Design System
-              </AstroButton>
-            </div>
-
-            {/* Features */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
-              <div className="space-y-3">
-                <UIIcons.Star size={32} className="text-accent mx-auto" />
-                <h3 className="text-foreground">Interpretações Detalhadas</h3>
-                <p className="text-sm text-secondary">
-                  Análises profundas de cada posição planetária e aspecto do seu mapa
-                </p>
-              </div>
-              <div className="space-y-3">
-                <UIIcons.Eye size={32} className="text-accent mx-auto" />
-                <h3 className="text-foreground">Visualização Interativa</h3>
-                <p className="text-sm text-secondary">
-                  Explore seu mapa natal com gráficos elegantes e intuitivos
-                </p>
-              </div>
-              <div className="space-y-3">
-                <UIIcons.Heart size={32} className="text-accent mx-auto" />
-                <h3 className="text-foreground">Experiência Premium</h3>
-                <p className="text-sm text-secondary">
-                  Design místico e profissional focado na clareza dos dados
-                </p>
-              </div>
-            </div>
-          </AstroCard>
-        </div>
-      </div>
+        <AuthPortal 
+          onAuthSuccess={handleAuthSuccess}
+          onNeedsBirthData={handleNeedsBirthData}
+          onGoogleNeedsOnboarding={handleGoogleNeedsOnboarding}
+        />
+      </>
     );
   }
 
-  // Auth Portal
-  if (currentView === 'auth') {
+  // Google Onboarding Flow
+  if (currentView === 'google-onboarding' && googleData) {
     return (
       <>
         <div className="absolute top-4 right-4 z-50">
           <ThemeToggle />
         </div>
-        <AuthPortal 
-          onAuthSuccess={handleAuthSuccess}
-          onNeedsBirthData={handleNeedsBirthData}
+        <GoogleOnboarding
+          email={googleData.email}
+          name={googleData.name}
+          onComplete={handleGoogleOnboardingComplete}
+          onBack={() => {
+            setCurrentView('auth');
+            setGoogleData(null);
+            setAuthData(null);
+            apiService.logout();
+          }}
         />
       </>
     );
@@ -447,7 +554,7 @@ function AppContent({
   // Dashboard
   if (currentView === 'dashboard' && userData) {
     return (
-      <AdvancedDashboard
+      <CosmosDashboard
         userData={userData}
         onViewInterpretation={handleViewInterpretation}
         onLogout={() => {

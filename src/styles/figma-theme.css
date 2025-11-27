@@ -1,0 +1,192 @@
+/* 
+ * Figma Design Theme Override
+ * Baseado em: https://galaxy-blanch-96364503.figma.site
+ * Extraído via MCP em: 2025-11-25
+ * CORES EXATAS DO DESIGN PUBLICADO
+ */
+
+:root {
+  /* === TEMA CLARO (DIA) - Figma Site Exact Colors === */
+  --figma-bg-light: #FBFAF9;           /* rgb(251, 250, 249) - Background geral */
+  --figma-fg-light: #160F24;           /* rgb(22, 15, 36) - Texto principal */
+  --figma-card-light: #FFFFFF;         /* rgb(255, 255, 255) - Cards brancos */
+  --figma-card-border-light: #CAC7D1;  /* rgb(202, 199, 209) - Borda dos cards */
+  --figma-input-light: #E5E0EB;        /* rgb(229, 224, 235) - Background inputs */
+  --figma-primary-light: #7C3AED;      /* Roxo vibrante - Logo/Primary */
+  --figma-secondary-light: #FF8A3D;    /* Laranja vibrante - Botão CTA (Figma Exact) */
+  --figma-muted-light: #635C70;        /* rgb(99, 92, 112) - Texto secundário */
+  
+  /* === TEMA ESCURO (NOITE) - Figma Spec === */
+  --figma-bg-dark: #0F0720;            /* Roxo profundo - Background */
+  --figma-fg-dark: #F5F5F5;            /* Off-white - Texto */
+  --figma-card-dark: #1A1A2E;          /* Azul escuro - Cards */
+  --figma-card-border-dark: #2A2A3E;   /* Borda escura */
+  --figma-input-dark: #1F2937;         /* Cinza escuro - Inputs */
+  --figma-primary-dark: #9F86C0;       /* Roxo claro - Primary */
+  --figma-secondary-dark: #FF8A3D;     /* Laranja vibrante - Botões (Figma Exact) */
+  --figma-muted-dark: #9CA3AF;         /* Cinza claro - Texto secundário */
+  
+  /* === MEDIDAS EXATAS === */
+  --figma-card-radius: 24px;           /* Border radius dos cards principais */
+  --figma-input-radius: 16.4px;        /* Border radius dos inputs e botões */
+  --figma-button-padding: 16px 24px;   /* Padding dos botões principais */
+  --figma-input-padding: 16px 20px;    /* Padding dos inputs */
+}
+
+/* Aplicar tema claro por padrão (CORES EXATAS DO FIGMA) */
+.light {
+  --background: var(--figma-bg-light);
+  --foreground: var(--figma-fg-light);
+  --card: var(--figma-card-light);
+  --card-foreground: var(--figma-fg-light);
+  --primary: var(--figma-primary-light);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--figma-secondary-light);
+  --secondary-foreground: #FFFFFF;
+  --accent: var(--figma-secondary-light);
+  --accent-foreground: #FFFFFF;
+  --muted: var(--figma-input-light);
+  --muted-foreground: var(--figma-muted-light);
+  --input: var(--figma-input-light);
+  --input-background: var(--figma-input-light);
+  --border: var(--figma-card-border-light);
+  --ring: var(--figma-primary-light);
+  --radius: var(--figma-input-radius);
+}
+
+/* Aplicar tema escuro */
+.dark {
+  --background: var(--figma-bg-dark);
+  --foreground: var(--figma-fg-dark);
+  --card: var(--figma-card-dark);
+  --card-foreground: var(--figma-fg-dark);
+  --primary: var(--figma-primary-dark);
+  --primary-foreground: var(--figma-bg-dark);
+  --secondary: var(--figma-secondary-dark);
+  --secondary-foreground: var(--figma-bg-dark);
+  --accent: var(--figma-secondary-dark);
+  --accent-foreground: var(--figma-bg-dark);
+  --muted: var(--figma-input-dark);
+  --muted-foreground: var(--figma-muted-dark);
+  --input: var(--figma-input-dark);
+  --input-background: var(--figma-input-dark);
+  --border: var(--figma-card-border-dark);
+  --ring: var(--figma-primary-dark);
+  --radius: var(--figma-input-radius);
+}
+
+/* Override de radius para cards maiores */
+.figma-card-radius {
+  border-radius: var(--figma-card-radius) !important;
+}
+
+/* Gradientes radiais do Figma (efeitos de luz) */
+.figma-glow-light {
+  background: radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.08), transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.05), transparent 50%);
+}
+
+.figma-glow-dark {
+  background: radial-gradient(circle at 20% 50%, rgba(159, 134, 192, 0.12), transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(255, 140, 66, 0.08), transparent 50%);
+}
+
+/* Botão laranja Figma - força importante para sobrescrever */
+.btn-figma-orange {
+  background-color: #FF8A3D !important;
+  color: #FFFFFF !important;
+}
+
+.btn-figma-orange:hover:not(:disabled) {
+  background-color: rgba(255, 138, 61, 0.9) !important;
+}
+
+/* ===== SEARCH BAR STYLES ===== */
+.search-bar-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 0 16px !important;
+  height: 48px !important;
+  background-color: var(--muted) !important;
+  border-radius: 9999px !important;
+  border: 1px solid var(--border) !important;
+  width: 100% !important;
+}
+
+.search-bar-header:focus-within {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2) !important;
+}
+
+.search-bar-header input {
+  flex: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  font-size: 14px !important;
+  color: var(--foreground) !important;
+}
+
+.search-bar-header input::placeholder {
+  color: var(--muted-foreground) !important;
+}
+
+.search-bar-small {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0 12px !important;
+  height: 40px !important;
+  background-color: var(--muted) !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  width: 100% !important;
+}
+
+.search-bar-small:focus-within {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2) !important;
+}
+
+.search-bar-small input {
+  flex: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  font-size: 13px !important;
+  color: var(--foreground) !important;
+}
+
+.search-bar-small input::placeholder {
+  color: var(--muted-foreground) !important;
+}
+
+/* ===== ANIMAÇÕES ===== */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}

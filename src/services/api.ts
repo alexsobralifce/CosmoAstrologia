@@ -36,19 +36,35 @@ export interface BirthChartResponse {
   sun_degree?: number;
   moon_degree?: number;
   ascendant_degree?: number;
-  // Planetas principais (opcionais, podem não estar no banco ainda)
+  // Planetas principais
   mercury_sign?: string;
+  mercury_degree?: number;
   venus_sign?: string;
+  venus_degree?: number;
   mars_sign?: string;
+  mars_degree?: number;
   jupiter_sign?: string;
+  jupiter_degree?: number;
   saturn_sign?: string;
+  saturn_degree?: number;
   uranus_sign?: string;
+  uranus_degree?: number;
   neptune_sign?: string;
+  neptune_degree?: number;
   pluto_sign?: string;
+  pluto_degree?: number;
   midheaven_sign?: string;
   midheaven_degree?: number;
   planets_conjunct_midheaven?: string[];
   uranus_on_midheaven?: boolean;
+  // Nodos Lunares
+  north_node_sign?: string;
+  north_node_degree?: number;
+  south_node_sign?: string;
+  south_node_degree?: number;
+  // Quíron (a ferida do curador)
+  chiron_sign?: string;
+  chiron_degree?: number;
   is_primary: boolean;
   created_at: string;
   updated_at?: string;
@@ -121,27 +137,27 @@ class ApiService {
           console.log('[API] Dados recebidos:', data);
           return data;
         }
-        
+
         // Se não for JSON, retornar texto vazio ou null
         return null as T;
       } catch (fetchError) {
         clearTimeout(timeoutId);
-        
+
         if (fetchError instanceof Error) {
           // Verificar se é erro de conexão primeiro (TypeError com "Failed to fetch" é o mais comum)
-          const isConnectionError = 
+          const isConnectionError =
             (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) ||
             fetchError.message.includes('NetworkError') ||
             fetchError.message.includes('Network request failed') ||
             fetchError.message.includes('ERR_CONNECTION_REFUSED') ||
             fetchError.message.includes('ERR_NETWORK') ||
             fetchError.message.includes('ERR_INTERNET_DISCONNECTED');
-            
+
           if (isConnectionError) {
             console.error('[API] Erro de conexão:', fetchError);
             throw new Error(`Não foi possível conectar ao backend em ${API_BASE_URL}.\n\nO backend não está rodando ou não está respondendo.\n\nPara iniciar:\n1. Abra um terminal\n2. Execute: cd backend && python3 run.py\n\nOu use: ./start-backend.sh`);
           }
-          
+
           if (fetchError.name === 'AbortError' || fetchError.message.includes('aborted')) {
             // Verificar se foi timeout ou cancelamento
             if (timeoutTriggered) {
@@ -149,7 +165,7 @@ class ApiService {
             }
             throw new Error('Requisição cancelada. Verifique se o servidor está rodando.');
           }
-          
+
           console.error('[API] Erro na requisição:', fetchError);
           throw fetchError;
         }
@@ -234,6 +250,50 @@ class ApiService {
     localStorage.removeItem('auth_token');
   }
 
+  // ===== AUTENTICAÇÃO GOOGLE =====
+  
+  async googleAuth(data: {
+    email: string;
+    name: string;
+    google_id: string;
+  }): Promise<{
+    access_token: string;
+    token_type: string;
+    is_new_user: boolean;
+    needs_onboarding: boolean;
+  }> {
+    const response = await this.request<{
+      access_token: string;
+      token_type: string;
+      is_new_user: boolean;
+      needs_onboarding: boolean;
+    }>('/api/auth/google', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+
+    // Salvar token
+    if (response.access_token) {
+      localStorage.setItem('auth_token', response.access_token);
+    }
+
+    return response;
+  }
+
+  async completeOnboarding(data: {
+    name: string;
+    birth_date: string; // ISO format
+    birth_time: string; // HH:MM
+    birth_place: string;
+    latitude: number;
+    longitude: number;
+  }): Promise<BirthChartResponse> {
+    return await this.request<BirthChartResponse>('/api/auth/complete-onboarding', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // RAG - Interpretação Astrológica
   async getInterpretation(params: {
     planet?: string;
@@ -312,7 +372,7 @@ class ApiService {
     if (params?.max_transits) {
       queryParams.append('max_transits', params.max_transits.toString());
     }
-    
+
     const query = queryParams.toString();
     // Timeout maior para cálculos de trânsitos (45 segundos)
     return await this.request(`/api/transits/future${query ? `?${query}` : ''}`, {
@@ -429,6 +489,89 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(params),
     }, 60000);
+  }
+
+  // ===== MAPA ASTRAL COMPLETO =====
+
+  async generateBirthChartSection(params: {
+    name: string;
+    birthDate: string;
+    birthTime: string;
+    birthPlace: string;
+    sunSign: string;
+    moonSign: string;
+    ascendant: string;
+    sunHouse: number;
+    moonHouse: number;
+    section: string;
+    language?: string;
+    // Planetas opcionais
+    mercurySign?: string;
+    mercuryHouse?: number;
+    venusSign?: string;
+    venusHouse?: number;
+    marsSign?: string;
+    marsHouse?: number;
+    jupiterSign?: string;
+    jupiterHouse?: number;
+    saturnSign?: string;
+    saturnHouse?: number;
+    uranusSign?: string;
+    uranusHouse?: number;
+    neptuneSign?: string;
+    neptuneHouse?: number;
+    plutoSign?: string;
+    plutoHouse?: number;
+    northNodeSign?: string;
+    northNodeHouse?: number;
+    southNodeSign?: string;
+    southNodeHouse?: number;
+    chironSign?: string;
+    chironHouse?: number;
+    midheavenSign?: string;
+    icSign?: string;
+  }): Promise<{
+    section: string;
+    title: string;
+    content: string;
+    generated_by: string;
+  }> {
+    // Timeout maior para geração completa (90 segundos)
+    return await this.request('/api/full-birth-chart/section', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 90000);
+  }
+
+  async generateFullBirthChart(params: {
+    name: string;
+    birthDate: string;
+    birthTime: string;
+    birthPlace: string;
+    sunSign: string;
+    moonSign: string;
+    ascendant: string;
+    sunHouse: number;
+    moonHouse: number;
+    language?: string;
+    // Demais planetas opcionais...
+    [key: string]: string | number | undefined;
+  }): Promise<{
+    name: string;
+    birthData: string;
+    sections: Array<{
+      section: string;
+      title: string;
+      content: string;
+      generated_by: string;
+    }>;
+    generated_at: string;
+  }> {
+    // Timeout muito maior para geração completa de todas as seções (5 minutos)
+    return await this.request('/api/full-birth-chart/all', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 300000);
   }
 }
 

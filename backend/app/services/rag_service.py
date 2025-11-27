@@ -75,6 +75,62 @@ class RAGService:
             # Só avisar se tentar usar Groq sem chave
             pass
     
+    def _clean_text(self, text: str) -> str:
+        """Remove ruído comum de PDFs (URLs, headers repetidos, etc.)."""
+        if not text:
+            return ""
+        
+        # Remover URLs
+        text = re.sub(r'https?://[^\s]+', '', text)
+        text = re.sub(r'www\.[^\s]+', '', text)
+        
+        # Remover padrões comuns de lixo de PDFs baixados da web
+        noise_patterns = [
+            r'Privacy\s*',
+            r'\d{2}/\d{2}/\d{2},?\s*\d{2}:\d{2}',  # Timestamps
+            r'vebuka\.com[^\n]*',
+            r'pdfcoffee\.com[^\n]*',
+            r'\| V\s*ebuka\.com',
+            r'Past_Life_Astrology[^a-zA-Z]*Use[^a-zA-Z]*Y\s*our[^a-zA-Z]*Birthchart[^a-zA-Z]*to[^a-zA-Z]*Understand[^a-zA-Z]*Y\s*our[^a-zA-Z]*Karma',
+            r'Past Life Astrology - Use Y our Birthchart to Understand Y our Karma[^\n]*',
+            r'rt to Understand Y our Karma[^\n]*',
+            r'IndirectObject\([^)]+\)',
+            r'unknown widths\s*:',
+            r'incorrect startxref pointer\(\d+\)',
+            r'\d{1,4}/\d{2,3}',  # Page numbers like 7/162
+            r'^\s*\d+\s*$',  # Lines with only numbers
+            r'11311-97edb49441f73951004f36555620cc64[^\n]*',  # Hash específico
+            r'1071[^\n]*11311[^\n]*',  # Padrão específico do PDF problemático
+        ]
+        
+        for pattern in noise_patterns:
+            text = re.sub(pattern, '', text, flags=re.IGNORECASE | re.MULTILINE)
+        
+        # Remover linhas que são apenas números ou muito curtas
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            line = line.strip()
+            # Ignorar linhas que são apenas números, muito curtas, ou repetitivas
+            if len(line) < 15:
+                continue
+            if re.match(r'^[\d\s\-\./]+$', line):
+                continue
+            if line.lower() in ['privacy', 'copyright', 'all rights reserved', 'y our']:
+                continue
+            # Ignorar linhas que são apenas repetições de títulos
+            if 'Past Life Astrology' in line and len(line) < 100:
+                continue
+            cleaned_lines.append(line)
+        
+        text = '\n'.join(cleaned_lines)
+        
+        # Remover múltiplos espaços e quebras de linha
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        
+        return text.strip()
+
     def extract_text_from_pdf(self, pdf_path: Path) -> List[Dict[str, any]]:
         """Extrai texto de um PDF e retorna lista de chunks com metadados."""
         chunks = []
@@ -84,31 +140,108 @@ class RAGService:
                 pdf_reader = PyPDF2.PdfReader(file)
                 num_pages = len(pdf_reader.pages)
                 
+                # Acumular texto do documento inteiro para melhor contexto
+                full_text = ""
+                page_boundaries = []  # Guardar onde cada página começa
+                
                 for page_num in range(num_pages):
                     page = pdf_reader.pages[page_num]
                     text = page.extract_text()
                     
                     if text.strip():
-                        # Dividir texto em chunks menores (aproximadamente 500 caracteres)
-                        chunk_size = 500
-                        chunk_overlap = 100
+                        # Limpar texto antes de adicionar
+                        clean_text = self._clean_text(text)
+                        if clean_text and len(clean_text) > 50:
+                            page_boundaries.append((len(full_text), page_num + 1))
+                            full_text += clean_text + "\n\n"
+                
+                if full_text.strip():
+                    # Chunks maiores para melhor contexto semântico (1000 chars com 200 overlap)
+                    chunk_size = 1000
+                    chunk_overlap = 200
+                    
+                    # Tentar quebrar em sentenças/parágrafos para não cortar ideias
+                    paragraphs = re.split(r'\n\s*\n', full_text)
+                    current_chunk = ""
+                    current_page = 1
+                    
+                    for para in paragraphs:
+                        para = para.strip()
+                        if not para or len(para) < 50:  # Ignorar parágrafos muito curtos
+                            continue
                         
-                        for i in range(0, len(text), chunk_size - chunk_overlap):
-                            chunk_text = text[i:i + chunk_size].strip()
-                            if chunk_text:
+                        # Encontrar página deste parágrafo
+                        for boundary_pos, page_num in reversed(page_boundaries):
+                            if full_text.find(para) >= boundary_pos:
+                                current_page = page_num
+                                break
+                        
+                        # Se adicionar o parágrafo excede o tamanho, salvar chunk atual
+                        if len(current_chunk) + len(para) > chunk_size and current_chunk:
+                            clean_chunk = current_chunk.strip()
+                            if len(clean_chunk) > 100:  # Só salvar chunks substanciais
                                 chunks.append({
-                                    'text': chunk_text,
+                                    'text': clean_chunk,
                                     'source': pdf_path.name,
-                                    'page': page_num + 1,
+                                    'page': current_page,
                                     'chunk_index': len(chunks)
                                 })
+                            # Manter overlap do final do chunk anterior
+                            overlap_start = max(0, len(current_chunk) - chunk_overlap)
+                            current_chunk = current_chunk[overlap_start:] + "\n\n" + para
+                        else:
+                            current_chunk = (current_chunk + "\n\n" + para).strip()
+                    
+                    # Salvar último chunk
+                    if current_chunk and len(current_chunk.strip()) > 100:
+                        chunks.append({
+                            'text': current_chunk.strip(),
+                            'source': pdf_path.name,
+                            'page': current_page,
+                            'chunk_index': len(chunks)
+                        })
+                        
         except Exception as e:
             print(f"[ERROR] Erro ao processar {pdf_path.name}: {e}")
         
         return chunks
     
+    def extract_text_from_markdown(self, md_path: Path) -> List[Dict[str, any]]:
+        """Extrai texto de um arquivo Markdown e retorna lista de chunks com metadados."""
+        chunks = []
+        
+        try:
+            with open(md_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+            
+            if content.strip():
+                # Dividir por seções (##, ###, etc.)
+                sections = re.split(r'\n(?=#{1,3}\s)', content)
+                
+                for i, section in enumerate(sections):
+                    section = section.strip()
+                    if section and len(section) > 50:  # Ignorar seções muito curtas
+                        # Remover marcações excessivas de formatação
+                        clean_section = section
+                        # Manter headers mas limpar formatação excessiva
+                        clean_section = re.sub(r'\*\*([^*]+)\*\*', r'\1', clean_section)  # Remove bold
+                        clean_section = re.sub(r'\*([^*]+)\*', r'\1', clean_section)  # Remove italic
+                        clean_section = re.sub(r'`([^`]+)`', r'\1', clean_section)  # Remove code
+                        clean_section = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', clean_section)  # Remove links
+                        
+                        chunks.append({
+                            'text': clean_section,
+                            'source': md_path.name,
+                            'page': i + 1,  # Usar número da seção como "página"
+                            'chunk_index': len(chunks)
+                        })
+        except Exception as e:
+            print(f"[ERROR] Erro ao processar {md_path.name}: {e}")
+        
+        return chunks
+
     def process_all_pdfs(self) -> int:
-        """Processa todos os PDFs na pasta docs e cria o índice."""
+        """Processa todos os PDFs e Markdowns na pasta docs e cria o índice."""
         if not HAS_DEPENDENCIES:
             raise RuntimeError("Dependências RAG não disponíveis. Instale: pip install sentence-transformers PyPDF2")
         if not self.model:
@@ -117,28 +250,35 @@ class RAGService:
         if not self.docs_path.exists():
             raise FileNotFoundError(f"Pasta de documentos não encontrada: {self.docs_path}")
         
-        print(f"[RAG] Processando PDFs em {self.docs_path}...")
+        print(f"[RAG] Processando documentos em {self.docs_path}...")
         
         all_chunks = []
+        
+        # Processar PDFs
         pdf_files = list(self.docs_path.glob("*.pdf"))
-        
-        if not pdf_files:
-            print(f"[WARNING] Nenhum PDF encontrado em {self.docs_path}")
-            return 0
-        
         print(f"[RAG] Encontrados {len(pdf_files)} arquivos PDF")
         
         for pdf_path in pdf_files:
-            print(f"[RAG] Processando: {pdf_path.name}...")
+            print(f"[RAG] Processando PDF: {pdf_path.name}...")
             chunks = self.extract_text_from_pdf(pdf_path)
             all_chunks.extend(chunks)
             print(f"  → {len(chunks)} chunks extraídos")
         
+        # Processar Markdowns
+        md_files = list(self.docs_path.glob("*.md"))
+        print(f"[RAG] Encontrados {len(md_files)} arquivos Markdown")
+        
+        for md_path in md_files:
+            print(f"[RAG] Processando MD: {md_path.name}...")
+            chunks = self.extract_text_from_markdown(md_path)
+            all_chunks.extend(chunks)
+            print(f"  → {len(chunks)} chunks extraídos")
+        
         if not all_chunks:
-            print("[WARNING] Nenhum texto extraído dos PDFs")
+            print("[WARNING] Nenhum texto extraído dos documentos")
             return 0
         
-        print(f"[RAG] Total de chunks: {len(all_chunks)}")
+        print(f"[RAG] Total de chunks de todos os documentos: {len(all_chunks)}")
         print(f"[RAG] Criando embeddings...")
         
         # Extrair textos para embeddings
@@ -264,37 +404,31 @@ class RAGService:
             for doc in context_documents
         ])
         
-        # Criar prompt para o Groq
-        system_prompt = """Você é um astrólogo experiente e especializado em interpretação de mapas astrais. 
-Sua tarefa é criar interpretações astrológicas precisas, profundas e úteis baseadas nos documentos fornecidos.
+        # Prompt otimizado para interpretações completas: passado, presente e futuro
+        system_prompt = """Você é um astrólogo especialista com profundo conhecimento em astrologia tradicional, cármica e preditiva.
 
-Diretrizes IMPORTANTES:
-- Use APENAS as informações dos documentos fornecidos como base
-- Seja claro, objetivo e prático
-- Use linguagem simples e acessível, evitando termos muito técnicos
-- NÃO mencione fontes, páginas ou documentos na sua resposta
-- NÃO inclua referências como "[Fonte: ...]" ou "Página X" na interpretação
-- Crie uma interpretação fluida e natural, como se você estivesse explicando diretamente para a pessoa
-- SEMPRE escreva pelo menos 2 parágrafos completos e detalhados (cada parágrafo com 4-5 frases)
-- Seja específico e detalhado sobre o significado e impacto na vida da pessoa
-- Se os documentos não contiverem informações suficientes, indique isso claramente"""
+MISSÃO: Criar interpretações astrológicas PRECISAS e COMPLETAS baseadas nos documentos fornecidos.
+
+ESTRUTURA OBRIGATÓRIA da interpretação:
+1. **PASSADO/KARMA**: O que essa configuração indica sobre padrões herdados, vidas passadas, condicionamentos e lições que a alma traz
+2. **PRESENTE/ESSÊNCIA**: Como essa energia se manifesta AGORA na personalidade, comportamentos, talentos e desafios atuais
+3. **FUTURO/EVOLUÇÃO**: Para onde os astros estão inclinando - tendências, oportunidades de crescimento, direcionamentos e potenciais a desenvolver
+
+REGRAS:
+- Use APENAS os documentos como base factual
+- Linguagem clara, profunda e acessível
+- Conecte passado → presente → futuro de forma fluida
+- Seja específico e prático, não genérico
+- NÃO mencione fontes, páginas ou referências aos documentos
+- Mínimo 3 parágrafos (um para cada dimensão temporal)"""
         
-        user_prompt = f"""Você é um astrólogo experiente. Com base nos documentos fornecidos sobre astrologia, explique de forma clara e prática sobre: {query}
+        user_prompt = f"""TEMA DA CONSULTA: {query}
 
-Documentos de referência:
+CONHECIMENTO ASTROLÓGICO DISPONÍVEL:
 {context_text}
 
-INSTRUÇÕES IMPORTANTES:
-- Escreva uma interpretação completa e detalhada sobre o tema consultado
-- Use APENAS as informações dos documentos fornecidos
-- Escreva pelo menos 2 parágrafos completos (cada parágrafo com 4-5 frases)
-- Use linguagem simples e direta, como se estivesse conversando com a pessoa
-- NÃO mencione "Contexto da consulta", "Documentos de referência" ou qualquer referência a fontes
-- NÃO repita a query na sua resposta
-- Comece diretamente explicando o significado e impacto
-- Seja específico sobre características, personalidade e comportamento
-
-Comece sua resposta diretamente com a explicação, sem introduções ou referências à consulta."""
+Crie uma interpretação astrológica completa seguindo a estrutura PASSADO → PRESENTE → FUTURO.
+Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."""
         
         try:
             # Chamar Groq API
@@ -309,10 +443,10 @@ Comece sua resposta diretamente com a explicação, sem introduções ou referê
                         "content": user_prompt
                     }
                 ],
-                model="llama-3.1-70b-versatile",  # Modelo rápido e eficiente do Groq
-                temperature=0.7,
-                max_tokens=3000,  # Aumentado para garantir espaço para pelo menos 2 parágrafos
-                top_p=1,
+                model="llama-3.1-8b-instant",  # Modelo rápido e disponível
+                temperature=0.6,  # Mais focado e preciso
+                max_tokens=1200,  # Espaço para 3 parágrafos detalhados (passado/presente/futuro)
+                top_p=0.9,
             )
             
             interpretation = chat_completion.choices[0].message.content
@@ -424,30 +558,41 @@ Comece sua resposta diretamente com a explicação, sem introduções ou referê
         Returns:
             Dicionário com interpretação e referências
         """
-        # Construir query baseada nos parâmetros
+        # Construir query enriquecida baseada nos parâmetros
         if custom_query:
             query = custom_query
         else:
             query_parts = []
             
             if planet and sign:
-                query_parts.append(f"{planet} em {sign}")
+                query_parts.append(f"{planet} em {sign} significado interpretação karma evolução")
             elif planet:
-                query_parts.append(planet)
+                query_parts.append(f"{planet} planeta astrologia significado personalidade")
             elif sign:
-                query_parts.append(f"signo {sign}")
+                query_parts.append(f"signo {sign} características personalidade")
             
             if house:
-                query_parts.append(f"casa {house}")
+                query_parts.append(f"casa {house} área vida significado")
             
             if aspect:
-                query_parts.append(f"aspecto {aspect}")
+                query_parts.append(f"aspecto {aspect} relação planetas")
             
-            query = " ".join(query_parts) if query_parts else "interpretação mapa astral"
+            query = " ".join(query_parts) if query_parts else "interpretação mapa astral completa"
         
-        # Buscar documentos relevantes (RAG ou base local)
-        # Para queries sobre elementos, buscar mais documentos para ter mais contexto
-        top_k = 8 if "elemento" in query.lower() or "modalidade" in query.lower() else 5
+        # Identificar se é uma consulta sobre temas específicos para buscar mais contexto
+        query_lower = query.lower()
+        is_karma_query = any(word in query_lower for word in ['nodo', 'karma', 'carma', 'passado', 'vidas passadas', 'retrógrado'])
+        is_transit_query = any(word in query_lower for word in ['trânsito', 'transito', 'futuro', 'previsão', 'tendência'])
+        is_aspect_query = any(word in query_lower for word in ['aspecto', 'conjunção', 'oposição', 'trígono', 'quadratura', 'sextil'])
+        
+        # Buscar mais documentos para ter contexto suficiente
+        # Queries mais complexas precisam de mais contexto
+        if is_karma_query or is_transit_query:
+            top_k = 12  # Mais contexto para temas de karma e trânsitos
+        elif is_aspect_query:
+            top_k = 10
+        else:
+            top_k = 8
         results: List[Dict[str, any]] = []
         try:
             results = self.search(query, top_k=top_k)
@@ -509,11 +654,11 @@ Comece sua resposta diretamente com a explicação, sem introduções ou referê
         interpretation_text = "\n\n".join([
             r['text'].strip()
             for r in results
-            if r.get('text') and len(r['text'].strip()) > 20  # Filtrar textos muito curtos
+            if r.get('text') and len(r['text'].strip()) > 10  # Filtrar textos muito curtos
         ])
         
         # Se não há texto suficiente, retornar mensagem
-        if not interpretation_text or len(interpretation_text.strip()) < 100:
+        if not interpretation_text or len(interpretation_text.strip()) < 50:
             return {
                 'interpretation': "Não foi possível encontrar informações suficientes sobre este tema na base de conhecimento. Por favor, tente uma consulta diferente.",
                 'sources': [],

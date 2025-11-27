@@ -5,7 +5,6 @@ build/
 *.log
 .env
 venv/
-/docs/
 .venv/
 .venv312/
 __pycache__/

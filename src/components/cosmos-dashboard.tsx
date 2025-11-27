@@ -385,7 +385,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               <item.icon size={20} />
               <span className="text-sm font-medium">{item.label}</span>
               {item.badge && (
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-orange text-white">
+                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-orange text-primary-foreground">
                   {item.badge}
                 </span>
               )}
@@ -419,7 +419,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                 key={i}
                 className={`py-1 rounded relative ${
                   dayData.current
-                    ? 'bg-primary text-white font-bold'
+                    ? 'bg-primary text-primary-foreground font-bold'
                     : 'text-sidebar-foreground hover:bg-sidebar-accent cursor-pointer'
                 }`}
               >
@@ -453,7 +453,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
             {/* Logo */}
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center rotate-3 shadow-lg">
-                <UIIcons.Sparkles size={24} className="text-white" />
+                <UIIcons.Sparkles size={24} className="text-foreground" />
               </div>
               <div>
                 <h1 className="font-serif text-xl font-bold text-foreground">Cosmos Astral</h1>
@@ -520,20 +520,20 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                 <UIIcons.Sparkles size={20} className="text-primary" />
                 <span className="text-sm text-primary font-medium">{texts.astralForecast}</span>
               </div>
-              <h2 className="font-serif text-4xl font-bold text-white mb-4">
+              <h2 className="font-serif text-4xl font-bold text-foreground mb-4">
                 {texts.welcome}
               </h2>
-              <p className="text-white/80 text-lg max-w-2xl">
+              <p className="text-foreground/80 text-lg max-w-2xl">
                 {texts.heroText}
               </p>
               <div className="flex gap-4 mt-6">
                 <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <UIIcons.Calendar size={16} className="inline mr-2 text-white" />
-                  <span className="text-white text-sm">{texts.monday}, 24 {texts.of} {texts.november}</span>
+                  <UIIcons.Calendar size={16} className="inline mr-2 text-foreground" />
+                  <span className="text-foreground text-sm">{texts.monday}, 24 {texts.of} {texts.november}</span>
                 </div>
                 <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
                   <UIIcons.Moon size={16} className="inline mr-2 text-amber" />
-                  <span className="text-white text-sm">{texts.waxingMoonIn}</span>
+                  <span className="text-foreground text-sm">{texts.waxingMoonIn}</span>
                 </div>
               </div>
             </div>
@@ -651,7 +651,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                 {compatibility.map((person, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full ${person.color} flex items-center justify-center text-white font-semibold text-sm`}>
+                      <div className={`w-10 h-10 rounded-full ${person.color} flex items-center justify-center text-primary-foreground font-semibold text-sm`}>
                         {person.avatar}
                       </div>
                       <div>
@@ -670,7 +670,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                 ))}
               </div>
 
-              <button className="w-full mt-6 py-3 rounded-lg bg-orange text-white font-medium hover:bg-orange/90 transition-colors">
+              <button className="w-full mt-6 py-3 rounded-lg bg-orange text-primary-foreground font-medium hover:bg-orange/90 transition-colors">
                 {texts.viewAll}
               </button>
             </div>

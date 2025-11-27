@@ -47,7 +47,7 @@ const ChartSection = ({
       >
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-xl ${accentColor} flex items-center justify-center`}>
-            <Icon size={24} className="text-white" />
+            <Icon size={24} className="text-primary-foreground" />
           </div>
           <div className="text-left">
             <h3 className="font-serif text-xl font-bold text-foreground">
@@ -318,7 +318,7 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
           <button
             onClick={generateAllSections}
             disabled={isGeneratingAll}
-            className="group relative flex items-center gap-3 px-8 py-3.5 rounded-2xl font-semibold text-white shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 overflow-hidden"
+            className="group relative flex items-center gap-3 px-8 py-3.5 rounded-2xl font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 overflow-hidden"
             style={{
               background: isGeneratingAll 
                 ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)'
@@ -338,7 +338,7 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
             ) : (
               <>
                 <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-white/20 group-hover:bg-white/30 transition-colors">
-                  <UIIcons.Sparkles size={14} className="text-white group-hover:animate-pulse" />
+                  <UIIcons.Sparkles size={14} className="text-primary-foreground group-hover:animate-pulse" />
                 </div>
                 <span className="relative text-base">
                   {language === 'pt' ? 'Gerar Análise Completa' : 'Generate Complete Analysis'}
@@ -400,16 +400,16 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                     className="w-12 h-12 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: 'rgba(245, 158, 11, 0.35)' }}
                   >
-                    <SunIcon size={28} style={{ color: '#d97706' }} />
+                    <SunIcon size={28} className="text-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: '#b45309' }}>
+                    <p className="text-xs uppercase tracking-wider font-semibold text-foreground/90">
                       {language === 'pt' ? 'Sol' : 'Sun'}
                     </p>
-                    <p className="font-bold text-lg" style={{ color: '#78350f' }}>{sunSign}</p>
+                    <p className="font-bold text-lg text-foreground">{sunSign}</p>
                   </div>
                 </div>
-                <p className="text-xs text-center mt-2" style={{ color: 'rgba(146, 64, 14, 0.8)' }}>
+                <p className="text-xs text-center mt-2 text-foreground/70">
                   {language === 'pt' ? 'Sua essência e identidade' : 'Your essence and identity'}
                 </p>
               </div>
@@ -428,16 +428,16 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                     className="w-12 h-12 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: 'rgba(59, 130, 246, 0.35)' }}
                   >
-                    <MoonIcon size={28} style={{ color: '#2563eb' }} />
+                    <MoonIcon size={28} className="text-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: '#1d4ed8' }}>
+                    <p className="text-xs uppercase tracking-wider font-semibold text-foreground/90">
                       {language === 'pt' ? 'Lua' : 'Moon'}
                     </p>
-                    <p className="font-bold text-lg" style={{ color: '#1e3a8a' }}>{moonSign}</p>
+                    <p className="font-bold text-lg text-foreground">{moonSign}</p>
                   </div>
                 </div>
-                <p className="text-xs text-center mt-2" style={{ color: 'rgba(30, 58, 138, 0.8)' }}>
+                <p className="text-xs text-center mt-2 text-foreground/70">
                   {language === 'pt' ? 'Suas emoções e necessidades' : 'Your emotions and needs'}
                 </p>
               </div>
@@ -456,16 +456,16 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                     className="w-12 h-12 rounded-full flex items-center justify-center"
                     style={{ backgroundColor: 'rgba(168, 85, 247, 0.35)' }}
                   >
-                    <AscIcon size={28} style={{ color: '#9333ea' }} />
+                    <AscIcon size={28} className="text-foreground" />
                   </div>
                   <div className="text-center">
-                    <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: '#7c3aed' }}>
+                    <p className="text-xs uppercase tracking-wider font-semibold text-foreground/90">
                       {language === 'pt' ? 'Asc' : 'Asc'}
                     </p>
-                    <p className="font-bold text-lg" style={{ color: '#581c87' }}>{ascendant}</p>
+                    <p className="font-bold text-lg text-foreground">{ascendant}</p>
                   </div>
                 </div>
-                <p className="text-xs text-center mt-2" style={{ color: 'rgba(88, 28, 135, 0.8)' }}>
+                <p className="text-xs text-center mt-2 text-foreground/70">
                   {language === 'pt' ? 'Sua máscara social' : 'Your social mask'}
                 </p>
               </div>

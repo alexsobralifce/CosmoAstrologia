@@ -266,8 +266,8 @@ const FormattedPlanetInterpretation = ({
     Mars: { bg: 'from-red-500/20 to-orange-500/10', border: 'border-red-500/30', text: 'text-red-500' },
     Júpiter: { bg: 'from-amber-500/20 to-yellow-500/10', border: 'border-amber-500/30', text: 'text-amber-500' },
     Jupiter: { bg: 'from-amber-500/20 to-yellow-500/10', border: 'border-amber-500/30', text: 'text-amber-500' },
-    Saturno: { bg: 'from-gray-500/20 to-slate-500/10', border: 'border-gray-500/30', text: 'text-gray-500' },
-    Saturn: { bg: 'from-gray-500/20 to-slate-500/10', border: 'border-gray-500/30', text: 'text-gray-500' },
+    Saturno: { bg: 'from-gray-500/20 to-slate-500/10', border: 'border-gray-500/30', text: 'text-muted-foreground' },
+    Saturn: { bg: 'from-gray-500/20 to-slate-500/10', border: 'border-gray-500/30', text: 'text-muted-foreground' },
     Urano: { bg: 'from-teal-500/20 to-cyan-500/10', border: 'border-teal-500/30', text: 'text-teal-500' },
     Uranus: { bg: 'from-teal-500/20 to-cyan-500/10', border: 'border-teal-500/30', text: 'text-teal-500' },
     Netuno: { bg: 'from-blue-500/20 to-indigo-500/10', border: 'border-blue-500/30', text: 'text-blue-500' },
@@ -414,7 +414,7 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
     { name: 'Vênus', nameEn: 'Venus', sign: 'Touro', house: 2, color: 'text-pink-500', bgColor: 'bg-pink-500/10' },
     { name: 'Marte', nameEn: 'Mars', sign: 'Áries', house: 1, color: 'text-red-500', bgColor: 'bg-red-500/10' },
     { name: 'Júpiter', nameEn: 'Jupiter', sign: 'Sagitário', house: 9, color: 'text-amber-500', bgColor: 'bg-amber-500/10' },
-    { name: 'Saturno', nameEn: 'Saturn', sign: 'Capricórnio', house: 10, color: 'text-gray-500', bgColor: 'bg-gray-500/10' },
+    { name: 'Saturno', nameEn: 'Saturn', sign: 'Capricórnio', house: 10, color: 'text-muted-foreground', bgColor: 'bg-gray-500/10' },
     { name: 'Urano', nameEn: 'Uranus', sign: 'Aquário', house: 11, color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
     { name: 'Netuno', nameEn: 'Neptune', sign: 'Peixes', house: 12, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
     { name: 'Plutão', nameEn: 'Pluto', sign: 'Escorpião', house: 8, color: 'text-rose-500', bgColor: 'bg-rose-500/10' },
@@ -673,7 +673,7 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
             >
               <div className="text-center">
                 <div className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2 ${
-                  isSelected ? 'bg-primary text-white' : 'bg-muted text-foreground'
+                  isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
                 }`}>
                   <span className="font-bold">{house.house}</span>
                 </div>
@@ -688,7 +688,7 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
       {selectedHouse && (
         <div className="bg-card rounded-xl p-6 border border-border animate-fadeIn">
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white text-xl font-bold">
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-primary-foreground text-xl font-bold">
               {selectedHouse}
             </div>
             <div className="flex-1">
@@ -728,12 +728,12 @@ export const Guide2026Section = ({ userData, onBack }: Guide2026SectionProps) =>
   // Destaques astrológicos de 2026
   const highlights = language === 'pt' ? [
     { icon: '♃', title: 'Júpiter em Câncer', period: 'Jun 2025 - Jul 2026', desc: 'Expansão emocional e familiar', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { icon: '♄', title: 'Saturno em Áries', period: 'Mar 2025 - Mai 2026', desc: 'Novos começos estruturados', color: 'text-gray-500', bg: 'bg-gray-500/10' },
+    { icon: '♄', title: 'Saturno em Áries', period: 'Mar 2025 - Mai 2026', desc: 'Novos começos estruturados', color: 'text-muted-foreground', bg: 'bg-gray-500/10' },
     { icon: '♅', title: 'Urano em Gêmeos', period: 'Jul 2025 - 2033', desc: 'Revolução na comunicação', color: 'text-teal-500', bg: 'bg-teal-500/10' },
     { icon: '♆', title: 'Netuno em Áries', period: 'Mar 2025 - 2039', desc: 'Nova era espiritual', color: 'text-blue-500', bg: 'bg-blue-500/10' },
   ] : [
     { icon: '♃', title: 'Jupiter in Cancer', period: 'Jun 2025 - Jul 2026', desc: 'Emotional and family expansion', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { icon: '♄', title: 'Saturn in Aries', period: 'Mar 2025 - May 2026', desc: 'Structured new beginnings', color: 'text-gray-500', bg: 'bg-gray-500/10' },
+    { icon: '♄', title: 'Saturn in Aries', period: 'Mar 2025 - May 2026', desc: 'Structured new beginnings', color: 'text-muted-foreground', bg: 'bg-gray-500/10' },
     { icon: '♅', title: 'Uranus in Gemini', period: 'Jul 2025 - 2033', desc: 'Communication revolution', color: 'text-teal-500', bg: 'bg-teal-500/10' },
     { icon: '♆', title: 'Neptune in Aries', period: 'Mar 2025 - 2039', desc: 'New spiritual era', color: 'text-blue-500', bg: 'bg-blue-500/10' },
   ];
@@ -1209,7 +1209,7 @@ export const AspectsSection = ({ userData, onBack }: AspectsSectionProps) => {
                     className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
                     style={{ backgroundColor: item.bgColor }}
                   >
-                    <IconComponent size={28} color="#ffffff" />
+                    <IconComponent size={28} color="currentColor" />
           </div>
                   <div>
                     <p className="font-bold text-foreground">{item.type}</p>
@@ -1507,12 +1507,12 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
         <div className="bg-gradient-to-br from-gray-500/20 to-gray-500/5 rounded-xl p-6 border border-gray-500/30">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-full bg-gray-500/20 flex items-center justify-center">
-              <UIIcons.AlertCircle size={32} className="text-gray-500" />
+              <UIIcons.AlertCircle size={32} className="text-muted-foreground" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
               <div className="flex items-center gap-2">
-                {SaturnIcon && <SaturnIcon size={20} className="text-gray-500" />}
+                {SaturnIcon && <SaturnIcon size={20} className="text-muted-foreground" />}
                 <p className="font-bold text-xl text-foreground">{saturnSign}</p>
               </div>
               <p className="text-sm text-muted-foreground">{saturnDegree}°</p>
@@ -1645,7 +1645,7 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         if (!result.find(r => r.title.includes('Resumo') || r.title.includes('Summary'))) {
           currentSection = {
             title: language === 'pt' ? '📋 Resumo' : '📋 Summary',
-            icon: <UIIcons.BookOpen className="w-6 h-6 text-gray-500" />,
+            icon: <UIIcons.BookOpen className="w-6 h-6 text-muted-foreground" />,
             content: [trimmed],
             color: 'from-gray-500/20 to-gray-500/5 border-gray-500/30'
           };
@@ -1961,7 +1961,7 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
           <button
             onClick={fetchCompatibility}
             disabled={isLoading}
-            className="w-full py-3 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">

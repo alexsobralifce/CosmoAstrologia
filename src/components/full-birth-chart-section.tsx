@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UIIcons } from './ui-icons';
 import { zodiacSigns } from './zodiac-icons';
 import { BirthChartWheel } from './birth-chart-wheel';

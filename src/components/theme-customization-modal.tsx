@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { AstroButton } from './astro-button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';

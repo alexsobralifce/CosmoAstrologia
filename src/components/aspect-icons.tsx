@@ -1,3 +1,5 @@
+import React from 'react';
+
 export const AspectIcons = {
   Conjunction: ({ className = "", size = 24 }: { className?: string; size?: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>

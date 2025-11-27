@@ -1,4 +1,4 @@
-import { ButtonHTMLAttributes, forwardRef } from 'react';
+import React, { ButtonHTMLAttributes, forwardRef } from 'react';
 import { cn } from './ui/utils';
 
 interface AstroButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

@@ -11,7 +11,7 @@ from typing import List, Dict, Optional, Tuple
 import numpy as np
 
 try:
-    from sentence_transformers import SentenceTransformer
+    from fastembed import TextEmbedding
     import PyPDF2
     HAS_DEPENDENCIES = True
 except ImportError:
@@ -49,14 +49,20 @@ class RAGService:
         self.groq_client = None
         
         if HAS_DEPENDENCIES:
-            # Carregar modelo de embeddings (português)
+            # Carregar modelo de embeddings usando FastEmbed (multilíngue, inclui português)
+            # Usando BGE-small que é leve, rápido e tem boa qualidade multilíngue
             try:
-                self.model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+                # FastEmbed suporta modelos multilíngues do HuggingFace
+                # Usamos um modelo multilíngue que funciona bem com português
+                self.model = TextEmbedding(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+                print("[RAG] Modelo FastEmbed carregado: paraphrase-multilingual-MiniLM-L12-v2")
             except Exception as e:
-                print(f"[WARNING] Erro ao carregar modelo de embeddings: {e}")
-                print("Tentando modelo alternativo...")
+                print(f"[WARNING] Erro ao carregar modelo multilíngue: {e}")
+                print("Tentando modelo alternativo BGE-small...")
                 try:
-                    self.model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+                    # Fallback para modelo BGE (inglês mas funciona para português também)
+                    self.model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+                    print("[RAG] Modelo FastEmbed carregado: BAAI/bge-small-en-v1.5")
                 except Exception as e2:
                     print(f"[ERROR] Não foi possível carregar modelo: {e2}")
                     self.model = None
@@ -243,7 +249,7 @@ class RAGService:
     def process_all_pdfs(self) -> int:
         """Processa todos os PDFs e Markdowns na pasta docs e cria o índice."""
         if not HAS_DEPENDENCIES:
-            raise RuntimeError("Dependências RAG não disponíveis. Instale: pip install sentence-transformers PyPDF2")
+            raise RuntimeError("Dependências RAG não disponíveis. Instale: pip install fastembed PyPDF2")
         if not self.model:
             raise RuntimeError("Modelo de embeddings não carregado. Verifique as dependências.")
         
@@ -279,13 +285,16 @@ class RAGService:
             return 0
         
         print(f"[RAG] Total de chunks de todos os documentos: {len(all_chunks)}")
-        print(f"[RAG] Criando embeddings...")
+        print(f"[RAG] Criando embeddings com FastEmbed...")
         
         # Extrair textos para embeddings
         texts = [chunk['text'] for chunk in all_chunks]
         
-        # Criar embeddings
-        self.embeddings = self.model.encode(texts, show_progress_bar=True, convert_to_numpy=True)
+        # Criar embeddings usando FastEmbed
+        # FastEmbed retorna um generator, convertemos para lista de numpy arrays
+        embeddings_list = list(self.model.embed(texts))
+        # Converter lista de arrays em matriz numpy
+        self.embeddings = np.array(embeddings_list)
         
         # Armazenar documentos e metadados
         self.documents = texts
@@ -351,7 +360,7 @@ class RAGService:
             Lista de documentos relevantes com metadados e score de similaridade
         """
         if not HAS_DEPENDENCIES:
-            raise RuntimeError("Dependências RAG não disponíveis. Instale: pip install sentence-transformers PyPDF2")
+            raise RuntimeError("Dependências RAG não disponíveis. Instale: pip install fastembed PyPDF2")
         
         if not self.model:
             raise RuntimeError("Modelo de embeddings não carregado. Verifique as dependências.")
@@ -359,8 +368,9 @@ class RAGService:
         if self.embeddings is None or len(self.documents) == 0:
             raise ValueError("Índice não carregado. Execute load_index() ou process_all_pdfs() primeiro.")
         
-        # Criar embedding da query
-        query_embedding = self.model.encode([query], convert_to_numpy=True)
+        # Criar embedding da query usando FastEmbed
+        query_embeddings_list = list(self.model.embed([query]))
+        query_embedding = np.array(query_embeddings_list)
         
         # Calcular similaridade de cosseno
         similarities = cosine_similarity(query_embedding, self.embeddings)[0]

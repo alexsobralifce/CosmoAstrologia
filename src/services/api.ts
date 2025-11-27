@@ -80,128 +80,100 @@ class ApiService {
     options: RequestInit = {},
     timeout: number = 30000
   ): Promise<T> {
-    try {
-      const token = this.getAuthToken();
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      };
+    const token = this.getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
 
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      // Adicionar timeout configurável (padrão 30 segundos, 60 para interpretações)
-      const controller = new AbortController();
-      let timeoutTriggered = false;
-      const timeoutId = setTimeout(() => {
-        timeoutTriggered = true;
-        controller.abort();
-      }, timeout);
-
-      const url = `${API_BASE_URL}${endpoint}`;
-      console.log(`[API] Fazendo requisição para: ${url}`, options.method || 'GET');
-
-      try {
-        const response = await fetch(url, {
-          ...options,
-          headers,
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        console.log(`[API] Resposta recebida:`, response.status, response.statusText);
-
-        // Ler o corpo da resposta como texto primeiro (sempre seguro)
-        // Depois tentaremos parsear como JSON se necessário
-        let responseText: string = '';
-        
-        try {
-          // Clonar o response antes de ler para evitar problemas
-          // Mas na verdade, vamos ler apenas uma vez mesmo
-          responseText = await response.text();
-        } catch (readError) {
-          console.error('[API] Erro ao ler resposta:', readError);
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
-          }
-          throw new Error(`Erro ao ler resposta do servidor: ${response.status} ${response.statusText}`);
-        }
-
-        // Tentar parsear como JSON se houver conteúdo
-        let responseData: any = null;
-        if (responseText) {
-          try {
-            responseData = JSON.parse(responseText);
-          } catch {
-            // Não é JSON, manter como texto
-            responseData = null;
-          }
-        }
-
-        if (!response.ok) {
-          let errorMessage = `HTTP error! status: ${response.status}`;
-          
-          if (responseData && typeof responseData === 'object') {
-            // Se temos dados JSON, usar eles
-            errorMessage = responseData.detail || responseData.message || errorMessage;
-            console.error('[API] Erro da resposta:', responseData);
-          } else if (responseText) {
-            // Usar o texto como mensagem
-            errorMessage = responseText;
-            console.error('[API] Erro da resposta (texto):', responseText);
-          }
-          
-          throw new Error(errorMessage);
-        }
-
-        // Retornar os dados processados
-        if (responseData !== null) {
-          console.log('[API] Dados recebidos:', responseData);
-          return responseData as T;
-        }
-
-        // Se não há dados, retornar null
-        return null as T;
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-
-        if (fetchError instanceof Error) {
-          // Verificar se é erro de conexão primeiro (TypeError com "Failed to fetch" é o mais comum)
-          const isConnectionError =
-            (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) ||
-            fetchError.message.includes('NetworkError') ||
-            fetchError.message.includes('Network request failed') ||
-            fetchError.message.includes('ERR_CONNECTION_REFUSED') ||
-            fetchError.message.includes('ERR_NETWORK') ||
-            fetchError.message.includes('ERR_INTERNET_DISCONNECTED');
-
-          if (isConnectionError) {
-            console.error('[API] Erro de conexão:', fetchError);
-            throw new Error(`Não foi possível conectar ao backend em ${API_BASE_URL}.\n\nO backend não está rodando ou não está respondendo.\n\nPara iniciar:\n1. Abra um terminal\n2. Execute: cd backend && python3 run.py\n\nOu use: ./start-backend.sh`);
-          }
-
-          if (fetchError.name === 'AbortError' || fetchError.message.includes('aborted')) {
-            // Verificar se foi timeout ou cancelamento
-            if (timeoutTriggered) {
-              throw new Error(`Tempo de espera esgotado (${timeout / 1000}s). A requisição está demorando mais que o esperado. Tente novamente.`);
-            }
-            throw new Error('Requisição cancelada. Verifique se o servidor está rodando.');
-          }
-
-          console.error('[API] Erro na requisição:', fetchError);
-          throw fetchError;
-        }
-        throw new Error('Erro desconhecido na requisição');
-      }
-    } catch (error) {
-      console.error('[API] Erro geral:', error);
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Erro desconhecido na requisição');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    const url = `${API_BASE_URL}${endpoint}`;
+    console.log(`[API] Requisição: ${options.method || 'GET'} ${url}`);
+
+    let response: Response;
+    
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError instanceof Error) {
+        if (fetchError.name === 'AbortError') {
+          throw new Error(`Timeout: A requisição demorou mais de ${timeout / 1000}s.`);
+        }
+        
+        // Erro de conexão
+        if (fetchError.message.includes('Failed to fetch') || 
+            fetchError.message.includes('NetworkError') ||
+            fetchError.message.includes('Network request failed')) {
+          throw new Error(
+            `Não foi possível conectar ao backend em ${API_BASE_URL}.\n\n` +
+            `Verifique se o backend está rodando e acessível.`
+          );
+        }
+      }
+      
+      throw fetchError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    console.log(`[API] Resposta: ${response.status} ${response.statusText}`);
+
+    // Clonar a resposta para poder ler o body com segurança
+    const clonedResponse = response.clone();
+    
+    let data: T | null = null;
+    let errorText = '';
+
+    try {
+      // Tentar ler como JSON primeiro
+      data = await response.json();
+    } catch {
+      // Se não for JSON, ler como texto do clone
+      try {
+        errorText = await clonedResponse.text();
+      } catch {
+        errorText = '';
+      }
+    }
+
+    if (!response.ok) {
+      let errorMessage = `Erro ${response.status}`;
+      
+      if (data && typeof data === 'object') {
+        const errorData = data as Record<string, unknown>;
+        errorMessage = (errorData.detail as string) || (errorData.message as string) || errorMessage;
+      } else if (errorText) {
+        // Tentar parsear o texto como JSON
+        try {
+          const parsed = JSON.parse(errorText);
+          errorMessage = parsed.detail || parsed.message || errorText;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+      }
+      
+      console.error('[API] Erro:', errorMessage);
+      throw new Error(errorMessage);
+    }
+
+    if (data !== null) {
+      console.log('[API] Dados recebidos');
+      return data;
+    }
+
+    return null as T;
   }
 
   async registerUser(data: UserRegisterData): Promise<AuthToken> {

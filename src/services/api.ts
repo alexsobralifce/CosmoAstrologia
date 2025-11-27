@@ -113,39 +113,53 @@ class ApiService {
 
         console.log(`[API] Resposta recebida:`, response.status, response.statusText);
 
+        // Ler o corpo da resposta apenas uma vez
+        const contentType = response.headers.get('content-type');
+        const isJson = contentType && contentType.includes('application/json');
+        
+        let responseData: any = null;
+        let responseText: string = '';
+        
+        try {
+          if (isJson) {
+            responseData = await response.json();
+          } else {
+            responseText = await response.text();
+          }
+        } catch (readError) {
+          console.error('[API] Erro ao ler resposta:', readError);
+          throw new Error(`Erro ao ler resposta do servidor: ${response.status} ${response.statusText}`);
+        }
+
         if (!response.ok) {
           let errorMessage = `HTTP error! status: ${response.status}`;
-          try {
-            // Ler o texto primeiro para poder usar depois
-            const text = await response.text();
-            if (text) {
-              try {
-                // Tentar parsear como JSON
-                const error = JSON.parse(text);
-                errorMessage = error.detail || error.message || errorMessage;
-                console.error('[API] Erro da resposta:', error);
-              } catch {
-                // Se não for JSON, usar o texto como mensagem
-                errorMessage = text;
-                console.error('[API] Erro ao parsear resposta como JSON, usando texto:', text);
-              }
+          
+          if (responseData) {
+            // Se temos dados JSON, usar eles
+            errorMessage = responseData.detail || responseData.message || errorMessage;
+            console.error('[API] Erro da resposta:', responseData);
+          } else if (responseText) {
+            // Tentar parsear como JSON se for texto
+            try {
+              const parsed = JSON.parse(responseText);
+              errorMessage = parsed.detail || parsed.message || errorMessage;
+            } catch {
+              // Se não for JSON, usar o texto como mensagem
+              errorMessage = responseText;
             }
-          } catch (parseError) {
-            // Se não conseguir ler o texto, usar mensagem padrão
-            console.error('[API] Erro ao ler resposta:', parseError);
+            console.error('[API] Erro da resposta (texto):', responseText);
           }
+          
           throw new Error(errorMessage);
         }
 
-        // Verificar se há conteúdo para parsear
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
-          console.log('[API] Dados recebidos:', data);
-          return data;
+        // Retornar os dados processados
+        if (responseData !== null) {
+          console.log('[API] Dados recebidos:', responseData);
+          return responseData as T;
         }
 
-        // Se não for JSON, retornar texto vazio ou null
+        // Se não há dados, retornar null
         return null as T;
       } catch (fetchError) {
         clearTimeout(timeoutId);

@@ -1,0 +1,253 @@
+/* 
+ * ============================================================================
+ * MODAL GOOGLE - CSS PURO (FLEXBOX)
+ * ============================================================================
+ * Estilos para o modal de login com Google
+ * Tamanho otimizado conforme UI/UX
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * OVERLAY DO MODAL
+ * ============================================================================
+ */
+.google-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* ============================================================================
+ * CONTEÚDO DO MODAL
+ * ============================================================================
+ * Largura máxima otimizada para formulários
+ * Mobile: 90% (com margem)
+ * Tablet: 400px
+ * Desktop: 420px (tamanho ideal para formulários)
+ * ============================================================================
+ */
+.google-modal-content {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem; /* 16px */
+  padding: 1.5rem; /* 24px */
+  width: 90%;
+  max-width: 400px; /* Tamanho ideal para formulários */
+  margin: 1rem;
+  box-shadow: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: fadeIn 0.3s ease-out;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .google-modal-content {
+    max-width: 420px; /* Desktop: ligeiramente maior */
+    padding: 2rem; /* 32px */
+  }
+}
+
+/* ============================================================================
+ * HEADER DO MODAL
+ * ============================================================================
+ */
+.google-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem; /* 12px */
+  margin-bottom: 1.5rem; /* 24px */
+}
+
+.google-modal-google-icon {
+  width: 2.5rem; /* 40px */
+  height: 2.5rem; /* 40px */
+  background-color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.google-modal-title {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================================
+ * DESCRIÇÃO
+ * ============================================================================
+ */
+.google-modal-description {
+  font-size: 0.875rem; /* 14px */
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  margin-bottom: 1.5rem; /* 24px */
+  line-height: 1.5;
+  font-family: var(--font-sans);
+}
+
+/* ============================================================================
+ * FORMULÁRIO
+ * ============================================================================
+ */
+.google-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* 16px */
+}
+
+.google-modal-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* 8px */
+}
+
+.google-modal-label {
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+}
+
+.google-modal-input {
+  width: 100%;
+  padding: 0.75rem 1rem; /* 12px 16px */
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem; /* 8px */
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+  font-size: 0.875rem; /* 14px */
+  font-family: var(--font-sans);
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.google-modal-input:focus {
+  outline: none;
+  border-color: hsl(var(--accent));
+  box-shadow: 0 0 0 3px hsl(var(--accent) / 0.1);
+}
+
+.google-modal-input::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.6;
+}
+
+/* ============================================================================
+ * BOTÕES
+ * ============================================================================
+ */
+.google-modal-buttons {
+  display: flex;
+  gap: 0.75rem; /* 12px */
+  margin-top: 0.5rem; /* 8px */
+}
+
+.google-modal-button {
+  flex: 1;
+  padding: 0.75rem 1rem; /* 12px 16px */
+  border-radius: 0.5rem; /* 8px */
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px; /* Acessibilidade */
+}
+
+.google-modal-button-cancel {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.google-modal-button-cancel:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.google-modal-button-continue {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.google-modal-button-continue:hover:not(:disabled) {
+  background-color: hsl(var(--accent) / 0.9);
+  transform: scale(1.02);
+}
+
+.google-modal-button-continue:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+ * NOTA DE SIMULAÇÃO
+ * ============================================================================
+ */
+.google-modal-note {
+  margin-top: 1rem; /* 16px */
+  padding-top: 1rem; /* 16px */
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* 8px */
+  font-size: 0.75rem; /* 12px */
+  color: hsl(var(--muted-foreground));
+  font-family: var(--font-sans);
+}
+
+/* ============================================================================
+ * ANIMAÇÃO
+ * ============================================================================
+ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ============================================================================
+ * RESPONSIVIDADE
+ * ============================================================================
+ */
+@media (max-width: 639px) {
+  .google-modal-content {
+    width: calc(100% - 2rem); /* Margem de 1rem em cada lado */
+    max-width: 100%;
+    padding: 1.25rem; /* 20px */
+  }
+  
+  .google-modal-title {
+    font-size: 1.125rem; /* 18px */
+  }
+  
+  .google-modal-buttons {
+    flex-direction: column;
+  }
+  
+  .google-modal-button {
+    width: 100%;
+  }
+}
+

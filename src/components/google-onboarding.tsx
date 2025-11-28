@@ -6,6 +6,7 @@ import { UIIcons } from './ui-icons';
 import { LocationAutocomplete, LocationSelection } from './location-autocomplete';
 import { toast } from 'sonner';
 import { useLanguage } from '../i18n';
+import '../styles/google-onboarding.css';
 
 interface GoogleOnboardingProps {
   email: string;
@@ -41,8 +42,8 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
     welcome: language === 'pt' ? 'Bem-vindo ao Cosmos Astral!' : 'Welcome to Cosmos Astral!',
     googleConnected: language === 'pt' ? 'Sua conta Google foi conectada com sucesso.' : 'Your Google account has been connected.',
     completeProfile: language === 'pt' ? 'Complete seu perfil para gerar seu mapa astral personalizado.' : 'Complete your profile to generate your personalized birth chart.',
-    step1Title: language === 'pt' ? 'Confirme seu nome' : 'Confirm your name',
-    step1Desc: language === 'pt' ? 'Este nome aparecerá no seu mapa astral.' : 'This name will appear on your birth chart.',
+    step1Title: language === 'pt' ? 'Confirme seu nome (opcional)' : 'Confirm your name (optional)',
+    step1Desc: language === 'pt' ? 'Este nome aparecerá no seu mapa astral. Se não preencher, usaremos seu email.' : 'This name will appear on your birth chart. If not filled, we will use your email.',
     step2Title: language === 'pt' ? 'Qual sua data de nascimento?' : 'What is your birth date?',
     step2Desc: language === 'pt' ? 'Digite no formato dia/mês/ano.' : 'Enter in day/month/year format.',
     step3Title: language === 'pt' ? 'E a hora em que você nasceu?' : 'What time were you born?',
@@ -104,7 +105,7 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
   const isStepValid = () => {
     switch (step) {
       case 1:
-        return name.trim().length > 0;
+        return true; // Nome é opcional agora
       case 2:
         return birthDate !== undefined;
       case 3:
@@ -130,15 +131,18 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
 
   const handleComplete = async () => {
     if (!birthDate || !birthCoordinates) {
-      toast.error(language === 'pt' ? 'Preencha todos os campos' : 'Fill in all fields');
+      toast.error(language === 'pt' ? 'Preencha todos os campos obrigatórios' : 'Fill in all required fields');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Nome é opcional - usar email como fallback se vazio
+      const finalName = name.trim() || email.split('@')[0];
+      
       await onComplete({
-        name,
+        name: finalName,
         birthDate,
         birthTime,
         birthPlace,
@@ -151,12 +155,12 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-background to-[#1a1f4a] dark:to-[#1a1f4a]">
-      <div className="w-full max-w-2xl">
+    <div className="google-onboarding-container">
+      <div className="google-onboarding-card">
         {/* Header com informação do Google */}
-        <div className="mb-6 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
+        <div className="google-onboarding-header">
+          <div className="google-onboarding-google-info">
+            <div className="google-onboarding-google-icon">
               <svg viewBox="0 0 24 24" className="w-6 h-6">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -166,36 +170,36 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
             </div>
             <UIIcons.CheckCircle className="text-green-500" size={20} />
           </div>
-          <p className="text-sm text-muted-foreground">{email}</p>
+          <p className="google-onboarding-email">{email}</p>
         </div>
 
         {/* Progress indicator */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
+        <div className="google-onboarding-progress">
+          <div className="google-onboarding-progress-bars">
             {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
-                className={`h-2 flex-1 mx-1 rounded-full transition-all duration-300 ${
-                  s <= step ? 'bg-accent' : 'bg-card'
+                className={`google-onboarding-progress-bar ${
+                  s <= step ? 'active' : 'inactive'
                 }`}
               />
             ))}
           </div>
-          <p className="text-center text-secondary">{texts.stepOf} {step} {texts.of} 4</p>
+          <p className="google-onboarding-progress-text">{texts.stepOf} {step} {texts.of} 4</p>
         </div>
 
-        <AstroCard className="space-y-8">
+        <AstroCard className="google-onboarding-content">
           {/* Step 1: Name */}
           {step === 1 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="space-y-2">
-                <h1 className="text-accent text-2xl font-serif">{texts.welcome}</h1>
-                <p className="text-secondary">{texts.googleConnected}</p>
-                <p className="text-secondary">{texts.completeProfile}</p>
+            <div className="google-onboarding-fade-in">
+              <div>
+                <h1 className="google-onboarding-title">{texts.welcome}</h1>
+                <p className="google-onboarding-subtitle">{texts.googleConnected}</p>
+                <p className="google-onboarding-subtitle">{texts.completeProfile}</p>
               </div>
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-foreground">{texts.step1Title}</h2>
-                <p className="text-sm text-secondary">{texts.step1Desc}</p>
+              <div>
+                <h2 className="google-onboarding-step-title">{texts.step1Title}</h2>
+                <p className="google-onboarding-step-desc">{texts.step1Desc}</p>
                 <AstroInput
                   label={texts.fullName}
                   placeholder={language === 'pt' ? 'Digite seu nome completo' : 'Enter your full name'}
@@ -209,10 +213,10 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
 
           {/* Step 2: Birth Date */}
           {step === 2 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="space-y-2">
-                <h1 className="text-accent text-2xl font-serif">{texts.step2Title}</h1>
-                <p className="text-secondary">{texts.step2Desc}</p>
+            <div className="google-onboarding-fade-in">
+              <div>
+                <h1 className="google-onboarding-title">{texts.step2Title}</h1>
+                <p className="google-onboarding-subtitle">{texts.step2Desc}</p>
               </div>
               <div className="space-y-2">
                 <AstroInput
@@ -232,10 +236,10 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
 
           {/* Step 3: Birth Time */}
           {step === 3 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="space-y-2">
-                <h1 className="text-accent text-2xl font-serif">{texts.step3Title}</h1>
-                <p className="text-secondary">{texts.step3Desc}</p>
+            <div className="google-onboarding-fade-in">
+              <div>
+                <h1 className="google-onboarding-title">{texts.step3Title}</h1>
+                <p className="google-onboarding-subtitle">{texts.step3Desc}</p>
               </div>
               <AstroInput
                 label={texts.birthTimeLabel}
@@ -262,10 +266,10 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
 
           {/* Step 4: Birth Place */}
           {step === 4 && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className="space-y-2">
-                <h1 className="text-accent text-2xl font-serif">{texts.step4Title}</h1>
-                <p className="text-secondary">{texts.step4Desc}</p>
+            <div className="google-onboarding-fade-in">
+              <div>
+                <h1 className="google-onboarding-title">{texts.step4Title}</h1>
+                <p className="google-onboarding-subtitle">{texts.step4Desc}</p>
               </div>
               <div className="space-y-4">
                 <LocationAutocomplete
@@ -300,7 +304,7 @@ export const GoogleOnboarding = ({ email, name: initialName, onComplete, onBack 
           )}
 
           {/* Navigation Buttons */}
-          <div className="flex gap-4 pt-4">
+          <div className="google-onboarding-navigation">
             {step > 1 ? (
               <AstroButton variant="secondary" onClick={handleBack} className="flex-1">
                 <UIIcons.ArrowLeft className="mr-2" size={16} />

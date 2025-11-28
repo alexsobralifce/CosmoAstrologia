@@ -202,27 +202,91 @@ SIGN_TRAITS: Dict[str, Dict[str, str]] = {
 
 
 HOUSE_THEMES: Dict[int, Dict[str, str]] = {
-    1: {"focus": "identidade, estilo pessoal e iniciativa", "question": "Como eu me apresento e inicio novos ciclos?"},
-    2: {"focus": "valores, finanças e autoestima", "question": "Do que preciso para sentir segurança material?"},
-    3: {"focus": "comunicação, estudos e laços fraternos", "question": "Como troco ideias e circulo pelas minhas redes próximas?"},
-    4: {"focus": "família, raízes e intimidade emocional", "question": "Onde ancoro minha vida interior?"},
-    5: {"focus": "criatividade, romance e expressão lúdica", "question": "De que modo celebro meus talentos e prazeres?"},
-    6: {"focus": "rotina, saúde e serviço", "question": "Como organizo o cotidiano e cuido do meu corpo?"},
-    7: {"focus": "parcerias, contratos e espelhamentos", "question": "Quais qualidades busco nos relacionamentos?"},
-    8: {"focus": "transformação, recursos compartilhados e intimidade profunda", "question": "Como lido com entregas e renascimentos?"},
-    9: {"focus": "propósito, estudos superiores e viagens", "question": "Que crenças expandem minha visão de mundo?"},
-    10: {"focus": "carreira, vocação e reputação", "question": "Como quero ser reconhecido no mundo?"},
-    11: {"focus": "amizades, coletivos e futuro", "question": "Quais causas desejo apoiar com minha rede?"},
-    12: {"focus": "inconsciente, espiritualidade e retiros", "question": "Do que preciso para recarregar e escutar minha intuição?"},
+    1: {
+        "focus": "identidade, estilo pessoal e iniciativa", 
+        "question": "Como eu me apresento e inicio novos ciclos?",
+        "category": "angular",
+        "description": "Casa Angular - Ação e pilares da vida. Identidade, corpo físico, primeira impressão, máscara social (Ascendente)."
+    },
+    2: {
+        "focus": "valores, finanças e autoestima", 
+        "question": "Do que preciso para sentir segurança material?",
+        "category": "sucedente",
+        "description": "Casa Sucedente - Segurança e recursos. Valores pessoais, recursos materiais, talentos naturais, possessões."
+    },
+    3: {
+        "focus": "comunicação, estudos e laços fraternos", 
+        "question": "Como troco ideias e circulo pelas minhas redes próximas?",
+        "category": "cadente",
+        "description": "Casa Cadente - Aprendizado e transição. Comunicação, estudos básicos, irmãos, vizinhança, deslocamentos curtos."
+    },
+    4: {
+        "focus": "família, raízes e intimidade emocional", 
+        "question": "Onde ancoro minha vida interior?",
+        "category": "angular",
+        "description": "Casa Angular - Ação e pilares da vida. Família, raízes, lar, vida privada, fundamentos emocionais (IC - Fundo do Céu)."
+    },
+    5: {
+        "focus": "criatividade, romance e expressão lúdica", 
+        "question": "De que modo celebro meus talentos e prazeres?",
+        "category": "sucedente",
+        "description": "Casa Sucedente - Segurança e recursos. Criatividade, romance, filhos, expressão lúdica, jogos, especulação."
+    },
+    6: {
+        "focus": "rotina, saúde e serviço", 
+        "question": "Como organizo o cotidiano e cuido do meu corpo?",
+        "category": "cadente",
+        "description": "Casa Cadente - Aprendizado e transição. Rotina, saúde, trabalho diário, serviço, aperfeiçoamento, animais de estimação."
+    },
+    7: {
+        "focus": "parcerias, contratos e espelhamentos", 
+        "question": "Quais qualidades busco nos relacionamentos?",
+        "category": "angular",
+        "description": "Casa Angular - Ação e pilares da vida. Parcerias, relacionamentos íntimos, casamento, contratos, espelhamentos (Descendente)."
+    },
+    8: {
+        "focus": "transformação, recursos compartilhados e intimidade profunda", 
+        "question": "Como lido com entregas e renascimentos?",
+        "category": "sucedente",
+        "description": "Casa Sucedente - Segurança e recursos. Transformação, recursos compartilhados, intimidade profunda, regeneração, heranças."
+    },
+    9: {
+        "focus": "propósito, estudos superiores e viagens", 
+        "question": "Que crenças expandem minha visão de mundo?",
+        "category": "cadente",
+        "description": "Casa Cadente - Aprendizado e transição. Propósito, estudos superiores, filosofia, viagens longas, crenças, expansão mental."
+    },
+    10: {
+        "focus": "carreira, vocação e reputação", 
+        "question": "Como quero ser reconhecido no mundo?",
+        "category": "angular",
+        "description": "Casa Angular - Ação e pilares da vida. Carreira, vocação, reputação pública, objetivos de vida, autoridade (MC - Meio do Céu)."
+    },
+    11: {
+        "focus": "amizades, coletivos e futuro", 
+        "question": "Quais causas desejo apoiar com minha rede?",
+        "category": "sucedente",
+        "description": "Casa Sucedente - Segurança e recursos. Amizades, coletivos, grupos, ideais, futuro, causas sociais, esperanças."
+    },
+    12: {
+        "focus": "inconsciente, espiritualidade e retiros", 
+        "question": "Do que preciso para recarregar e escutar minha intuição?",
+        "category": "cadente",
+        "description": "Casa Cadente - Aprendizado e transição. Inconsciente, espiritualidade, retiros, karma, limitações, transcendência, segredos."
+    },
 }
 
 
 ASPECT_MEANINGS: Dict[str, str] = {
-    "conjunção": "Integra energias semelhantes; pode intensificar tanto talentos quanto desafios por falta de distância crítica.",
-    "oposição": "Pede conciliação entre polos; projeta qualidades no outro para que ocorra equilíbrio consciente.",
-    "quadratura": "Gera tensão criativa; obriga a agir e reorganizar prioridades para evitar estagnação.",
-    "trígono": "Facilita o fluxo; talentos naturais podem ser potencializados com consciência e gratidão.",
-    "sextil": "Oferta oportunidades sutis; exige movimento intencional para aproveitar as portas abertas.",
+    "conjunção": "Integra energias semelhantes; pode intensificar tanto talentos quanto desafios por falta de distância crítica. Fusão intensa de energias que precisa ser expressa de forma integrada.",
+    "oposição": "Pede conciliação entre polos; projeta qualidades no outro para que ocorra equilíbrio consciente. Polaridade e necessidade de equilíbrio entre extremos.",
+    "quadratura": "Gera tensão criativa; obriga a agir e reorganizar prioridades para evitar estagnação. O aspecto mais desafiador, mas também o mais transformador. Conflitos internos que exigem ação e resolução.",
+    "trígono": "Facilita o fluxo; talentos naturais podem ser potencializados com consciência e gratidão. O aspecto mais harmonioso, representando talentos naturais e facilidades.",
+    "sextil": "Oferta oportunidades sutis; exige movimento intencional para aproveitar as portas abertas. Oportunidades e cooperação, potencial que pode ser desenvolvido com esforço consciente.",
+    "quincúncio": "Ajuste e adaptação. Planetas em signos incompatíveis, exigindo ajustes práticos e mudanças de perspectiva. Aspecto de saúde e bem-estar, indicando áreas que precisam de atenção cuidadosa.",
+    "semissextil": "Conexão leve e sutil. Representa pequenas oportunidades e conexões que podem ser desenvolvidas com atenção consciente.",
+    "quintil": "Talento criativo. Conexão que facilita expressão artística e criatividade. Revela talentos artísticos, criatividade e expressão única.",
+    "sesqui-quadratura": "Tensão residual. Representa ajustes finos necessários após grandes transformações. Energia de refinamento e polimento.",
 }
 
 
@@ -304,8 +368,23 @@ class LocalKnowledgeBase:
         prefix = "Esta casa trata de"
         if planet:
             prefix = f"{planet} nesta casa evidencia"
+        
+        category_info = ""
+        if 'category' in data:
+            category_names = {
+                'angular': 'Casa Angular (Ação e Pilares da Vida)',
+                'sucedente': 'Casa Sucedente (Segurança e Recursos)',
+                'cadente': 'Casa Cadente (Aprendizado e Transição)'
+            }
+            category_info = f" {category_names.get(data['category'], '')}."
+        
+        description = data.get('description', '')
+        if description:
+            description = f" {description}"
+        
         return (
-            f"{prefix} {data['focus']}. Pergunta-chave: {data['question']} "
+            f"{prefix} {data['focus']}.{category_info}{description} "
+            f"Pergunta-chave: {data['question']} "
             f"{'A energia de ' + sign + ' colore os objetivos' if sign else ''}".strip()
         )
 
@@ -317,7 +396,32 @@ class LocalKnowledgeBase:
         if not meaning:
             return None
         subject = planet or "os planetas envolvidos"
-        return f"O aspecto de {aspect.lower()} envolvendo {subject} lembra que {meaning}"
+        
+        # Adicionar informações sobre tipo de aspecto (harmônico, tenso, neutro)
+        aspect_types = {
+            'conjunção': 'neutro',
+            'oposição': 'tenso',
+            'quadratura': 'tenso',
+            'trígono': 'harmônico',
+            'sextil': 'harmônico',
+            'quincúncio': 'ajuste',
+            'semissextil': 'neutro',
+            'quintil': 'criativo',
+            'sesqui-quadratura': 'tenso',
+        }
+        
+        aspect_type = aspect_types.get(aspect_key, '')
+        type_info = ""
+        if aspect_type == 'harmônico':
+            type_info = " Este é um aspecto harmônico que facilita o fluxo natural de energia."
+        elif aspect_type == 'tenso':
+            type_info = " Este é um aspecto tenso que exige ação e crescimento através de desafios."
+        elif aspect_type == 'criativo':
+            type_info = " Este é um aspecto criativo que revela talentos artísticos e expressão única."
+        elif aspect_type == 'ajuste':
+            type_info = " Este aspecto exige ajustes práticos e adaptações."
+        
+        return f"O aspecto de {aspect.lower()} envolvendo {subject} lembra que {meaning}.{type_info}"
 
     def _get_element_interpretation(self, query: str) -> Optional[str]:
         """Gera interpretação específica sobre elementos e modalidades."""

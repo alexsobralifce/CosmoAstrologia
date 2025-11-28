@@ -1,0 +1,347 @@
+/* 
+ * ============================================================================
+ * COSMOS ASTRAL - SISTEMA DE TEMA CONSOLIDADO
+ * ============================================================================
+ * 
+ * Este arquivo contém TODAS as variáveis CSS do sistema de design.
+ * Baseado no design Figma: https://www.figma.com/design/aI95Nh89jEv6YtxGq1ksnj
+ * 
+ * ESTRUTURA:
+ * 1. Fontes e Tipografia
+ * 2. Variáveis Base (valores HSL para Tailwind)
+ * 3. Tema Escuro (Dark Mode - padrão)
+ * 4. Tema Claro (Light Mode)
+ * 5. Utilitários e Animações
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * 1. FONTES E TIPOGRAFIA
+ * ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Fontes - Figma usa Tinos para títulos */
+  --font-serif: 'Tinos', serif;
+  --font-sans: 'Inter', sans-serif;
+  --font-size: 16px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  
+  /* Border Radius */
+  --radius: 0.5rem; /* 8px */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ============================================================================
+ * 2. VARIÁVEIS BASE (HSL para Tailwind)
+ * ============================================================================ */
+:root {
+  /* Essas variáveis são usadas pelo Tailwind via tailwind.config.js */
+  /* Formato HSL permite transparência fácil com /opacity */
+}
+
+/* ============================================================================
+ * 3. TEMA ESCURO (DARK MODE) - Padrão
+ * ============================================================================ */
+:root,
+.dark {
+  /* Cores Base - Figma Design */
+  --background: 260 30% 8%;           /* #120E1B - Roxo Profundo */
+  --foreground: 260 10% 95%;           /* #F2F1F4 - Off-white */
+  
+  /* Cards & Containers */
+  --card: 260 25% 12%;                 /* #1C1726 - Card background */
+  --card-foreground: 260 10% 95%;      /* #F2F1F4 - Texto em cards */
+  --popover: 260 25% 12%;              /* #1C1726 - Popover/tooltips */
+  --popover-foreground: 260 10% 95%;   /* #F2F1F4 - Texto em popover */
+  
+  /* Botões & Ações */
+  --primary: 265 80% 65%;              /* #C27AFF - Violeta Vibrante */
+  --primary-foreground: 0 0% 100%;      /* #FFFFFF - Branco */
+  --secondary: 260 20% 25%;            /* Cinza escuro secundário */
+  --secondary-foreground: 260 10% 95%; /* Off-white */
+  --accent: 25 85% 60%;                 /* #FF8904 - Laranja accent */
+  --accent-foreground: 0 0% 100%;      /* #FFFFFF - Branco */
+  
+  /* Estados */
+  --muted: 260 20% 20%;                 /* Backgrounds sutis */
+  --muted-foreground: 260 10% 60%;      /* Texto muted */
+  --destructive: 0 70% 60%;            /* #FB2C36 - Vermelho */
+  --destructive-foreground: 0 0% 100%;  /* #FFFFFF - Branco */
+  
+  /* Bordas & Inputs */
+  --border: 260 20% 25%;                /* #30293D - Bordas */
+  --input: 260 25% 12%;                 /* Input background */
+  --input-background: 260 25% 12%;      /* Fundo de inputs */
+  --input-border: 260 20% 30%;          /* Borda input normal */
+  --input-border-active: 265 80% 65%;   /* #C27AFF - Borda input foco */
+  --ring: 265 80% 65%;                  /* #C27AFF - Indicador de foco */
+  --switch-background: 260 20% 20%;     /* Background switches */
+  
+  /* Sidebar/Navegação */
+  --sidebar: 260 30% 10%;               /* #1C1726 - Fundo sidebar */
+  --sidebar-foreground: 260 10% 95%;    /* #F2F1F4 - Texto sidebar */
+  --sidebar-primary: 220 30% 20%;       /* #2D324D - Destaque sidebar */
+  --sidebar-primary-foreground: 260 10% 95%; /* Texto primários */
+  --sidebar-accent: 25 85% 60%;         /* #FF8904 - Laranja hover */
+  --sidebar-accent-foreground: 260 30% 8%; /* Texto hover */
+  --sidebar-border: 260 20% 20%;        /* Bordas sidebar */
+  --sidebar-ring: 265 80% 65%;          /* #C27AFF - Foco sidebar */
+  
+  /* Charts */
+  --chart-1: 41 70% 50%;
+  --chart-2: 185 60% 40%;
+  --chart-3: 227 50% 30%;
+  --chart-4: 84 60% 50%;
+  --chart-5: 70 60% 50%;
+}
+
+/* ============================================================================
+ * 4. TEMA CLARO (LIGHT MODE) - FIGMA DESIGN
+ * ============================================================================ */
+.light {
+  /* Cores Base - Extraídas do Figma */
+  --background: 36 20% 98%;             /* #FBFAF9 - Creme Suave */
+  --foreground: 260 45% 10%;            /* #160F24 - Roxo Escuro */
+  
+  /* Cards & Containers */
+  --card: 0 0% 100%;                     /* #FFFFFF - Branco Puro */
+  --card-foreground: 260 45% 10%;       /* #160F24 - Texto em cards */
+  --popover: 0 0% 100%;                  /* #FFFFFF - Popover/tooltips */
+  --popover-foreground: 260 45% 10%;    /* #160F24 - Texto em popover */
+  
+  /* Botões & Ações */
+  --primary: 25 100% 51%;                /* #FF8904 - Laranja Vibrante (Primary no Figma) */
+  --primary-foreground: 0 0% 100%;      /* #FFFFFF - Branco */
+  --secondary: 260 15% 88%;             /* Cinza claro secundário */
+  --secondary-foreground: 260 45% 10%;  /* Texto em secundários */
+  --accent: 25 100% 51%;                 /* #FF8904 - Laranja Vibrante */
+  --accent-foreground: 0 0% 100%;       /* #FFFFFF - Branco */
+  
+  /* Estados */
+  --muted: 260 15% 95%;                  /* Backgrounds sutis */
+  --muted-foreground: 260 8% 43%;       /* #635C70 - Cinza-roxo muted */
+  --destructive: 0 85% 58%;              /* #FB2C36 - Vermelho */
+  --destructive-foreground: 0 0% 100%;  /* #FFFFFF - Branco */
+  
+  /* Bordas & Inputs */
+  --border: 260 10% 81%;                 /* #CAC7D1 - Bordas sutis */
+  --input: 260 15% 92%;                  /* rgba(202, 199, 209, 0.3) - Input background */
+  --input-background: 260 15% 92%;       /* Fundo de inputs cinza translúcido */
+  --input-border: 260 10% 81%;           /* #CAC7D1 - Borda input normal */
+  --input-border-active: 25 100% 51%;    /* #FF8904 - Borda input foco */
+  --ring: 25 100% 51%;                   /* #FF8904 - Indicador de foco */
+  --switch-background: 260 15% 90%;      /* Background switches */
+  
+  /* Sidebar/Navegação */
+  --sidebar: 0 0% 100%;                  /* #FFFFFF - Fundo sidebar branco */
+  --sidebar-foreground: 260 45% 10%;    /* #160F24 - Texto sidebar */
+  --sidebar-primary: 25 100% 51%;       /* #FF8904 - Elementos primários */
+  --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF - Texto primários */
+  --sidebar-accent: 25 100% 96%;         /* Fundo laranja claro hover */
+  --sidebar-accent-foreground: 25 100% 35%; /* Texto laranja escuro */
+  --sidebar-border: 260 10% 81%;          /* #CAC7D1 - Bordas sidebar */
+  --sidebar-ring: 25 100% 51%;            /* #FF8904 - Foco sidebar */
+  
+  /* Charts */
+  --chart-1: 0 85% 58%;                  /* Vermelho */
+  --chart-2: 25 100% 51%;                /* Laranja */
+  --chart-3: 160 100% 42%;               /* Verde */
+  --chart-4: 265 80% 65%;                /* Roxo */
+  --chart-5: 220 30% 30%;                /* Azul escuro */
+}
+
+/* ============================================================================
+ * 5. UTILITÁRIOS E ANIMAÇÕES
+ * ============================================================================ */
+
+/* Aplicar fonte base */
+html {
+  font-size: var(--font-size);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+}
+
+/* ============================================================================
+ * ANIMAÇÕES
+ * ============================================================================ */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    transform: translateY(-25%);
+  }
+  50% {
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transform: none;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0) 
+                scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1)) 
+                rotate(var(--tw-enter-rotate, 0));
+  }
+}
+
+@keyframes exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) 
+                scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) 
+                rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/* ============================================================================
+ * CLASSES UTILITÁRIAS CUSTOMIZADAS
+ * ============================================================================ */
+
+/* Animações */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* Search Bar Styles */
+.search-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: 48px;
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  width: 100%;
+}
+
+.search-bar-header:focus-within {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+.search-bar-header input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: hsl(var(--foreground));
+}
+
+.search-bar-header input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.search-bar-small {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  height: 40px;
+  background-color: hsl(var(--muted));
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+  width: 100%;
+}
+
+.search-bar-small:focus-within {
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+.search-bar-small input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: hsl(var(--foreground));
+}
+
+.search-bar-small input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+

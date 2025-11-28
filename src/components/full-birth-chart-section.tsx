@@ -40,61 +40,59 @@ const ChartSection = ({
   if (!section && !isLoading) return null;
   
   return (
-    <div className={`bg-card rounded-2xl border border-border overflow-hidden transition-all duration-300 ${isExpanded ? 'shadow-lg' : 'shadow'}`}>
+    <div className={`birth-chart-section-card ${isExpanded ? 'expanded' : ''}`}>
       <button
         onClick={onToggle}
-        className="w-full p-6 flex items-center justify-between hover:bg-muted/50 transition-colors"
+        className="birth-chart-section-button"
       >
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-xl ${accentColor} flex items-center justify-center`}>
+        <div className="birth-chart-section-header">
+          <div className={`birth-chart-section-icon-container ${accentColor}`}>
             <Icon size={24} className="text-primary-foreground" />
           </div>
-          <div className="text-left">
-            <h3 className="font-serif text-xl font-bold text-foreground">
+          <div className="birth-chart-section-title-container">
+            <h3 className="birth-chart-section-title">
               {section?.title || (language === 'pt' ? 'Carregando...' : 'Loading...')}
             </h3>
             {!isExpanded && section?.content && (
-              <p className="text-sm text-muted-foreground line-clamp-1 mt-1">
+              <p className="birth-chart-section-preview">
                 {section.content.substring(0, 100)}...
               </p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="birth-chart-section-actions">
           {isLoading && (
-            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="birth-chart-section-spinner"></div>
           )}
           <UIIcons.ChevronDown 
             size={24} 
-            className={`text-muted-foreground transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
+            className="birth-chart-section-chevron" 
           />
         </div>
       </button>
       
       {isExpanded && (
-        <div className="px-6 pb-6 border-t border-border">
-          <div className="pt-6 prose prose-lg dark:prose-invert max-w-none">
-            {isLoading ? (
-              <div className="space-y-4">
-                <div className="h-4 bg-muted rounded animate-pulse" />
-                <div className="h-4 bg-muted rounded animate-pulse w-5/6" />
-                <div className="h-4 bg-muted rounded animate-pulse w-4/6" />
-                <div className="h-4 bg-muted rounded animate-pulse" />
-                <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
-              </div>
-            ) : (
-              <div className="text-foreground leading-relaxed whitespace-pre-wrap">
-                {section?.content.split('\n\n').map((paragraph, idx) => (
-                  <p key={idx} className="mb-4 text-base">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="birth-chart-section-content">
+          {isLoading ? (
+            <div className="birth-chart-section-loading">
+              <div className="birth-chart-section-loading-line"></div>
+              <div className="birth-chart-section-loading-line w-5-6"></div>
+              <div className="birth-chart-section-loading-line w-4-6"></div>
+              <div className="birth-chart-section-loading-line"></div>
+              <div className="birth-chart-section-loading-line w-3-4"></div>
+            </div>
+          ) : (
+            <div className="birth-chart-section-text">
+              {section?.content.split('\n\n').map((paragraph, idx) => (
+                <p key={idx} className="birth-chart-section-paragraph">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          )}
           
           {section?.generated_by === 'groq' && (
-            <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="birth-chart-section-footer">
               <UIIcons.Sparkles size={14} />
               <span>{language === 'pt' ? 'Interpretação gerada por IA com base em fontes astrológicas' : 'AI-generated interpretation based on astrological sources'}</span>
             </div>
@@ -232,9 +230,13 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
     }
   };
 
-  // Gerar primeira seção ao montar
+  // Gerar primeira seção ao montar (com dependências corretas)
   useEffect(() => {
-    generateSection('triad');
+    // Só gerar se ainda não tiver conteúdo
+    if (!sections.triad && !loadingStates.triad) {
+      generateSection('triad');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Configuração das seções
@@ -301,55 +303,48 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
   const AscIcon = zodiacSigns.find(z => z.name === ascendant)?.icon || zodiacSigns[0].icon;
 
   return (
-    <div className="space-y-8">
+    <div className="dashboard-section-container birth-chart-container">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">
+      <div className="birth-chart-header">
+        <div className="birth-chart-header-content">
+          <h2 className="birth-chart-title">
             {language === 'pt' ? 'Meu Mapa Astral Completo' : 'My Complete Birth Chart'}
           </h2>
-          <p className="text-muted-foreground mt-2 text-lg">
+          <p className="birth-chart-subtitle">
             {language === 'pt' 
               ? 'Uma análise profunda e personalizada da sua carta natal'
               : 'A deep and personalized analysis of your birth chart'}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="birth-chart-header-actions">
           <button
             onClick={generateAllSections}
             disabled={isGeneratingAll}
-            className="group relative flex items-center gap-3 px-8 py-3.5 rounded-2xl font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 overflow-hidden"
-            style={{
-              background: isGeneratingAll 
-                ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)'
-                : 'linear-gradient(135deg, #8b5cf6 0%, #a855f7 50%, #ec4899 100%)'
-            }}
+            className="birth-chart-generate-button"
           >
-            {/* Efeito de brilho no hover */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
-            
+            <div className="birth-chart-generate-button-shine"></div>
             {isGeneratingAll ? (
               <>
-                <div className="relative w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span className="relative text-base">
+                <div className="birth-chart-generate-button-spinner"></div>
+                <span className="birth-chart-generate-button-text">
                   {language === 'pt' ? 'Gerando análise...' : 'Generating analysis...'}
                 </span>
               </>
             ) : (
               <>
-                <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-white/20 group-hover:bg-white/30 transition-colors">
-                  <UIIcons.Sparkles size={14} className="text-primary-foreground group-hover:animate-pulse" />
+                <div className="birth-chart-generate-button-icon">
+                  <UIIcons.Sparkles size={14} style={{ color: '#160F24' }} />
                 </div>
-                <span className="relative text-base">
+                <span className="birth-chart-generate-button-text">
                   {language === 'pt' ? 'Gerar Análise Completa' : 'Generate Complete Analysis'}
                 </span>
-                <UIIcons.ChevronRight size={18} className="relative opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                <UIIcons.ChevronRight size={18} className="birth-chart-generate-button-chevron" style={{ color: '#160F24' }} />
               </>
             )}
           </button>
           <button
             onClick={onBack}
-            className="flex items-center gap-2 px-5 py-3.5 rounded-2xl bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground font-medium transition-all duration-200 hover:shadow-md"
+            className="birth-chart-back-button"
           >
             <UIIcons.ArrowLeft size={18} />
             {language === 'pt' ? 'Voltar' : 'Back'}
@@ -358,20 +353,20 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
       </div>
 
       {/* Resumo do Mapa */}
-      <div className="bg-gradient-to-br from-primary/10 via-accent/10 to-primary/5 rounded-2xl p-4 md:p-6 border border-primary/20">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+      <div className="birth-chart-summary">
+        <div className="birth-chart-summary-content">
           {/* Wheel Preview */}
-          <div className="lg:w-1/3 flex justify-center">
-            <div className="w-[200px] h-[200px] md:w-[250px] md:h-[250px] lg:w-[280px] lg:h-[280px]">
+          <div className="birth-chart-wheel-container">
+            <div className="birth-chart-wheel-wrapper">
               <BirthChartWheel userData={userData} size={280} />
             </div>
           </div>
           
           {/* Info Cards */}
-          <div className="lg:w-2/3 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <div className="birth-chart-info">
+            <div className="birth-chart-user-info">
               <UIIcons.User size={16} />
-              <span className="font-medium text-foreground">{userData.name}</span>
+              <span className="birth-chart-user-name">{userData.name}</span>
               <span>•</span>
               <span>
                 {typeof userData.birthDate === 'string' 
@@ -385,87 +380,51 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
             </div>
             
             {/* Cards Sol, Lua e Ascendente - sempre lado a lado */}
-            <div className="flex flex-row gap-3">
+            <div className="birth-chart-planets-cards">
               {/* Sol */}
-              <div 
-                className="flex-1 rounded-xl p-4 shadow-md"
-                style={{
-                  background: 'linear-gradient(to bottom right, rgba(245, 158, 11, 0.25), rgba(249, 115, 22, 0.1))',
-                  border: '1px solid rgba(245, 158, 11, 0.5)',
-                  boxShadow: '0 4px 6px -1px rgba(245, 158, 11, 0.15)'
-                }}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: 'rgba(245, 158, 11, 0.35)' }}
-                  >
-                    <SunIcon size={28} className="text-foreground" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs uppercase tracking-wider font-semibold text-foreground/90">
-                      {language === 'pt' ? 'Sol' : 'Sun'}
-                    </p>
-                    <p className="font-bold text-lg text-foreground">{sunSign}</p>
-                  </div>
+              <div className="birth-chart-planet-card birth-chart-planet-card-sun">
+                <div className="birth-chart-planet-icon-container birth-chart-planet-icon-container-sun">
+                  <SunIcon size={28} className="text-foreground" />
                 </div>
-                <p className="text-xs text-center mt-2 text-foreground/80">
+                <div>
+                  <p className="birth-chart-planet-label">
+                    {language === 'pt' ? 'Sol' : 'Sun'}
+                  </p>
+                  <p className="birth-chart-planet-sign">{sunSign}</p>
+                </div>
+                <p className="birth-chart-planet-desc">
                   {language === 'pt' ? 'Sua essência e identidade' : 'Your essence and identity'}
                 </p>
               </div>
               
               {/* Lua */}
-              <div 
-                className="flex-1 rounded-xl p-4 shadow-md"
-                style={{
-                  background: 'linear-gradient(to bottom right, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.1))',
-                  border: '1px solid rgba(59, 130, 246, 0.5)',
-                  boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.15)'
-                }}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: 'rgba(59, 130, 246, 0.35)' }}
-                  >
-                    <MoonIcon size={28} className="text-foreground" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs uppercase tracking-wider font-semibold text-foreground/90">
-                      {language === 'pt' ? 'Lua' : 'Moon'}
-                    </p>
-                    <p className="font-bold text-lg text-foreground">{moonSign}</p>
-                  </div>
+              <div className="birth-chart-planet-card birth-chart-planet-card-moon">
+                <div className="birth-chart-planet-icon-container birth-chart-planet-icon-container-moon">
+                  <MoonIcon size={28} className="text-foreground" />
                 </div>
-                <p className="text-xs text-center mt-2 text-foreground/80">
+                <div>
+                  <p className="birth-chart-planet-label">
+                    {language === 'pt' ? 'Lua' : 'Moon'}
+                  </p>
+                  <p className="birth-chart-planet-sign">{moonSign}</p>
+                </div>
+                <p className="birth-chart-planet-desc">
                   {language === 'pt' ? 'Suas emoções e necessidades' : 'Your emotions and needs'}
                 </p>
               </div>
               
               {/* Ascendente */}
-              <div 
-                className="flex-1 rounded-xl p-4 shadow-md"
-                style={{
-                  background: 'linear-gradient(to bottom right, rgba(168, 85, 247, 0.25), rgba(139, 92, 246, 0.1))',
-                  border: '1px solid rgba(168, 85, 247, 0.5)',
-                  boxShadow: '0 4px 6px -1px rgba(168, 85, 247, 0.15)'
-                }}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: 'rgba(168, 85, 247, 0.35)' }}
-                  >
-                    <AscIcon size={28} className="text-foreground" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs uppercase tracking-wider font-semibold text-foreground/90">
-                      {language === 'pt' ? 'Asc' : 'Asc'}
-                    </p>
-                    <p className="font-bold text-lg text-foreground">{ascendant}</p>
-                  </div>
+              <div className="birth-chart-planet-card birth-chart-planet-card-asc">
+                <div className="birth-chart-planet-icon-container birth-chart-planet-icon-container-asc">
+                  <AscIcon size={28} className="text-foreground" />
                 </div>
-                <p className="text-xs text-center mt-2 text-foreground/80">
+                <div>
+                  <p className="birth-chart-planet-label">
+                    {language === 'pt' ? 'Asc' : 'Asc'}
+                  </p>
+                  <p className="birth-chart-planet-sign">{ascendant}</p>
+                </div>
+                <p className="birth-chart-planet-desc">
                   {language === 'pt' ? 'Sua máscara social' : 'Your social mask'}
                 </p>
               </div>
@@ -475,19 +434,19 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
       </div>
 
       {/* Seções do Mapa */}
-      <div className="space-y-4">
-        <h3 className="font-serif text-2xl font-bold text-foreground flex items-center gap-3">
+      <div className="birth-chart-sections">
+        <h3 className="birth-chart-sections-title">
           <UIIcons.BookOpen size={24} className="text-primary" />
           {language === 'pt' ? 'Análise Completa' : 'Complete Analysis'}
         </h3>
         
-        <p className="text-muted-foreground">
+        <p className="birth-chart-sections-description">
           {language === 'pt' 
             ? 'Clique em cada seção para expandir e ler a análise detalhada. Cada seção é gerada individualmente com base nos seus dados de nascimento.'
             : 'Click on each section to expand and read the detailed analysis. Each section is generated individually based on your birth data.'}
         </p>
         
-        <div className="space-y-3">
+        <div className="birth-chart-sections-list">
           {sectionConfig.map((config) => (
             <ChartSection
               key={config.key}
@@ -503,16 +462,16 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
       </div>
 
       {/* Nota Final */}
-      <div className="bg-muted/50 rounded-2xl p-6 border border-border">
-        <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+      <div className="birth-chart-note">
+        <div className="birth-chart-note-content">
+          <div className="birth-chart-note-icon">
             <UIIcons.Info size={20} className="text-primary" />
           </div>
-          <div>
-            <h4 className="font-semibold text-foreground mb-2">
+          <div className="birth-chart-note-text">
+            <h4 className="birth-chart-note-title">
               {language === 'pt' ? 'Sobre esta análise' : 'About this analysis'}
             </h4>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="birth-chart-note-description">
               {language === 'pt' 
                 ? 'Esta interpretação foi gerada usando inteligência artificial treinada em fontes astrológicas tradicionais, combinando Astrologia Psicológica (linha Junguiana) e Astrologia Evolutiva. As análises focam no potencial de crescimento e livre-arbítrio, evitando determinismos. Use estas informações como ferramenta de autoconhecimento.'
                 : 'This interpretation was generated using artificial intelligence trained on traditional astrological sources, combining Psychological Astrology (Jungian approach) and Evolutionary Astrology. The analyses focus on growth potential and free will, avoiding determinism. Use this information as a self-knowledge tool.'}

@@ -5,6 +5,7 @@ import {
   Star, Heart, Bookmark, Share2, Info, Sun, Moon, AlertCircle, 
   CheckCircle, Loader2, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, BookOpen, Home, 
   Activity, Sparkles, Zap, Globe, Briefcase, Users, Compass, ChevronUp, UserCircle,
+  TrendingUp, RefreshCw,
   // Ícones para Aspectos
   Circle, Triangle, Square, Octagon, Link2, Target, Lightbulb, Shield, Flame, Scale
 } from 'lucide-react';
@@ -111,6 +112,8 @@ export const UIIcons = {
   Briefcase,
   Users,
   Compass,
+  TrendingUp,
+  RefreshCw,
   // Ícones para Aspectos Astrológicos
   Circle,      
   Triangle,    

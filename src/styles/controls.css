@@ -1,0 +1,141 @@
+/* 
+ * ============================================================================
+ * CONTROLES - TEMA E IDIOMA
+ * ============================================================================
+ * Estilos para os botões de controle (tema e idioma)
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * BOTÃO DE TEMA
+ * ============================================================================
+ */
+.theme-toggle-button {
+  position: relative;
+  padding: 0;
+  border-radius: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.theme-toggle-button:hover {
+  background-color: hsl(var(--accent) / 0.1);
+  transform: scale(1.1);
+}
+
+.theme-toggle-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: hsl(25, 100%, 51%); /* #FF8904 - Laranja vibrante */
+  transition: all 0.3s ease;
+  stroke-width: 2;
+}
+
+.theme-toggle-button:hover .theme-toggle-icon {
+  transform: scale(1.1);
+  color: hsl(25, 100%, 45%); /* Laranja mais escuro no hover */
+}
+
+/* ============================================================================
+ * BOTÃO DE IDIOMA (TOGGLE VERTICAL)
+ * ============================================================================
+ */
+.language-toggle-container {
+  position: relative;
+  width: 2.25rem; /* 36px */
+  height: 3.5rem; /* 56px */
+  background-color: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 0.75rem; /* 12px */
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.language-toggle-container:hover {
+  border-color: hsl(var(--border) / 0.7);
+  background-color: hsl(var(--muted) / 0.6);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Indicador visual de seleção (background que se move) - mais destacado */
+.language-toggle-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background-color: hsl(var(--muted) / 0.85);
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease;
+  z-index: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.language-toggle-container[data-language="pt"] .language-toggle-indicator {
+  transform: translateY(0);
+  top: 0;
+}
+
+.language-toggle-container[data-language="en"] .language-toggle-indicator {
+  transform: translateY(100%);
+  bottom: 0;
+}
+
+.language-toggle-flag {
+  width: 100%;
+  height: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem; /* 20px */
+  line-height: 1;
+  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
+  user-select: none;
+}
+
+.language-toggle-flag.active {
+  opacity: 1;
+  font-size: 1.25rem;
+  transform: scale(1.08);
+  filter: brightness(1.15) contrast(1.05);
+  z-index: 2;
+}
+
+.language-toggle-flag:not(.active) {
+  opacity: 0.3;
+  transform: scale(0.92);
+  filter: brightness(0.9);
+}
+
+/* ============================================================================
+ * CONTAINER DOS CONTROLES
+ * ============================================================================
+ */
+.controls-container {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.controls-divider {
+  width: 1px;
+  height: 1.5rem;
+  background-color: hsl(var(--border) / 0.5);
+}
+

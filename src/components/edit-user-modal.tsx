@@ -212,40 +212,40 @@ export const EditUserModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="sticky top-0 bg-background z-10 pb-4 border-b border-border/30">
-          <DialogTitle className="text-accent">Editar Perfil</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="dialog-content-large">
+        <DialogHeader className="dialog-header">
+          <DialogTitle className="dialog-title">Editar Perfil</DialogTitle>
+          <DialogDescription className="dialog-description">
             Atualize suas informações pessoais e dados de nascimento.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
-          {/* Linha 1: Nome Completo - Largura completa */}
-          <div>
-            <AstroInput
-              label="Nome Completo"
-              placeholder="Digite seu nome"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
+        <div className="dialog-body">
+          <div className="dialog-body-grid">
+            {/* Linha 1: Nome Completo - Largura completa */}
+            <div className="dialog-body-field dialog-body-field-full">
+              <AstroInput
+                label="Nome Completo"
+                placeholder="Digite seu nome"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
 
-          {/* Linha 2: Email - Largura completa */}
-          <div>
-            <AstroInput
-              label="Email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+            {/* Linha 2: Email - Largura completa */}
+            <div className="dialog-body-field dialog-body-field-full">
+              <AstroInput
+                label="Email"
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-          {/* Linha 3: Data, Hora e Local de Nascimento - Grid 3 colunas */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Linha 3: Data, Hora e Local de Nascimento - Grid 3 colunas */}
             {/* Data de Nascimento */}
-            <div className="space-y-2">
+            <div className="dialog-body-field">
               <AstroInput
                 label="Data de Nascimento"
                 placeholder="dd/mm/aaaa"
@@ -254,12 +254,12 @@ export const EditUserModal = ({
                 maxLength={10}
               />
               {birthDateInput && birthDate === undefined && (
-                <p className="text-sm text-destructive">Digite uma data válida.</p>
+                <p className="validation-message validation-message-error">Digite uma data válida.</p>
               )}
             </div>
 
             {/* Hora de Nascimento */}
-            <div>
+            <div className="dialog-body-field">
               <AstroInput
                 label="Hora de Nascimento"
                 type="time"
@@ -269,7 +269,7 @@ export const EditUserModal = ({
             </div>
 
             {/* Local de Nascimento */}
-            <div className="space-y-2">
+            <div className="dialog-body-field">
               <LocationAutocomplete
                 label="Local de Nascimento"
                 placeholder="Digite a cidade"
@@ -287,12 +287,12 @@ export const EditUserModal = ({
                 }}
               />
               {birthPlace && !birthCoordinates && (
-                <p className="text-xs text-secondary">
+                <p className="validation-message">
                   Selecione da lista
                 </p>
               )}
               {birthCoordinates && (
-                <div className="text-xs text-secondary flex items-center gap-1">
+                <div className="validation-message validation-message-success">
                   <UIIcons.MapPin size={12} className="text-accent" />
                   <span>
                     {birthCoordinates.latitude.toFixed(2)}°, {birthCoordinates.longitude.toFixed(2)}°
@@ -300,30 +300,30 @@ export const EditUserModal = ({
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Linha 4: Senha (opcional) - Largura completa */}
-          <div>
-            <AstroInput
-              label="Alterar Senha (Opcional)"
-              type="password"
-              placeholder="Deixe em branco se não quiser alterar"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {password && password.length > 0 && password.length < 6 && (
-              <p className="text-sm text-destructive mt-1">
-                A senha deve ter pelo menos 6 caracteres
-              </p>
-            )}
+            {/* Linha 4: Senha (opcional) - Largura completa */}
+            <div className="dialog-body-field dialog-body-field-full">
+              <AstroInput
+                label="Alterar Senha (Opcional)"
+                type="password"
+                placeholder="Deixe em branco se não quiser alterar"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {password && password.length > 0 && password.length < 6 && (
+                <p className="validation-message validation-message-error">
+                  A senha deve ter pelo menos 6 caracteres
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Botões */}
-          <div className="flex gap-4 pt-4 border-t border-border/30">
+          <div className="dialog-footer">
             <AstroButton
               variant="secondary"
               onClick={() => onOpenChange(false)}
-              className="flex-1"
+              className="dialog-button dialog-button-secondary"
               disabled={isSubmitting}
             >
               Cancelar
@@ -331,7 +331,7 @@ export const EditUserModal = ({
             <AstroButton
               variant="primary"
               onClick={handleSubmit}
-              className="flex-1"
+              className="dialog-button dialog-button-primary"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

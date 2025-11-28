@@ -1,0 +1,258 @@
+/* 
+ * ============================================================================
+ * GOOGLE ONBOARDING - CSS PURO
+ * ============================================================================
+ * Estilos para a tela de onboarding do Google
+ * Tamanhos otimizados conforme UI/UX e Figma
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * CONTAINER PRINCIPAL
+ * ============================================================================
+ * Mobile First: Container responsivo com largura máxima adequada
+ * ============================================================================
+ */
+.google-onboarding-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem; /* 16px - padding mobile */
+  background-color: hsl(var(--background));
+  box-sizing: border-box;
+}
+
+/* Tablet e Desktop */
+@media (min-width: 640px) {
+  .google-onboarding-container {
+    padding: 2rem; /* 32px */
+  }
+}
+
+/* ============================================================================
+ * CARD PRINCIPAL
+ * ============================================================================
+ * Largura máxima otimizada para UI/UX
+ * Mobile: 100% (com padding)
+ * Tablet: 600px
+ * Desktop: 640px (não muito largo para melhor legibilidade)
+ * ============================================================================
+ */
+.google-onboarding-card {
+  width: 100%;
+  max-width: 100%; /* Mobile: ocupa toda largura disponível */
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .google-onboarding-card {
+    max-width: 600px; /* Tablet: 600px */
+  }
+}
+
+@media (min-width: 1024px) {
+  .google-onboarding-card {
+    max-width: 640px; /* Desktop: 640px - tamanho ideal para formulários */
+  }
+}
+
+/* ============================================================================
+ * HEADER COM INFORMAÇÃO DO GOOGLE
+ * ============================================================================
+ */
+.google-onboarding-header {
+  margin-bottom: 1.5rem; /* 24px */
+  text-align: center;
+}
+
+.google-onboarding-google-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* 8px */
+  margin-bottom: 0.5rem; /* 8px */
+}
+
+.google-onboarding-google-icon {
+  width: 2.5rem; /* 40px */
+  height: 2.5rem; /* 40px */
+  background-color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.1), 0px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.google-onboarding-email {
+  font-size: 0.875rem; /* 14px */
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.25rem; /* 4px */
+}
+
+/* ============================================================================
+ * INDICADOR DE PROGRESSO
+ * ============================================================================
+ */
+.google-onboarding-progress {
+  margin-bottom: 2rem; /* 32px */
+}
+
+.google-onboarding-progress-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.25rem; /* 4px */
+  margin-bottom: 0.5rem; /* 8px */
+}
+
+.google-onboarding-progress-bar {
+  height: 0.5rem; /* 8px */
+  flex: 1;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+}
+
+.google-onboarding-progress-bar.active {
+  background-color: hsl(var(--accent));
+}
+
+.google-onboarding-progress-bar.inactive {
+  background-color: hsl(var(--card));
+}
+
+.google-onboarding-progress-text {
+  text-align: center;
+  font-size: 0.875rem; /* 14px */
+  color: hsl(var(--muted-foreground));
+}
+
+/* ============================================================================
+ * CONTEÚDO DO CARD
+ * ============================================================================
+ */
+.google-onboarding-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem; /* 32px */
+}
+
+/* ============================================================================
+ * TÍTULOS E DESCRIÇÕES
+ * ============================================================================
+ */
+.google-onboarding-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem; /* 24px */
+  font-weight: 700;
+  color: hsl(var(--accent));
+  margin: 0;
+  padding: 0;
+}
+
+.google-onboarding-subtitle {
+  font-family: var(--font-sans);
+  font-size: 0.875rem; /* 14px */
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+}
+
+.google-onboarding-step-title {
+  font-family: var(--font-sans);
+  font-size: 1.125rem; /* 18px */
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0; /* 8px */
+  padding: 0;
+}
+
+.google-onboarding-step-desc {
+  font-family: var(--font-sans);
+  font-size: 0.875rem; /* 14px */
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 1rem 0; /* 16px */
+  padding: 0;
+}
+
+/* ============================================================================
+ * BOTÕES DE NAVEGAÇÃO
+ * ============================================================================
+ */
+.google-onboarding-navigation {
+  display: flex;
+  gap: 1rem; /* 16px */
+  padding-top: 1rem; /* 16px */
+}
+
+.google-onboarding-button {
+  flex: 1;
+  min-height: 48px; /* Altura mínima para acessibilidade */
+  border-radius: 16.4px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* 8px */
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.google-onboarding-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+ * RESPONSIVIDADE ADICIONAL
+ * ============================================================================
+ */
+@media (max-width: 639px) {
+  /* Mobile: Ajustes para telas pequenas */
+  .google-onboarding-container {
+    padding: 1rem; /* 16px */
+    align-items: flex-start;
+    padding-top: 2rem; /* 32px - espaço superior */
+  }
+  
+  .google-onboarding-card {
+    width: 100%;
+  }
+  
+  .google-onboarding-title {
+    font-size: 1.25rem; /* 20px - menor no mobile */
+  }
+  
+  .google-onboarding-navigation {
+    flex-direction: column;
+  }
+  
+  .google-onboarding-button {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+ * ANIMAÇÕES
+ * ============================================================================
+ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.google-onboarding-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+

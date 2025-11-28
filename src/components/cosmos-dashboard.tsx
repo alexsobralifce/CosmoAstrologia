@@ -42,51 +42,47 @@ const SettingsMenu = ({ onLogout }: SettingsMenuProps) => {
   }, []);
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="dashboard-settings-menu" ref={menuRef}>
       {/* Botão de Engrenagem */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`p-2 rounded-lg transition-colors ${
-          isOpen ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-foreground'
-        }`}
+        className={`dashboard-settings-button ${isOpen ? 'active' : ''}`}
         title={language === 'pt' ? 'Configurações' : 'Settings'}
       >
-        <UIIcons.Settings size={20} className={isOpen ? 'animate-spin-slow' : ''} />
+        <UIIcons.Settings size={20} className={`dashboard-settings-icon ${isOpen ? 'animate-spin-slow' : ''}`} style={{ color: 'inherit' }} />
       </button>
 
       {/* Menu Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-xl overflow-hidden animate-fadeIn z-50">
+        <div className="dashboard-settings-dropdown">
           {/* Header do Menu */}
-          <div className="px-4 py-3 border-b border-border bg-muted/50">
-            <p className="text-sm font-semibold text-foreground">
+          <div className="dashboard-settings-header">
+            <p className="dashboard-settings-header-text">
               {language === 'pt' ? 'Configurações' : 'Settings'}
             </p>
           </div>
 
           {/* Opções */}
-          <div className="p-2">
+          <div className="dashboard-settings-options">
             {/* Toggle de Tema */}
             <button
               onClick={() => {
                 toggleTheme();
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors text-left"
+              className="dashboard-settings-option"
             >
+              <span className="dashboard-settings-option-icon">
               {theme === 'dark' ? (
                 <UIIcons.Sun size={18} className="text-amber-500" />
               ) : (
                 <UIIcons.Moon size={18} className="text-indigo-500" />
               )}
-              <span className="text-sm text-foreground flex-1">
+              </span>
+              <span className="dashboard-settings-option-text">
                 {language === 'pt' ? 'Modo Noturno' : 'Dark Mode'}
               </span>
-              <div className={`w-9 h-5 rounded-full transition-colors ${
-                theme === 'dark' ? 'bg-primary' : 'bg-muted-foreground/30'
-              }`}>
-                <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${
-                  theme === 'dark' ? 'translate-x-4 ml-0.5' : 'translate-x-0.5'
-                }`} />
+              <div className={`dashboard-settings-toggle ${theme === 'dark' ? 'active' : 'inactive'}`}>
+                <div className="dashboard-settings-toggle-thumb" />
               </div>
             </button>
 
@@ -95,19 +91,21 @@ const SettingsMenu = ({ onLogout }: SettingsMenuProps) => {
               onClick={() => {
                 toggleLanguage();
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors text-left"
+              className="dashboard-settings-option"
             >
-              <span className="text-lg">{language === 'pt' ? '🇧🇷' : '🇺🇸'}</span>
-              <span className="text-sm text-foreground flex-1">
+              <span className="dashboard-settings-option-icon">
+                <span style={{ fontSize: '1.125rem' }}>{language === 'pt' ? '🇧🇷' : '🇺🇸'}</span>
+              </span>
+              <span className="dashboard-settings-option-text">
                 {language === 'pt' ? 'Idioma' : 'Language'}
               </span>
-              <span className="text-xs font-medium text-muted-foreground px-2 py-1 bg-muted rounded">
+              <span className="dashboard-settings-option-badge">
                 {language === 'pt' ? 'PT' : 'EN'}
               </span>
             </button>
 
             {/* Separador */}
-            <div className="my-2 border-t border-border" />
+            <div className="dashboard-settings-separator" />
 
             {/* Botão Sair */}
             <button
@@ -115,10 +113,12 @@ const SettingsMenu = ({ onLogout }: SettingsMenuProps) => {
                 setIsOpen(false);
                 onLogout();
               }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-destructive/10 transition-colors text-left group"
+              className="dashboard-settings-option dashboard-settings-option-danger"
             >
+              <span className="dashboard-settings-option-icon">
               <UIIcons.LogOut size={18} className="text-destructive" />
-              <span className="text-sm text-destructive font-medium">
+              </span>
+              <span className="dashboard-settings-option-text" style={{ color: 'hsl(var(--destructive))', fontWeight: '500' }}>
                 {language === 'pt' ? 'Sair' : 'Logout'}
               </span>
             </button>
@@ -140,6 +140,13 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
   const [activeSection, setActiveSection] = useState('inicio');
   const { language, t } = useLanguage();
   const { theme } = useTheme(); // Adicionar acesso ao tema
+  
+  // Estado para calendário
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  
+  // Estado para notificações
+  const [showNotifications, setShowNotifications] = useState(false);
   
   // Estado para modal de aviso de inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
@@ -165,6 +172,39 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
   const handleContinueSession = () => {
     setShowInactivityWarning(false);
     // O hook já reseta o timer automaticamente ao detectar atividade
+  };
+
+  // Handlers para calendário
+  const handlePreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+  };
+
+  // Handler para notificações
+  const handleNotificationsClick = () => {
+    setShowNotifications(!showNotifications);
+    // TODO: Implementar painel de notificações
+    console.log('Notificações:', showNotifications ? 'fechando' : 'abrindo');
+  };
+
+  // Handler para ver todos (compatibilidade)
+  const handleViewAllCompatibility = () => {
+    // TODO: Implementar navegação para página completa de compatibilidade
+    console.log('Ver todos os contatos de compatibilidade');
+    // Por enquanto, apenas log. Pode ser implementado como navegação para uma seção específica
   };
 
   // Ícone do signo do usuário baseado no signo solar
@@ -362,7 +402,6 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
     of: language === 'pt' ? 'de' : '',
     fullMoon: t('alerts', 'fullMoon'),
     mercuryDirect: t('alerts', 'mercuryDirect'),
-    searchPlaceholder: t('dashboard', 'searchPlaceholder'),
     yourCelestialGuide: t('dashboard', 'yourCelestialGuide'),
     welcome: t('dashboard', 'welcome'),
     astralForecast: t('dashboard', 'astralForecast'),
@@ -372,7 +411,6 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
     compatibility: t('dashboard', 'compatibility'),
     intensity: t('insights', 'intensity'),
     mercuryRetrograde: t('alerts', 'mercuryRetrograde'),
-    searchPerson: t('compatibilitySection', 'searchPerson'),
     closePeople: t('compatibilitySection', 'closePeople'),
     affinity: t('compatibilitySection', 'affinity'),
     viewAll: t('compatibilitySection', 'viewAll'),
@@ -385,24 +423,24 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="dashboard-container">
       {/* ===== SIDEBAR FIXA À ESQUERDA ===== */}
-      <aside className="w-64 bg-sidebar border-r border-sidebar-border fixed left-0 top-0 h-screen overflow-y-auto flex flex-col z-50">
+      <aside className="dashboard-sidebar">
         {/* Perfil do Usuário - Centralizado */}
-        <div className="p-6 border-b border-sidebar-border">
-          <div className="flex flex-col items-center text-center">
+        <div className="dashboard-sidebar-profile">
+          <div className="dashboard-sidebar-profile-content">
             {/* Avatar centralizado */}
-            <div className="relative mb-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center border-2 border-primary/30">
+            <div className="dashboard-sidebar-avatar">
+              <div className="dashboard-sidebar-avatar-circle">
                 <UIIcons.User size={40} className="text-primary" />
               </div>
               {/* Status indicator */}
-              <div className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 rounded-full border-2 border-sidebar"></div>
+              <div className="dashboard-sidebar-status"></div>
             </div>
             {/* Nome centralizado */}
-            <h3 className="font-serif text-lg text-sidebar-foreground font-semibold">{userData.name || 'Maria Silva'}</h3>
+            <h3 className="dashboard-sidebar-name">{userData.name || 'Maria Silva'}</h3>
             {/* Info do signo */}
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-1">
+            <div className="dashboard-sidebar-info">
               <UserZodiacIcon size={16} className="text-primary" />
               <span>{texts.moonIn} {userData.moonSign || 'N/A'} • {texts.asc} {userData.ascendant || 'N/A'}</span>
             </div>
@@ -410,21 +448,17 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
         </div>
 
         {/* Navegação */}
-        <nav className="flex-1 py-4 px-3">
+        <nav className="dashboard-sidebar-nav">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveSection(item.id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all mb-1 ${
-                activeSection === item.id
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              }`}
+              className={`dashboard-sidebar-menu-item ${activeSection === item.id ? 'active' : ''}`}
             >
               <item.icon size={20} />
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="dashboard-sidebar-menu-item-label">{item.label}</span>
               {item.badge && (
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-orange text-primary-foreground">
+                <span className="dashboard-sidebar-menu-item-badge">
                   {item.badge}
                 </span>
               )}
@@ -433,50 +467,63 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
         </nav>
 
         {/* Mini Calendário */}
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-sidebar-foreground">
+        <div className="dashboard-sidebar-calendar">
+          <div className="dashboard-sidebar-calendar-header">
+            <h4 className="dashboard-sidebar-calendar-title">
               {texts.november} {texts.of} 2025
             </h4>
-            <div className="flex gap-1">
-              <button className="p-1 hover:bg-sidebar-accent rounded">
+            <div className="dashboard-sidebar-calendar-controls">
+              <button 
+                className="dashboard-sidebar-calendar-button"
+                onClick={handlePreviousMonth}
+                title={language === 'pt' ? 'Mês anterior' : 'Previous month'}
+              >
                 <UIIcons.ChevronLeft size={16} className="text-muted-foreground" />
               </button>
-              <button className="p-1 hover:bg-sidebar-accent rounded">
+              <button 
+                className="dashboard-sidebar-calendar-button"
+                onClick={handleNextMonth}
+                title={language === 'pt' ? 'Próximo mês' : 'Next month'}
+              >
                 <UIIcons.ChevronRight size={16} className="text-muted-foreground" />
               </button>
             </div>
           </div>
           
           {/* Grid calendário */}
-          <div className="grid grid-cols-7 gap-1 text-center text-xs">
+          <div className="dashboard-sidebar-calendar-grid">
             {weekDays.map((day, i) => (
-              <div key={i} className="text-muted-foreground font-medium py-1">{day}</div>
+              <div key={i} className="dashboard-sidebar-calendar-day-header">{day}</div>
             ))}
             {calendarDays.map((dayData, i) => (
               <div
                 key={i}
-                className={`py-1 rounded relative ${
-                  dayData.current
-                    ? 'bg-primary text-primary-foreground font-bold'
-                    : 'text-sidebar-foreground hover:bg-sidebar-accent cursor-pointer'
-                }`}
+                className={`dashboard-sidebar-calendar-day ${dayData.current ? 'current' : ''}`}
               >
                 {dayData.day}
                 {dayData.events && !dayData.current && (
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-orange rounded-full"></div>
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '4px',
+                    height: '4px',
+                    backgroundColor: 'hsl(var(--accent))',
+                    borderRadius: '50%'
+                  }}></div>
                 )}
               </div>
             ))}
           </div>
 
           {/* Eventos lunares */}
-          <div className="mt-4 space-y-2 text-xs">
-            <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="dashboard-sidebar-calendar-events">
+            <div className="dashboard-sidebar-calendar-event">
               <UIIcons.Moon size={12} className="text-primary" />
               <span>{texts.fullMoon} (15)</span>
             </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
+            <div className="dashboard-sidebar-calendar-event">
               <UIIcons.Moon size={12} className="text-destructive" />
               <span>{texts.mercuryDirect} (28)</span>
             </div>
@@ -485,38 +532,33 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       </aside>
 
       {/* ===== ÁREA PRINCIPAL (com margin-left para sidebar) ===== */}
-      <div className="ml-64 min-h-screen">
+      <div className="dashboard-main">
         {/* ===== HEADER SUPERIOR ===== */}
-        <header className="h-20 bg-background border-b border-border sticky top-0 z-40 backdrop-blur-sm bg-background/80">
-          <div className="h-full max-w-[1800px] mx-auto px-8 flex items-center justify-between">
+        <header className="dashboard-header">
+          <div className="dashboard-header-content">
             {/* Logo */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center rotate-3 shadow-lg">
+            <div className="dashboard-header-logo">
+              <div className="dashboard-header-logo-icon">
                 <UIIcons.Sparkles size={24} className="text-foreground" />
               </div>
               <div>
-                <h1 className="font-serif text-xl font-bold text-foreground">Cosmos Astral</h1>
-                <p className="text-xs text-muted-foreground">{texts.yourCelestialGuide}</p>
+                <h1 className="dashboard-header-logo-text">Cosmos Astral</h1>
+                <p className="dashboard-header-logo-subtitle">{texts.yourCelestialGuide}</p>
               </div>
             </div>
 
             {/* Barra de Busca */}
-            <div className="flex-1 max-w-2xl mx-8">
-              <div className="search-bar-header">
-                <UIIcons.Search size={18} className="text-muted-foreground flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder={texts.searchPlaceholder}
-                />
-              </div>
-            </div>
 
             {/* Ações à direita */}
-            <div className="flex items-center gap-2">
+            <div className="dashboard-header-actions">
               {/* Notificações */}
-              <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
+              <button 
+                className="dashboard-header-button"
+                onClick={handleNotificationsClick}
+                title={language === 'pt' ? 'Notificações' : 'Notifications'}
+              >
                 <UIIcons.Bell size={20} className="text-foreground" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
+                <span className="dashboard-header-notification-badge"></span>
               </button>
 
               {/* Menu de Configurações */}
@@ -526,7 +568,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
         </header>
 
         {/* ===== CONTEÚDO PRINCIPAL ===== */}
-        <main className="p-8 max-w-[1800px] mx-auto">
+        <main className="dashboard-content">
           {/* Renderização condicional baseada na seção ativa */}
           {activeSection === 'mapa-completo' ? (
             <FullBirthChartSection userData={userData} onBack={() => setActiveSection('inicio')} />
@@ -550,65 +592,56 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
           <>
           {/* ===== HERO SECTION ===== */}
           {/* Card sempre com fundo escuro e texto branco, independente do tema */}
-          <div className="mb-8 bg-gradient-to-br from-[#2D324D] to-[#1F2337] rounded-3xl p-8 relative overflow-hidden shadow-xl">
+          <div className="dashboard-hero">
             {/* Orbes de fundo */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl"></div>
+            <div className="dashboard-hero-orb dashboard-hero-orb-blue"></div>
+            <div className="dashboard-hero-orb dashboard-hero-orb-purple"></div>
             
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-3">
-                <UIIcons.Sparkles size={20} className="text-purple-300" />
-                <span className="text-sm font-medium text-purple-300">{texts.astralForecast}</span>
+            <div className="dashboard-hero-content">
+              <div className="dashboard-hero-badge">
+                <UIIcons.Sparkles size={20} className="dashboard-hero-badge-icon" />
+                <span className="dashboard-hero-badge-text">{texts.astralForecast}</span>
               </div>
-              <h2 className="font-serif text-4xl font-bold mb-4 text-white">
+              <h2 className="dashboard-hero-title">
                 {texts.welcome}
               </h2>
-              <p className="text-lg max-w-2xl text-white/90">
+              <p className="dashboard-hero-text">
                 {texts.heroText}
               </p>
-              <div className="flex flex-wrap gap-4 mt-6">
-                <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <UIIcons.Calendar size={16} className="inline mr-2 text-white" />
-                  <span className="text-sm text-white">{texts.monday}, 24 {texts.of} {texts.november}</span>
+              <div className="dashboard-hero-tags">
+                <div className="dashboard-hero-tag">
+                  <UIIcons.Calendar size={16} className="dashboard-hero-tag-icon" />
+                  <span className="dashboard-hero-tag-text">{texts.monday}, 24 {texts.of} {texts.november}</span>
                 </div>
-                <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <UIIcons.Moon size={16} className="inline mr-2 text-yellow-300" />
-                  <span className="text-sm text-white">{texts.waxingMoonIn}</span>
+                <div className="dashboard-hero-tag">
+                  <UIIcons.Moon size={16} className="dashboard-hero-tag-icon" />
+                  <span className="dashboard-hero-tag-text dashboard-hero-tag-text-yellow">{texts.waxingMoonIn}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* ===== INSIGHTS DE HOJE (GRID 4 CARDS) ===== */}
-          <div className="mb-8">
-            <h3 className="font-serif text-2xl font-bold text-foreground mb-4">{texts.todayInsights}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="dashboard-section">
+            <h3 className="dashboard-section-title">{texts.todayInsights}</h3>
+            <div className="dashboard-insights-grid">
               {insights.map((insight) => (
                 <div
                   key={insight.id}
-                  className="rounded-xl p-6 border hover:shadow-lg transition-all cursor-pointer group"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-                    borderColor: theme === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(229, 231, 235)'
-                  }}
+                  className="dashboard-insight-card"
                 >
                   {/* Ícone com fundo contrastante - mantém cor original */}
-                  <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm"
-                    style={{
-                      backgroundColor: theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)'
-                    }}
-                  >
+                  <div className="dashboard-insight-icon-container">
                     <insight.icon size={24} style={{ color: insight.accentColor }} />
                   </div>
-                  {/* Textos adaptáveis ao tema - claros de dia e brancos à noite */}
-                  <h4 className="text-sm font-semibold mb-1" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(55, 65, 81)' }}>
+                  {/* Textos usando variáveis CSS para contraste automático */}
+                  <h4 className="dashboard-insight-title">
                     {insight.title}
                   </h4>
-                  <p className="text-2xl font-bold mb-2" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(17, 24, 39)' }}>
+                  <p className="dashboard-insight-value">
                     {insight.value}
                   </p>
-                  <p className="text-xs leading-relaxed" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(75, 85, 99)' }}>
+                  <p className="dashboard-insight-description">
                     {insight.description}
                   </p>
                 </div>
@@ -617,56 +650,44 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
           </div>
 
           {/* ===== PREVISÕES POR ÁREA ===== */}
-          <div className="mb-8">
-            <h3 className="font-serif text-2xl font-bold text-foreground mb-4">{texts.forecastByArea}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="dashboard-section">
+            <h3 className="dashboard-section-title">{texts.forecastByArea}</h3>
+            <div className="dashboard-areas-grid">
               {areas.map((area) => (
                 <div
                   key={area.id}
-                  className="rounded-xl p-6 border hover:shadow-lg transition-all cursor-pointer"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
-                    borderColor: theme === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(229, 231, 235)'
-                  }}
+                  className="dashboard-area-card"
                   onClick={() => onViewInterpretation(area.id)}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
+                  <div className="dashboard-area-header">
+                    <div className="dashboard-area-header-left">
                       {/* Ícone com fundo contrastante - mantém cor original */}
-                      <div 
-                        className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm"
-                        style={{
-                          backgroundColor: theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)'
-                        }}
-                      >
+                      <div className="dashboard-area-icon-container">
                         <area.icon size={20} style={{ color: area.accentColor }} />
                       </div>
-                      <h4 
-                        className="font-semibold"
-                        style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(17, 24, 39)' }}
-                      >
+                      <h4 className="dashboard-area-title">
                         {area.title}
                       </h4>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs block font-medium" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(75, 85, 99)' }}>
+                    <div className="dashboard-area-intensity">
+                      <span className="dashboard-area-intensity-label">
                         {texts.intensity}
                       </span>
                       <p 
-                        className="text-xl font-bold"
+                        className="dashboard-area-intensity-value"
                         style={{ color: area.accentColor }}
                       >
                         {area.intensity}/10
                       </p>
                     </div>
                   </div>
-                  <p className="text-sm mb-4 leading-relaxed" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(75, 85, 99)' }}>
+                  <p className="dashboard-area-description">
                     {area.description}
                   </p>
                   {/* Barra de progresso melhorada */}
-                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(229, 231, 235)' }}>
+                  <div className="dashboard-area-progress">
                     <div
-                      className={`h-full ${area.color} rounded-full transition-all duration-500`}
+                      className={`dashboard-area-progress-bar ${area.color}`}
                       style={{ width: `${area.intensity * 10}%` }}
                     ></div>
                   </div>
@@ -676,21 +697,21 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
           </div>
 
           {/* ===== GRID INFERIOR: POSIÇÕES PLANETÁRIAS + COMPATIBILIDADE ===== */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="dashboard-bottom-grid">
             {/* Posições Planetárias */}
-            <div className="bg-card rounded-xl p-6 border border-border">
-              <h3 className="font-serif text-xl font-bold text-foreground mb-6">{texts.planetaryPositions}</h3>
-              <div className="space-y-4">
+            <div className="dashboard-bottom-card">
+              <h3 className="dashboard-bottom-card-title">{texts.planetaryPositions}</h3>
+              <div className="dashboard-planetary-list">
                 {planetaryPositions.map((position, i) => (
-                  <div key={i} className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <div key={i} className="dashboard-planetary-item">
+                    <div className="dashboard-planetary-icon-container">
                       <position.icon size={24} className="text-primary" />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{position.planet}</p>
-                      <p className="text-sm text-muted-foreground">{t('planets', 'in')} {position.sign}</p>
+                    <div className="dashboard-planetary-info">
+                      <p className="dashboard-planetary-name">{position.planet}</p>
+                      <p className="dashboard-planetary-sign">{t('planets', 'in')} {position.sign}</p>
                     </div>
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${position.statusColor}`}>
+                    <span className={`dashboard-planetary-status ${position.status === t('planets', 'retrograde') ? 'dashboard-planetary-status-retrograde' : 'dashboard-planetary-status-direct'}`}>
                       {position.status}
                     </span>
                   </div>
@@ -698,67 +719,58 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               </div>
 
               {/* Alerta Mercúrio Retrógrado */}
-              <div className="mt-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                <div className="flex items-start gap-3">
-                  <UIIcons.AlertCircle size={20} className="text-amber-500 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
+              <div className="dashboard-planetary-alert">
+                <UIIcons.AlertCircle size={20} className="dashboard-planetary-alert-icon" />
+                <p className="dashboard-planetary-alert-text">
                       {texts.mercuryRetrograde}
                     </p>
-                  </div>
-                </div>
               </div>
             </div>
 
             {/* Compatibilidade */}
-            <div className="bg-card rounded-xl p-6 border border-border">
-              <h3 className="font-serif text-xl font-bold text-foreground mb-6">{texts.compatibility}</h3>
+            <div className="dashboard-bottom-card">
+              <h3 className="dashboard-bottom-card-title">{texts.compatibility}</h3>
               
-              {/* Barra de busca */}
-              <div className="search-bar-small mb-6">
-                <UIIcons.Search size={16} className="text-muted-foreground flex-shrink-0" />
-                <input
-                  type="text"
-                  placeholder={texts.searchPerson}
-                />
-              </div>
 
-              <p className="text-xs text-muted-foreground mb-4 flex items-center gap-2">
+              <p className="dashboard-compatibility-subtitle">
                 <UIIcons.Users size={14} />
                 {texts.closePeople}
               </p>
 
-              <div className="space-y-3">
+              <div className="dashboard-compatibility-list">
                 {compatibility.map((person, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full ${person.color} flex items-center justify-center text-primary-foreground font-semibold text-sm`}>
+                  <div key={i} className="dashboard-compatibility-item">
+                    <div className="dashboard-compatibility-item-left">
+                      <div className={`dashboard-compatibility-avatar ${person.color}`}>
                         {person.avatar}
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{person.name}</p>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <div className="dashboard-compatibility-info">
+                        <p className="dashboard-compatibility-name">{person.name}</p>
+                        <div className="dashboard-compatibility-sign">
                           <UIIcons.Star size={12} />
                           <span>{person.sign}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-foreground">{person.compatibility}%</p>
-                      <p className="text-xs text-muted-foreground">{texts.affinity}</p>
+                    <div className="dashboard-compatibility-item-right">
+                      <p className="dashboard-compatibility-percentage">{person.compatibility}%</p>
+                      <p className="dashboard-compatibility-label">{texts.affinity}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <button className="w-full mt-6 py-3 rounded-lg bg-orange text-primary-foreground font-medium hover:bg-orange/90 transition-colors">
+              <button 
+                className="dashboard-compatibility-button"
+                onClick={handleViewAllCompatibility}
+              >
                 {texts.viewAll}
               </button>
             </div>
           </div>
 
           {/* Footer */}
-          <footer className="mt-12 text-center text-sm text-muted-foreground border-t border-border pt-6">
+          <footer className="dashboard-footer">
             <p>{texts.footer}</p>
           </footer>
           </>

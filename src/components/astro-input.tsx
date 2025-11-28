@@ -9,9 +9,9 @@ interface AstroInputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const AstroInput = forwardRef<HTMLInputElement, AstroInputProps>(
   ({ className, label, error, type = 'text', ...props }, ref) => {
     return (
-      <div className="w-full space-y-2">
+      <div className="login-input-wrapper">
         {label && (
-          <label className="block text-sm text-foreground/90">
+          <label className="login-input-label">
             {label}
           </label>
         )}
@@ -19,16 +19,16 @@ export const AstroInput = forwardRef<HTMLInputElement, AstroInputProps>(
           ref={ref}
           type={type}
           className={cn(
-            "w-full px-4 py-3 rounded-lg bg-input-background border border-[var(--input-border)] text-foreground placeholder:text-secondary transition-all duration-200",
-            "focus:outline-none focus:border-[var(--input-border-active)] focus:ring-2 focus:ring-accent/20",
-            "backdrop-blur-sm",
-            error && "border-destructive focus:border-destructive focus:ring-destructive/20",
+            "login-input-figma",
+            error && "error",
             className
           )}
           {...props}
         />
         {error && (
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="login-input-error">
+            {error}
+          </p>
         )}
       </div>
     );

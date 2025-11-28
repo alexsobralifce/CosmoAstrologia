@@ -1,25 +1,22 @@
 import React, { HTMLAttributes, ReactNode } from 'react';
-import { cn } from './ui/utils';
+import '../styles/components.css';
 
 interface AstroCardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   variant?: 'default' | 'glass' | 'solid';
+  className?: string;
 }
 
-export const AstroCard = ({ children, className, variant = 'glass', ...props }: AstroCardProps) => {
-  const variants = {
-    default: "bg-card backdrop-blur-md",
-    glass: "bg-card backdrop-blur-md border border-border/50",
-    solid: "bg-card/90 backdrop-blur-md"
-  };
+export const AstroCard = ({ children, className = '', variant = 'glass', ...props }: AstroCardProps) => {
+  const classes = [
+    'astro-card',
+    `astro-card-${variant}`,
+    className
+  ].filter(Boolean).join(' ');
   
   return (
     <div
-      className={cn(
-        "rounded-lg p-6 shadow-xl",
-        variants[variant],
-        className
-      )}
+      className={classes}
       {...props}
     >
       {children}

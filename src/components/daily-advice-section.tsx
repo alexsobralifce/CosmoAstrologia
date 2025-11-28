@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AstroCard } from './astro-card';
 import { zodiacSigns } from './zodiac-icons';
 import { planets } from './planet-icons';
 import { UIIcons } from './ui-icons';
 import { AlertCircle, CheckCircle, Clock, Heart, DollarSign, Users, Activity, Calendar, ChevronDown, Loader2 } from 'lucide-react';
 import { Badge } from './ui/badge';
-import { useState } from 'react';
 import { apiService } from '../services/api';
 
 interface PlanetData {

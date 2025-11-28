@@ -1,0 +1,681 @@
+/* 
+ * ============================================================================
+ * PÁGINA DE LOGIN - CSS PURO (SEM TAILWIND)
+ * ============================================================================
+ * Este arquivo contém TODOS os estilos da página de login em CSS puro.
+ * Baseado exatamente no design do Figma.
+ * 
+ * IMPORTANTE: Este arquivo NÃO depende do Tailwind CSS.
+ * Todos os estilos são CSS puro para evitar conflitos.
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * RESET E ISOLAMENTO DA PÁGINA DE LOGIN
+ * ============================================================================ */
+.login-page-container {
+  /* Resetar qualquer estilo global */
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  
+  /* Estilos do container principal - Figma Light Mode */
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FBFAF9; /* Light mode */
+  min-height: 100vh;
+  padding: 0 24px;
+}
+
+/* Dark mode - Background escuro do Figma */
+.dark .login-page-container {
+  background-color: #120E1B; /* Dark mode Figma */
+}
+
+/* Container centralizado - Figma: width 512px, gap 32px */
+.login-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 512px;
+  gap: 32px;
+}
+
+/* ============================================================================
+ * LOGO E TÍTULOS (FORA DO CARD)
+ * ============================================================================ */
+.login-header {
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.login-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0;
+  width: 100%;
+  margin-top: 0;
+}
+
+.login-logo {
+  width: 61.85px;
+  height: 61.85px;
+  background-color: #6E1AE6; /* Light mode */
+  border-radius: 16px;
+  box-shadow: 0px 4px 6px -4px rgba(110, 25, 229, 0.2), 0px 10px 15px -3px rgba(110, 25, 229, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Dark mode - Logo roxo do Figma */
+.dark .login-logo {
+  background-color: #9A5EED; /* Roxo Figma dark mode */
+  box-shadow: 0px 4px 6px -4px rgba(154, 94, 237, 0.2), 0px 10px 15px -3px rgba(154, 94, 237, 0.2);
+}
+
+.login-title-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  align-items: center;
+  margin-top: 0;
+}
+
+.login-title {
+  font-family: 'Tinos', serif;
+  font-size: 36px;
+  line-height: 1.1111111111111112em;
+  letter-spacing: -0.025em;
+  font-weight: 700;
+  color: #160F24; /* Light mode */
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* Dark mode - Título branco do Figma */
+.dark .login-title {
+  color: #F2F1F4; /* Dark mode Figma */
+}
+
+.login-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  line-height: 1.625em;
+  letter-spacing: -0.0244em;
+  color: #635C70; /* Light mode */
+  text-align: center;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* Dark mode - Subtítulo cinza claro do Figma */
+.dark .login-subtitle {
+  color: #ADA3C2; /* Dark mode Figma */
+}
+
+/* ============================================================================
+ * CARD DO FORMULÁRIO
+ * ============================================================================ */
+.login-card-figma {
+  width: 100%;
+  background-color: #FFFFFF; /* Light mode */
+  border-radius: 24px;
+  padding: 41px 41px 1px;
+  box-shadow: 0px 8px 10px -6px rgba(229, 227, 232, 0.5), 0px 20px 25px -5px rgba(229, 227, 232, 0.5);
+  border: 1px solid #CAC7D1; /* Light mode */
+  box-sizing: border-box;
+}
+
+/* Dark mode - Card escuro do Figma */
+.dark .login-card-figma {
+  background-color: #1C1726; /* Dark mode Figma */
+  border: 1px solid #30293D; /* Dark mode Figma */
+  box-shadow: 0px 8px 10px -6px rgba(48, 41, 61, 0.5), 0px 20px 25px -5px rgba(48, 41, 61, 0.5);
+}
+
+.login-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.login-card-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.login-card-title {
+  font-family: 'Tinos', serif;
+  font-size: 24px;
+  line-height: 1.3333333333333333em;
+  font-weight: 700;
+  color: #160F24; /* Light mode */
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode - Título do card branco do Figma */
+.dark .login-card-title {
+  color: #F2F1F4; /* Dark mode Figma */
+}
+
+.login-card-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.4285714285714286em;
+  letter-spacing: -0.0107em;
+  color: #635C70; /* Light mode */
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode - Subtítulo do card cinza claro do Figma */
+.dark .login-card-subtitle {
+  color: #ADA3C2; /* Dark mode Figma */
+}
+
+/* ============================================================================
+ * FORMULÁRIO
+ * ============================================================================ */
+.login-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.login-form-field {
+  width: 100%;
+}
+
+.login-form-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.login-form-field-item {
+  width: 100%;
+}
+
+.login-validation-message {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #10b981;
+}
+
+.login-city-field {
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  position: relative;
+  z-index: 100;
+}
+
+.login-city-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #160F24;
+  margin-bottom: 8px;
+}
+
+.login-password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.login-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 38px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #635C70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-password-toggle:hover {
+  color: #160F24;
+}
+
+.login-password-check {
+  position: absolute;
+  right: 40px;
+  top: 40px;
+  color: #10b981;
+}
+
+.login-forgot-password {
+  text-align: right;
+  width: 100%;
+}
+
+.login-forgot-password-button {
+  font-size: 14px;
+  color: #FF8904;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.login-forgot-password-button:hover {
+  opacity: 0.8;
+}
+
+/* ============================================================================
+ * INPUTS
+ * ============================================================================ */
+.login-input-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.login-input-figma {
+  width: 100%;
+  background-color: hsl(var(--input-background));
+  border: 1px solid transparent;
+  border-radius: 16.399999618530273px;
+  height: 48px;
+  padding: 4px 12px;
+  color: hsl(var(--foreground));
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.2102272851126534em;
+  letter-spacing: -0.0107em;
+  box-sizing: border-box;
+  margin: 0;
+  transition: border-color 0.2s;
+}
+
+.login-input-figma::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 0.6;
+}
+
+.login-input-figma:focus {
+  outline: none;
+  border-color: transparent;
+}
+
+.login-input-figma.error {
+  border-color: #FB2C36;
+}
+
+.login-input-label {
+  display: block; /* Labels visíveis conforme necessário */
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.2102272851126534em;
+  letter-spacing: -0.0107em;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 8px 0;
+  padding: 0;
+}
+
+.login-input-error {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.2102272851126534em;
+  letter-spacing: -0.0107em;
+  color: hsl(var(--destructive));
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================================================
+ * BOTÃO SIGN IN
+ * ============================================================================ */
+.login-button-figma {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  background-color: hsl(var(--primary)) !important;
+  height: 48px !important;
+  border-radius: 16.399999618530273px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.4285714285714286em !important;
+  letter-spacing: -0.0107em !important;
+  font-weight: 700 !important;
+  color: hsl(var(--primary-foreground)) !important;
+  box-shadow: 0px 4px 6px -4px rgba(255, 137, 4, 0.25), 0px 10px 15px -3px rgba(255, 137, 4, 0.25) !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s !important;
+}
+
+.login-button-figma:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.login-button-figma:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  background-color: #FF8904 !important; /* Manter cor mesmo quando desabilitado */
+  color: #FFFFFF !important;
+}
+
+/* ============================================================================
+ * DIVISOR "OR CONTINUE WITH"
+ * ============================================================================ */
+.login-divider {
+  height: 16px;
+  position: relative;
+  width: 100%;
+}
+
+.login-divider-line {
+  border-top: 1px solid #CAC7D1; /* Light mode */
+  width: 100%;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode - Divisor escuro do Figma */
+.dark .login-divider-line {
+  border-top-color: #30293D; /* Dark mode Figma */
+}
+
+.login-divider-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.login-divider-text {
+  background-color: #FFFFFF; /* Light mode */
+  padding: 0 16px;
+  position: relative;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 1.3333333333333333em;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: #635C70; /* Light mode */
+  text-transform: uppercase;
+}
+
+/* Dark mode - Texto do divisor */
+.dark .login-divider-text {
+  background-color: #1C1726; /* Dark mode Figma */
+  color: #ADA3C2; /* Dark mode Figma */
+}
+
+/* ============================================================================
+ * BOTÃO GOOGLE
+ * ============================================================================ */
+.login-google-button {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  background-color: rgba(202, 199, 209, 0.3) !important; /* Light mode */
+  border: 1px solid #CAC7D1 !important; /* Light mode */
+  height: 48px !important;
+  border-radius: 16.399999618530273px !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.4285714285714286em !important;
+  letter-spacing: -0.0107em !important;
+  font-weight: 500 !important;
+  color: #635C70 !important; /* Light mode */
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s !important;
+}
+
+/* Dark mode - Botão Google escuro do Figma */
+.dark .login-google-button {
+  background-color: rgba(48, 41, 61, 0.3) !important; /* Dark mode Figma */
+  border: 1px solid #30293D !important; /* Dark mode Figma */
+  color: #ADA3C2 !important; /* Dark mode Figma */
+}
+
+.login-google-button:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.login-google-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.login-google-icon {
+  color: #4285F4;
+}
+
+/* Container para botão do Google renderizado pelo Google Identity Services */
+.login-google-button-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+}
+
+/* Estilizar o botão do Google renderizado pelo Google Identity Services */
+.login-google-button-container iframe {
+  width: 100% !important;
+  max-width: 300px;
+}
+
+/* ============================================================================
+ * FOOTER
+ * ============================================================================ */
+.login-footer {
+  text-align: center;
+  width: 100%;
+}
+
+.login-footer-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.4285714285714286em;
+  letter-spacing: -0.0107em;
+  color: #635C70; /* Light mode */
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* Dark mode - Footer cinza claro do Figma */
+.dark .login-footer-text {
+  color: #ADA3C2; /* Dark mode Figma */
+}
+
+.login-footer-link {
+  font-weight: 700;
+  color: #FF6900;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.login-footer-link:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+ * SOBRESCREVER ESTILOS GLOBAIS APENAS NA PÁGINA DE LOGIN
+ * ============================================================================ */
+.login-page-container * {
+  box-sizing: border-box;
+}
+
+/* Resetar estilos de botões globais APENAS dentro do container de login */
+/* IMPORTANTE: Não afetar botões que estão FORA do container (tema e idioma) */
+.login-page-container button:not(.login-button-figma):not(.login-google-button):not(.login-password-toggle):not(.login-forgot-password-button):not(.login-footer-link) {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* IMPORTANTE: Botões de controle (tema e idioma) estão FORA do .login-page-container */
+/* Eles estão em um div com "absolute top-4 right-4" no App.tsx */
+/* Portanto, os resets acima NÃO devem afetá-los */
+/* Mas para garantir, vamos adicionar uma regra específica para preservar seus estilos Tailwind */
+div.absolute button[aria-label*="Alternar tema"],
+div.absolute button[aria-label*="Switch"],
+div.absolute button[aria-label*="Mudar"] {
+  /* Esses botões NÃO estão dentro de .login-page-container, então não são afetados pelos resets */
+  /* Garantir que mantenham seus estilos Tailwind originais */
+  all: unset !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+}
+
+/* Estilos específicos para o botão de tema */
+div.absolute button[aria-label*="Alternar tema"] {
+  position: relative !important;
+  padding: 0.5rem !important;
+  border-radius: 0.5rem !important;
+  transition: all 0.3s !important;
+}
+
+/* Estilos específicos para o botão de idioma */
+div.absolute button[aria-label*="Switch"],
+div.absolute button[aria-label*="Mudar"] {
+  width: 2.25rem !important; /* w-9 */
+  height: 2.25rem !important; /* h-9 */
+  border-radius: 0.5rem !important; /* rounded-lg */
+  border: 1px solid hsl(var(--border) / 0.5) !important;
+  background-color: hsl(var(--muted) / 0.5) !important;
+  transition: all 0.2s !important;
+}
+
+/* Resetar estilos de inputs globais */
+.login-page-container input {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  border: none;
+  outline: none;
+  background: none;
+}
+
+/* Resetar estilos de labels globais */
+.login-page-container label {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Resetar estilos de parágrafos globais */
+.login-page-container p {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Resetar estilos de headings globais */
+.login-page-container h1,
+.login-page-container h2,
+.login-page-container h3,
+.login-page-container h4,
+.login-page-container h5,
+.login-page-container h6 {
+  margin: 0;
+  padding: 0;
+}
+
+/* Garantir que inputs não sejam afetados por estilos globais */
+.login-page-container input[type="text"],
+.login-page-container input[type="email"],
+.login-page-container input[type="password"],
+.login-page-container input[type="number"] {
+  background-color: rgba(202, 199, 209, 0.3); /* Light mode */
+  border: 1px solid transparent;
+  border-radius: 16.399999618530273px;
+  height: 48px;
+  padding: 4px 12px;
+  color: #635C70; /* Light mode */
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.2102272851126534em;
+  letter-spacing: -0.0107em;
+}
+
+/* Dark mode - Inputs escuros do Figma */
+.dark .login-page-container input[type="text"],
+.dark .login-page-container input[type="email"],
+.dark .login-page-container input[type="password"],
+.dark .login-page-container input[type="number"],
+.dark .login-input-figma {
+  background-color: rgba(48, 41, 61, 0.3) !important; /* Dark mode Figma */
+  color: #ADA3C2 !important; /* Dark mode Figma */
+}
+
+.login-page-container input[type="text"]::placeholder,
+.login-page-container input[type="email"]::placeholder,
+.login-page-container input[type="password"]::placeholder,
+.login-page-container input[type="number"]::placeholder {
+  color: #635C70; /* Light mode */
+  opacity: 0.6;
+}
+
+/* Dark mode - Placeholders */
+.dark .login-page-container input[type="text"]::placeholder,
+.dark .login-page-container input[type="email"]::placeholder,
+.dark .login-page-container input[type="password"]::placeholder,
+.dark .login-page-container input[type="number"]::placeholder {
+  color: #ADA3C2 !important; /* Dark mode Figma */
+  opacity: 0.6;
+}

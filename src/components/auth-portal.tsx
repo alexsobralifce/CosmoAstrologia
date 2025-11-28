@@ -10,6 +10,8 @@ import { useLanguage } from '../i18n';
 import { toast } from 'sonner';
 import { Chrome } from 'lucide-react';
 import { apiService } from '../services/api';
+import '../styles/login-page.css';
+import '../styles/google-modal.css';
 
 interface AuthPortalProps {
   onAuthSuccess: (userData: AuthUserData) => void;
@@ -476,6 +478,155 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
   const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
   const isProcessingGoogleLogin = useRef(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+
+  // Função para lidar com o callback do Google OAuth
+  const handleGoogleCallback = useCallback(async (response: any) => {
+    console.log('[AUTH] Google OAuth response recebida');
+    setIsLoading(true);
+    
+    try {
+      const credential = response.credential;
+      
+      if (!credential) {
+        throw new Error('Credencial do Google não recebida');
+      }
+
+      // Verificar token com o backend
+      const googleUserData = await apiService.verifyGoogleToken(credential);
+      
+      const { email, name, google_id } = googleUserData;
+      const finalName = name || email.split('@')[0];
+      
+      // Chamar API de autenticação Google com os dados reais
+      const authResponse = await apiService.googleAuth({
+        email: email.toLowerCase().trim(),
+        name: finalName,
+        google_id: google_id || credential,
+      });
+
+      setIsLoading(false);
+
+      if (authResponse.needs_onboarding) {
+        // Usuário precisa completar onboarding
+        toast.info(
+          language === 'pt' ? 'Conta Google conectada!' : 'Google account connected!',
+          {
+            description: authResponse.is_new_user
+              ? (language === 'pt' ? 'Vamos configurar seu mapa astral.' : "Let's set up your birth chart.")
+              : (language === 'pt' ? 'Complete seu cadastro para continuar.' : 'Complete your registration to continue.'),
+            duration: 3000
+          }
+        );
+
+        if (onGoogleNeedsOnboarding) {
+          onGoogleNeedsOnboarding(email.toLowerCase().trim(), finalName, google_id || credential);
+        } else {
+          onNeedsBirthData(email.toLowerCase().trim(), finalName);
+        }
+      } else {
+        // Usuário já tem mapa astral - ir direto para dashboard
+        toast.success(t('auth', 'loginSuccess'), {
+          description: language === 'pt'
+            ? `Bem-vindo de volta, ${finalName}!`
+            : `Welcome back, ${finalName}!`,
+          duration: 2000
+        });
+
+        onAuthSuccess({
+          email: email.toLowerCase().trim(),
+          name: finalName,
+          hasCompletedOnboarding: true
+        });
+      }
+    } catch (error: any) {
+      console.error('[AUTH] Erro na autenticação Google:', error);
+      setIsLoading(false);
+      
+      let errorMessage = language === 'pt' ? 'Erro ao conectar com Google' : 'Error connecting with Google';
+      let errorDescription = language === 'pt'
+        ? 'Tente novamente ou use outro método de login.'
+        : 'Try again or use another login method.';
+
+      if (error?.message) {
+        errorDescription = error.message;
+      } else if (typeof error === 'string') {
+        errorDescription = error;
+      }
+
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000
+      });
+    } finally {
+      isProcessingGoogleLogin.current = false;
+    }
+  }, [language, t, onAuthSuccess, onGoogleNeedsOnboarding, onNeedsBirthData]);
+
+  // Inicializar Google Identity Services e renderizar botão
+  useEffect(() => {
+    const initGoogleAuth = () => {
+      // @ts-expect-error google is loaded from script
+      if (window.google?.accounts?.id && googleClientId && googleButtonRef.current) {
+        try {
+          // Limpar conteúdo anterior do container
+          if (googleButtonRef.current) {
+            googleButtonRef.current.innerHTML = '';
+          }
+
+          // @ts-expect-error
+          window.google.accounts.id.initialize({
+            client_id: googleClientId,
+            callback: handleGoogleCallback,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          // Renderizar botão do Google
+          // @ts-expect-error
+          window.google.accounts.id.renderButton(
+            googleButtonRef.current,
+            {
+              type: 'standard',
+              theme: 'outline',
+              size: 'large',
+              text: 'signin_with',
+              width: '100%',
+            }
+          );
+          console.log('[AUTH] Google Identity Services inicializado e botão renderizado');
+        } catch (error) {
+          console.error('[AUTH] Erro ao inicializar Google Identity Services:', error);
+        }
+      }
+    };
+
+    // Tentar inicializar imediatamente
+    initGoogleAuth();
+
+    // Se não estiver disponível, tentar novamente após um delay
+    // @ts-expect-error
+    if (!window.google?.accounts?.id) {
+      const checkInterval = setInterval(() => {
+        // @ts-expect-error
+        if (window.google?.accounts?.id && googleButtonRef.current) {
+          initGoogleAuth();
+          clearInterval(checkInterval);
+        }
+      }, 100);
+
+      // Limpar após 10 segundos
+      setTimeout(() => clearInterval(checkInterval), 10000);
+    }
+
+    // Cleanup: remover botão quando componente desmontar
+    return () => {
+      if (googleButtonRef.current) {
+        googleButtonRef.current.innerHTML = '';
+      }
+    };
+  }, [googleClientId, handleGoogleCallback]);
 
   // Monitorar mudanças no estado do modal (debug)
   useEffect(() => {
@@ -484,6 +635,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
     }
   }, [showGoogleModal]);
 
+
   const handleGoogleLogin = async () => {
     // Prevenir múltiplos cliques usando ref
     if (isProcessingGoogleLogin.current) {
@@ -491,31 +643,70 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       return;
     }
 
-    if (isLoading || showGoogleModal) {
-      console.log('[AUTH] Google login já em andamento ou modal aberto', { isLoading, showGoogleModal });
+    if (isLoading) {
+      console.log('[AUTH] Google login já em andamento', { isLoading });
       return;
     }
 
     isProcessingGoogleLogin.current = true;
-    console.log('[AUTH] Iniciando Google login...');
-    
+    console.log('[AUTH] Iniciando Google OAuth...');
+
     try {
-      // Verificar se Google Identity Services está disponível
       // @ts-expect-error google is loaded from script
       const google = window.google;
-      
+
       if (!google?.accounts?.id) {
-        // Modo simulação: mostrar modal para inserir email do Google
-        console.log('[AUTH] Abrindo modal do Google (modo simulação)');
+        // Fallback: usar modal simulado se Google Identity Services não estiver disponível
+        console.log('[AUTH] Google Identity Services não disponível, usando modal simulado');
         setShowGoogleModal(true);
-      } else {
-        // TODO: Implementar autenticação real com Google Identity Services
-      }
-    } finally {
-      // Resetar após um pequeno delay para permitir que o estado seja atualizado
-      setTimeout(() => {
         isProcessingGoogleLogin.current = false;
-      }, 300);
+        return;
+      }
+
+      if (!googleClientId) {
+        toast.warning(
+          language === 'pt' 
+            ? 'Google OAuth não configurado' 
+            : 'Google OAuth not configured',
+          {
+            description: language === 'pt'
+              ? 'Usando modo de teste. Configure VITE_GOOGLE_CLIENT_ID para usar OAuth real.'
+              : 'Using test mode. Configure VITE_GOOGLE_CLIENT_ID to use real OAuth.',
+            duration: 5000
+          }
+        );
+        setShowGoogleModal(true);
+        isProcessingGoogleLogin.current = false;
+        return;
+      }
+
+      // Usar o método prompt do Google Identity Services
+      // @ts-expect-error
+      google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          // Se o prompt não foi exibido, usar renderButton ou One Tap
+          console.log('[AUTH] Prompt não exibido, tentando One Tap');
+          
+          // Tentar renderizar botão ou usar método alternativo
+          // Por enquanto, usar modal como fallback
+          setShowGoogleModal(true);
+          isProcessingGoogleLogin.current = false;
+        } else if (notification.isDismissedMoment()) {
+          console.log('[AUTH] Usuário dispensou o prompt');
+          isProcessingGoogleLogin.current = false;
+        }
+      });
+    } catch (error: any) {
+      console.error('[AUTH] Erro ao iniciar Google OAuth:', error);
+      toast.error(
+        language === 'pt' ? 'Erro ao iniciar autenticação Google' : 'Error starting Google authentication',
+        {
+          description: error?.message || (language === 'pt'
+            ? 'Tente novamente ou use outro método de login.'
+            : 'Try again or use another login method.'),
+        }
+      );
+      isProcessingGoogleLogin.current = false;
     }
   };
 
@@ -582,18 +773,26 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       setGoogleEmail('');
       setGoogleName('');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AUTH] Erro na autenticação Google:', error);
       setIsLoading(false);
-      toast.error(
-        language === 'pt' ? 'Erro ao conectar com Google' : 'Error connecting with Google',
-        {
-          description: language === 'pt' 
-            ? 'Tente novamente ou use outro método de login.'
-            : 'Try again or use another login method.',
-          duration: 4000
-        }
-      );
+      
+      // Extrair mensagem de erro específica se disponível
+      let errorMessage = language === 'pt' ? 'Erro ao conectar com Google' : 'Error connecting with Google';
+      let errorDescription = language === 'pt' 
+        ? 'Tente novamente ou use outro método de login.'
+        : 'Try again or use another login method.';
+      
+      if (error?.message) {
+        errorDescription = error.message;
+      } else if (typeof error === 'string') {
+        errorDescription = error;
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000
+      });
     }
   };
 
@@ -660,8 +859,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       {/* Modal de Login com Google (Simulação) - Renderizado via Portal */}
       {showGoogleModal && typeof window !== 'undefined' && createPortal(
         <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center" 
-          style={{ zIndex: 9999 }}
+          className="google-modal-overlay"
           onClick={(e) => {
             // Fechar modal ao clicar fora
             if (e.target === e.currentTarget) {
@@ -671,137 +869,135 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
             }
           }}
         >
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl animate-fadeIn">
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md">
-                <svg viewBox="0 0 24 24" className="w-6 h-6">
+          <div className="google-modal-content">
+            <div className="google-modal-header">
+              <div className="google-modal-google-icon">
+                <svg viewBox="0 0 24 24" style={{ width: '24px', height: '24px' }}>
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold text-foreground">
+              <h2 className="google-modal-title">
                 {language === 'pt' ? 'Entrar com Google' : 'Sign in with Google'}
               </h2>
-      </div>
+            </div>
             
-            <p className="text-sm text-muted-foreground text-center mb-6">
+            <p className="google-modal-description">
               {language === 'pt' 
                 ? 'Digite seu email do Google para continuar. Se já tiver uma conta, você será logado automaticamente.'
                 : 'Enter your Google email to continue. If you already have an account, you will be logged in automatically.'}
             </p>
             
-            <div className="space-y-4">
-              <AstroInput
-                label={language === 'pt' ? 'Email do Google' : 'Google Email'}
-                type="email"
-                placeholder="seu.email@gmail.com"
-                value={googleEmail}
-                onChange={(e) => setGoogleEmail(e.target.value)}
-                autoFocus
-              />
+            <div className="google-modal-form">
+              <div className="google-modal-input-group">
+                <label className="google-modal-label">
+                  {language === 'pt' ? 'Email do Google' : 'Google Email'}
+                </label>
+                <input
+                  type="email"
+                  value={googleEmail}
+                  onChange={(e) => setGoogleEmail(e.target.value)}
+                  placeholder={language === 'pt' ? 'seu.email@gmail.com' : 'your.email@gmail.com'}
+                  className="google-modal-input"
+                  autoFocus
+                />
+              </div>
               
-              <AstroInput
-                label={language === 'pt' ? 'Seu Nome (opcional)' : 'Your Name (optional)'}
-                placeholder={language === 'pt' ? 'Como quer ser chamado?' : 'What should we call you?'}
-                value={googleName}
-                onChange={(e) => setGoogleName(e.target.value)}
-              />
-              
-              <div className="flex gap-3 pt-2">
-                <AstroButton 
-                  variant="secondary" 
-                  onClick={() => {
-                    setShowGoogleModal(false);
-                    setGoogleEmail('');
-                    setGoogleName('');
-                  }}
-                  className="flex-1"
-                >
-                  {language === 'pt' ? 'Cancelar' : 'Cancel'}
-                </AstroButton>
-                <AstroButton 
-                  variant="primary" 
-                  onClick={handleGoogleModalSubmit}
-                  disabled={!googleEmail || !googleEmail.includes('@')}
-                  className="flex-1"
-                >
-                  {language === 'pt' ? 'Continuar' : 'Continue'}
-                </AstroButton>
+              <div className="google-modal-input-group">
+                <label className="google-modal-label">
+                  {language === 'pt' ? 'Nome (opcional)' : 'Name (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={googleName}
+                  onChange={(e) => setGoogleName(e.target.value)}
+                  placeholder={language === 'pt' ? 'Como quer ser chamado?' : 'What do you want to be called?'}
+                  className="google-modal-input"
+                />
               </div>
             </div>
             
-            <p className="text-xs text-muted-foreground text-center mt-4">
-              {language === 'pt' 
-                ? '🔒 Modo de simulação - Em produção, você será redirecionado para o Google'
-                : '🔒 Simulation mode - In production, you will be redirected to Google'}
+            <div className="google-modal-buttons">
+              <button
+                type="button"
+                className="google-modal-button google-modal-button-cancel"
+                onClick={() => {
+                  setShowGoogleModal(false);
+                  setGoogleEmail('');
+                  setGoogleName('');
+                }}
+              >
+                {language === 'pt' ? 'Cancelar' : 'Cancel'}
+              </button>
+              <button
+                type="button"
+                className="google-modal-button google-modal-button-continue"
+                onClick={handleGoogleModalSubmit}
+                disabled={!googleEmail || !googleEmail.includes('@') || isLoading}
+              >
+                {language === 'pt' ? 'Continuar' : 'Continue'}
+              </button>
+            </div>
+            
+            <p className="google-modal-note">
+              <span>🔒</span>
+              <span>
+                {language === 'pt' 
+                  ? 'Modo de simulação - Em produção, você será redirecionado para o Google'
+                  : 'Simulation mode - In production, you will be redirected to Google'}
+              </span>
             </p>
           </div>
         </div>,
         document.body
       )}
 
-    <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden bg-background">
-
-      {/* Fundo Cósmico Animado */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-[#0F1535] to-background pointer-events-none">
-        {/* Estrelas */}
-        {[...Array(50)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-accent rounded-full animate-twinkle"
-            style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`
-            }}
-          />
-        ))}
-        
-        {/* Gradientes místicos */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-      </div>
-
-      {/* Container centralizado */}
-      <div className="w-full max-w-md mx-auto relative z-10 flex flex-col items-center justify-center space-y-8">
+    {/* Container principal - CSS puro */}
+    <div className="login-page-container">
+      {/* Container centralizado - Figma: width 512px, gap 32px */}
+      <div className="login-content-wrapper">
         {/* Logo e Título - FORA do card como no Figma */}
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
-              <UIIcons.Star className="text-foreground" size={40} />
+        <div className="login-header">
+          {/* Logo - Figma: 61.85x61.85px, background #6E1AE6, border-radius 16px */}
+          <div className="login-logo-wrapper">
+            <div className="login-logo">
+              <UIIcons.Star className="text-white" size={35} />
             </div>
           </div>
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold text-foreground" style={{ fontFamily: 'var(--font-serif)' }}>
+          {/* Título - Figma: Tinos, 36px, bold, center, #160F24, line-height 1.11 */}
+          <div className="login-title-wrapper">
+            <h1 className="login-title">
               {texts.title}
             </h1>
-            <p className="text-muted-foreground">
+            {/* Subtítulo - Figma: Inter, 18px, center, #635C70, line-height 1.625 */}
+            <p className="login-subtitle">
               {texts.subtitle}
             </p>
           </div>
         </div>
 
-        {/* Card Principal */}
-        <AstroCard className="w-full shadow-xl border-border" style={{ borderRadius: '24px' }}>
-          <div className="space-y-6 p-8">
-            {/* Título do Card */}
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'var(--font-serif)' }}>
+        {/* Card Principal - CSS puro */}
+        <div className="login-card-figma">
+          <div className="login-card-content">
+            {/* Título do Card - Figma: gap 8px */}
+            <div className="login-card-header">
+              {/* Título - Figma: Tinos, 24px, bold, center, #160F24, line-height 1.33 */}
+              <h2 className="login-card-title">
                 {mode === 'signup' ? texts.createAccount : texts.welcomeBack}
               </h2>
-              <p className="text-muted-foreground text-sm">
+              {/* Subtítulo - Figma: Inter, 14px, center, #635C70, line-height 1.43 */}
+              <p className="login-card-subtitle">
                 {mode === 'signup' ? texts.beginJourney : texts.signInAccess}
               </p>
             </div>
 
-            {/* Formulário */}
-            <div className="space-y-4">
+            {/* Formulário - CSS puro */}
+            <div className="login-form-container">
               {/* Nome Completo (apenas no signup) */}
               {mode === 'signup' && (
-                <div>
+                <div className="login-form-field">
                   <AstroInput
                     label={texts.fullName}
                     type="text"
@@ -815,8 +1011,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
               {/* Data e Hora de Nascimento (apenas no signup) */}
               {mode === 'signup' && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="login-form-field-grid">
+                  <div className="login-form-field-item">
                     <AstroInput
                       label={language === 'pt' ? 'Data de Nascimento' : 'Birth Date'}
                       type="text"
@@ -828,13 +1024,13 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
                       inputMode="numeric"
                     />
                     {birthDate && birthDate.length === 10 && !errors.birthDate && (
-                      <div className="flex items-center gap-1 mt-1 text-xs text-green-500">
+                      <div className="login-validation-message">
                         <UIIcons.CheckCircle size={12} />
                         <span>{language === 'pt' ? 'Data válida' : 'Valid date'}</span>
                       </div>
                     )}
                   </div>
-                  <div>
+                  <div className="login-form-field-item">
                     <AstroInput
                       label={language === 'pt' ? 'Hora de Nascimento' : 'Birth Time'}
                       type="text"
@@ -846,7 +1042,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
                       inputMode="numeric"
                     />
                     {birthTime && birthTime.length === 5 && !errors.birthTime && (
-                      <div className="flex items-center gap-1 mt-1 text-xs text-green-500">
+                      <div className="login-validation-message">
                         <UIIcons.CheckCircle size={12} />
                         <span>{language === 'pt' ? 'Hora válida' : 'Valid time'}</span>
                       </div>
@@ -857,8 +1053,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
               {/* Cidade de Nascimento com Autocomplete (apenas no signup) */}
               {mode === 'signup' && (
-                <div className="mb-4 pb-2 relative" style={{ zIndex: 100 }}>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="login-city-field">
+                  <label className="login-city-label">
                     {texts.cityOfBirth}
                   </label>
                   <LocationAutocomplete
@@ -874,7 +1070,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
                     error={errors.birthCity}
                   />
                   {birthLocation && (
-                    <div className="flex items-center gap-1 mt-1 text-xs text-green-500">
+                    <div className="login-validation-message">
                       <UIIcons.MapPin size={12} />
                       <span>{language === 'pt' ? 'Localização selecionada' : 'Location selected'}</span>
                     </div>
@@ -883,7 +1079,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
               )}
 
               {/* E-mail */}
-              <div>
+              <div className="login-form-field">
                 <AstroInput
                   label={texts.emailAddress}
                   type="email"
@@ -895,8 +1091,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
               </div>
 
               {/* Senha */}
-              <div>
-                <div className="relative">
+              <div className="login-form-field">
+                <div className="login-password-wrapper">
                   <AstroInput
                     label={texts.passwordLabel}
                     type={showPassword ? 'text' : 'password'}
@@ -908,7 +1104,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-[38px] text-muted-foreground hover:text-foreground transition-colors"
+                    className="login-password-toggle"
                   >
                     {showPassword ? <UIIcons.EyeOff size={18} /> : <UIIcons.Eye size={18} />}
                   </button>
@@ -917,8 +1113,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
               {/* Confirmar Senha (apenas no signup) */}
               {mode === 'signup' && (
-                <div>
-                  <div className="relative">
+                <div className="login-form-field">
+                  <div className="login-password-wrapper">
                     <AstroInput
                       label={texts.confirmPassword}
                       type={showConfirmPassword ? 'text' : 'password'}
@@ -931,12 +1127,12 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-[38px] text-muted-foreground hover:text-foreground transition-colors"
+                      className="login-password-toggle"
                     >
                       {showConfirmPassword ? <UIIcons.EyeOff size={18} /> : <UIIcons.Eye size={18} />}
                     </button>
                     {confirmPassword && passwordsMatch && (
-                      <UIIcons.CheckCircle className="absolute right-10 top-[40px] text-green-500" size={18} />
+                      <UIIcons.CheckCircle className="login-password-check" size={18} />
                     )}
                   </div>
                 </div>
@@ -944,79 +1140,90 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
               {/* Esqueceu senha (apenas no login) */}
               {mode === 'login' && (
-                <div className="text-right">
+                <div className="login-forgot-password">
                   <button
                     onClick={handleForgotPassword}
-                    className="text-sm text-accent hover:text-accent/80 transition-colors"
+                    className="login-forgot-password-button"
                   >
                     {texts.forgotPassword}
                   </button>
                 </div>
               )}
 
-              {/* Botão Principal */}
-              <AstroButton
+              {/* Botão Principal - CSS puro */}
+              <button
                 onClick={mode === 'signup' ? handleEmailSignup : handleLogin}
-                className="w-full rounded-2xl font-semibold btn-figma-orange"
                 disabled={
+                  isLoading ||
                   !email || 
                   !password || 
                   (mode === 'signup' && (!confirmPassword || !fullName || !birthDate || !birthTime || !birthCity))
                 }
+                className="login-button-figma"
               >
                 {mode === 'signup' ? texts.signUp : texts.signIn}
-                <UIIcons.ArrowRight size={20} />
-              </AstroButton>
+                <UIIcons.ArrowRight size={16} />
+              </button>
 
-              {/* Divisor */}
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-card text-muted-foreground uppercase tracking-wider">{texts.orContinueWith}</span>
+              {/* Divisor - CSS puro */}
+              <div className="login-divider">
+                <div className="login-divider-line"></div>
+                <div className="login-divider-wrapper">
+                  <span className="login-divider-text">
+                    {texts.orContinueWith}
+                  </span>
                 </div>
               </div>
 
-              {/* Login Social */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('[DEBUG] Google button clicked - calling handleGoogleLogin');
-                  handleGoogleLogin();
-                }}
-                disabled={isLoading || showGoogleModal}
-                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-card hover:bg-gray-50 dark:hover:bg-card/80 text-gray-900 dark:text-foreground rounded-lg transition-all duration-200 shadow-md hover:shadow-lg border border-gray-200 dark:border-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Chrome size={20} className="text-[#4285F4]" />
-                <span className="font-medium">Google</span>
-              </button>
+              {/* Login Social - CSS puro */}
+              {/* Botão do Google - renderizado pelo Google Identity Services se disponível, senão usa botão customizado */}
+              {googleClientId ? (
+                <div ref={googleButtonRef} className="login-google-button-container" />
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleGoogleLogin();
+                  }}
+                  disabled={isLoading || showGoogleModal}
+                  className="login-google-button"
+                >
+                  <Chrome size={16} className="login-google-icon" />
+                  <span>Google</span>
+                </button>
+              )}
             </div>
 
-            {/* Footer com microcopy - Estilo Figma */}
-            <div className="text-center text-sm text-muted-foreground">
+            {/* Footer com microcopy - CSS puro */}
+            <div className="login-footer">
               {mode === 'signup' ? (
-                <p>
+                <p className="login-footer-text">
                   {texts.alreadyHaveAccount}{' '}
-                  <button onClick={() => setMode('login')} className="text-secondary font-medium hover:underline">
+                  <button 
+                    onClick={() => setMode('login')} 
+                    className="login-footer-link"
+                  >
                     {texts.signIn}
                   </button>
                 </p>
               ) : (
-                <p>
+                <p className="login-footer-text">
                   {texts.dontHaveAccount}{' '}
-                  <button onClick={() => setMode('signup')} className="text-secondary font-medium hover:underline">
+                  <button 
+                    onClick={() => setMode('signup')} 
+                    className="login-footer-link"
+                  >
                     {texts.signUp}
                   </button>
                 </p>
               )}
             </div>
           </div>
-        </AstroCard>
-              </div>
-            </div>
+        </div>
+      </div>
+    </div>
     </>
   );
 };

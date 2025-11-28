@@ -1,0 +1,998 @@
+/* 
+ * ============================================================================
+ * COSMOS ASTRAL - CSS PRINCIPAL (SEM TAILWIND)
+ * ============================================================================
+ * Sistema CSS puro e organizado
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * 1. FONTES
+ * ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Tinos:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ============================================================================
+ * 2. VARIÁVEIS CSS - TEMA CLARO (PADRÃO) - FIGMA LIGHT MODE
+ * ============================================================================ */
+:root {
+  /* Fontes */
+  --font-serif: 'Tinos', serif;
+  --font-sans: 'Inter', sans-serif;
+  
+  /* Cores Base - Light Mode (Figma) - Padrão */
+  --background: 36 20% 98%;            /* #FBFAF9 - Creme Suave */
+  --foreground: 260 45% 10%;           /* #160F24 - Roxo Escuro */
+  --card: 0 0% 100%;                   /* #FFFFFF - Branco Puro */
+  --card-foreground: 260 45% 10%;
+  --primary: 25 100% 51%;              /* #FF8904 - Laranja Vibrante */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 260 15% 88%;
+  --secondary-foreground: 260 45% 10%;
+  --accent: 25 100% 51%;               /* #FF8904 - Laranja Vibrante */
+  --accent-foreground: 0 0% 100%;
+  --muted: 260 15% 95%;
+  --muted-foreground: 260 8% 43%;      /* #635C70 - Cinza-roxo */
+  --destructive: 0 85% 58%;            /* #FB2C36 - Vermelho */
+  --destructive-foreground: 0 0% 100%;
+  --border: 260 10% 81%;               /* #CAC7D1 - Cinza suave */
+  --input: 202 199 209 0.3;            /* rgba(202, 199, 209, 0.3) */
+  --ring: 25 100% 51%;                 /* #FF8904 */
+  --popover: 0 0% 100%;
+  --popover-foreground: 260 45% 10%;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 260 45% 10%;
+  --sidebar-border: 260 10% 81%;       /* #CAC7D1 */
+  --sidebar-accent: 25 100% 96%;
+  --sidebar-accent-foreground: 25 100% 35%;
+  
+  /* Cores específicas do Figma Light Mode */
+  --logo-bg: 265 80% 50%;              /* #6E1AE6 - Logo roxo light mode */
+  --text-secondary: 260 8% 43%;         /* #635C70 - Texto secundário */
+  
+  /* Border Radius */
+  --radius: 0.5rem;
+}
+
+/* ============================================================================
+ * 3. TEMA ESCURO - FIGMA DARK MODE
+ * ============================================================================ */
+.dark {
+  /* Cores Base - Dark Mode (Figma) */
+  --background: 260 30% 8%;           /* #120E1B */
+  --foreground: 260 10% 95%;           /* #F2F1F4 */
+  --card: 260 25% 12%;                 /* #1C1726 */
+  --card-foreground: 260 10% 95%;      /* #F2F1F4 */
+  --primary: 265 80% 65%;              /* #C27AFF */
+  --primary-foreground: 0 0% 100%;     /* #FFFFFF */
+  --secondary: 260 20% 25%;
+  --secondary-foreground: 260 10% 95%;
+  --accent: 25 85% 60%;                /* #FF8904 */
+  --accent-foreground: 0 0% 100%;      /* #FFFFFF */
+  --muted: 260 20% 20%;
+  --muted-foreground: 260 10% 68%;     /* #ADA3C2 - Texto secundário Figma */
+  --destructive: 0 70% 60%;            /* #FB2C36 */
+  --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+  --border: 260 20% 25%;               /* #30293D */
+  --input: 48 41 61 0.3;               /* rgba(48, 41, 61, 0.3) - Figma */
+  --ring: 265 80% 65%;                 /* #C27AFF */
+  --popover: 260 25% 12%;
+  --popover-foreground: 260 10% 95%;
+  --sidebar: 260 30% 10%;
+  --sidebar-foreground: 260 10% 95%;
+  --sidebar-border: 260 20% 20%;
+  --sidebar-accent: 25 85% 60%;
+  --sidebar-accent-foreground: 260 30% 8%;
+  
+  /* Cores específicas do Figma Dark Mode */
+  --logo-bg: 270 65% 70%;              /* #9A5EED - Logo roxo Figma */
+  --text-secondary: 260 10% 68%;         /* #ADA3C2 - Texto secundário */
+}
+
+/* ============================================================================
+ * 4. RESET E ESTILOS BASE
+ * ============================================================================ */
+* {
+  box-sizing: border-box;
+  border-color: hsl(var(--border));
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+  padding: 0;
+}
+
+h1 { font-size: 1.5rem; line-height: 1.5; }
+h2 { font-size: 1.25rem; line-height: 1.5; }
+h3 { font-size: 1.125rem; line-height: 1.5; }
+h4 { font-size: 1rem; line-height: 1.5; }
+
+p, label {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+}
+
+input {
+  font-weight: 400;
+  font-family: inherit;
+}
+
+/* ============================================================================
+ * 5. CLASSES UTILITÁRIAS DE CORES
+ * ============================================================================ */
+.bg-background {
+  background-color: hsl(var(--background));
+}
+
+.bg-card {
+  background-color: hsl(var(--card));
+}
+
+.text-foreground {
+  color: hsl(var(--foreground));
+}
+
+.text-muted-foreground {
+  color: hsl(var(--muted-foreground));
+}
+
+.border-border {
+  border-color: hsl(var(--border));
+}
+
+.bg-primary {
+  background-color: hsl(var(--primary));
+}
+
+.text-primary {
+  color: hsl(var(--primary));
+}
+
+.bg-accent {
+  background-color: hsl(var(--accent));
+}
+
+.text-accent {
+  color: hsl(var(--accent));
+}
+
+.bg-input-background {
+  background-color: hsl(var(--input));
+}
+
+.text-destructive {
+  color: hsl(var(--destructive));
+}
+
+.border-destructive {
+  border-color: hsl(var(--destructive));
+}
+
+/* ============================================================================
+ * 6. BREAKPOINTS E RESPONSIVIDADE
+ * ============================================================================ */
+/* Mobile First Approach */
+/* sm: 640px, md: 768px, lg: 1024px, xl: 1280px, 2xl: 1536px */
+
+/* ============================================================================
+ * 7. FLEXBOX - CLASSES UTILITÁRIAS (PRIORIDADE)
+ * ============================================================================ */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap;
+}
+
+/* Alinhamento de itens (cross-axis) */
+.items-start {
+  align-items: flex-start;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-end {
+  align-items: flex-end;
+}
+
+.items-stretch {
+  align-items: stretch;
+}
+
+.items-baseline {
+  align-items: baseline;
+}
+
+/* Justificação (main-axis) */
+.justify-start {
+  justify-content: flex-start;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-around {
+  justify-content: space-around;
+}
+
+.justify-evenly {
+  justify-content: space-evenly;
+}
+
+/* Alinhamento de conteúdo */
+.content-start {
+  align-content: flex-start;
+}
+
+.content-center {
+  align-content: center;
+}
+
+.content-end {
+  align-content: flex-end;
+}
+
+.content-between {
+  align-content: space-between;
+}
+
+.content-around {
+  align-content: space-around;
+}
+
+/* Alinhamento próprio (self) */
+.self-start {
+  align-self: flex-start;
+}
+
+.self-center {
+  align-self: center;
+}
+
+.self-end {
+  align-self: flex-end;
+}
+
+.self-stretch {
+  align-self: stretch;
+}
+
+/* Flex grow/shrink */
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.flex-auto {
+  flex: 1 1 auto;
+}
+
+.flex-initial {
+  flex: 0 1 auto;
+}
+
+.flex-none {
+  flex: none;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+.flex-shrink {
+  flex-shrink: 1;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+ * 8. CSS GRID - CLASSES UTILITÁRIAS (PRIORIDADE)
+ * ============================================================================ */
+.grid {
+  display: grid;
+}
+
+.grid-cols-1 {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid-cols-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.grid-cols-6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.grid-cols-12 {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+/* Grid rows */
+.grid-rows-1 {
+  grid-template-rows: repeat(1, minmax(0, 1fr));
+}
+
+.grid-rows-2 {
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.grid-rows-3 {
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+}
+
+.grid-rows-4 {
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+/* Grid auto */
+.grid-auto-cols-auto {
+  grid-auto-columns: auto;
+}
+
+.grid-auto-cols-min {
+  grid-auto-columns: min-content;
+}
+
+.grid-auto-cols-max {
+  grid-auto-columns: max-content;
+}
+
+.grid-auto-cols-fr {
+  grid-auto-columns: minmax(0, 1fr);
+}
+
+.grid-auto-rows-auto {
+  grid-auto-rows: auto;
+}
+
+.grid-auto-rows-min {
+  grid-auto-rows: min-content;
+}
+
+.grid-auto-rows-max {
+  grid-auto-rows: max-content;
+}
+
+.grid-auto-rows-fr {
+  grid-auto-rows: minmax(0, 1fr);
+}
+
+/* Gap */
+.gap-0 { gap: 0; }
+.gap-1 { gap: 0.25rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.gap-5 { gap: 1.25rem; }
+.gap-6 { gap: 1.5rem; }
+.gap-8 { gap: 2rem; }
+.gap-10 { gap: 2.5rem; }
+.gap-12 { gap: 3rem; }
+
+/* Column gap */
+.gap-x-0 { column-gap: 0; }
+.gap-x-1 { column-gap: 0.25rem; }
+.gap-x-2 { column-gap: 0.5rem; }
+.gap-x-3 { column-gap: 0.75rem; }
+.gap-x-4 { column-gap: 1rem; }
+.gap-x-6 { column-gap: 1.5rem; }
+.gap-x-8 { column-gap: 2rem; }
+
+/* Row gap */
+.gap-y-0 { row-gap: 0; }
+.gap-y-1 { row-gap: 0.25rem; }
+.gap-y-2 { row-gap: 0.5rem; }
+.gap-y-3 { row-gap: 0.75rem; }
+.gap-y-4 { row-gap: 1rem; }
+.gap-y-6 { row-gap: 1.5rem; }
+.gap-y-8 { row-gap: 2rem; }
+
+/* Grid column span */
+.col-span-1 { grid-column: span 1 / span 1; }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.col-span-4 { grid-column: span 4 / span 4; }
+.col-span-5 { grid-column: span 5 / span 5; }
+.col-span-6 { grid-column: span 6 / span 6; }
+.col-span-7 { grid-column: span 7 / span 7; }
+.col-span-8 { grid-column: span 8 / span 8; }
+.col-span-9 { grid-column: span 9 / span 9; }
+.col-span-10 { grid-column: span 10 / span 10; }
+.col-span-11 { grid-column: span 11 / span 11; }
+.col-span-12 { grid-column: span 12 / span 12; }
+.col-span-full { grid-column: 1 / -1; }
+
+/* Grid row span */
+.row-span-1 { grid-row: span 1 / span 1; }
+.row-span-2 { grid-row: span 2 / span 2; }
+.row-span-3 { grid-row: span 3 / span 3; }
+.row-span-4 { grid-row: span 4 / span 4; }
+.row-span-5 { grid-row: span 5 / span 5; }
+.row-span-6 { grid-row: span 6 / span 6; }
+.row-span-full { grid-row: 1 / -1; }
+
+/* Grid column start/end */
+.col-start-1 { grid-column-start: 1; }
+.col-start-2 { grid-column-start: 2; }
+.col-start-3 { grid-column-start: 3; }
+.col-start-4 { grid-column-start: 4; }
+.col-start-5 { grid-column-start: 5; }
+.col-start-6 { grid-column-start: 6; }
+.col-start-7 { grid-column-start: 7; }
+.col-start-8 { grid-column-start: 8; }
+.col-start-9 { grid-column-start: 9; }
+.col-start-10 { grid-column-start: 10; }
+.col-start-11 { grid-column-start: 11; }
+.col-start-12 { grid-column-start: 12; }
+.col-start-13 { grid-column-start: 13; }
+.col-start-auto { grid-column-start: auto; }
+
+.col-end-1 { grid-column-end: 1; }
+.col-end-2 { grid-column-end: 2; }
+.col-end-3 { grid-column-end: 3; }
+.col-end-4 { grid-column-end: 4; }
+.col-end-5 { grid-column-end: 5; }
+.col-end-6 { grid-column-end: 6; }
+.col-end-7 { grid-column-end: 7; }
+.col-end-8 { grid-column-end: 8; }
+.col-end-9 { grid-column-end: 9; }
+.col-end-10 { grid-column-end: 10; }
+.col-end-11 { grid-column-end: 11; }
+.col-end-12 { grid-column-end: 12; }
+.col-end-13 { grid-column-end: 13; }
+.col-end-auto { grid-column-end: auto; }
+
+/* Grid row start/end */
+.row-start-1 { grid-row-start: 1; }
+.row-start-2 { grid-row-start: 2; }
+.row-start-3 { grid-row-start: 3; }
+.row-start-4 { grid-row-start: 4; }
+.row-start-5 { grid-row-start: 5; }
+.row-start-6 { grid-row-start: 6; }
+.row-start-7 { grid-row-start: 7; }
+.row-start-auto { grid-row-start: auto; }
+
+.row-end-1 { grid-row-end: 1; }
+.row-end-2 { grid-row-end: 2; }
+.row-end-3 { grid-row-end: 3; }
+.row-end-4 { grid-row-end: 4; }
+.row-end-5 { grid-row-end: 5; }
+.row-end-6 { grid-row-end: 6; }
+.row-end-7 { grid-row-end: 7; }
+.row-end-auto { grid-row-end: auto; }
+
+/* Grid auto flow */
+.grid-flow-row {
+  grid-auto-flow: row;
+}
+
+.grid-flow-col {
+  grid-auto-flow: column;
+}
+
+.grid-flow-dense {
+  grid-auto-flow: dense;
+}
+
+.grid-flow-row-dense {
+  grid-auto-flow: row dense;
+}
+
+.grid-flow-col-dense {
+  grid-auto-flow: column dense;
+}
+
+/* ============================================================================
+ * 8. POSICIONAMENTO E DIMENSÕES
+ * ============================================================================ */
+.w-full {
+  width: 100%;
+}
+
+.w-auto {
+  width: auto;
+}
+
+.w-1\/2 {
+  width: 50%;
+}
+
+.w-1\/3 {
+  width: 33.333333%;
+}
+
+.w-2\/3 {
+  width: 66.666667%;
+}
+
+.w-1\/4 {
+  width: 25%;
+}
+
+.w-3\/4 {
+  width: 75%;
+}
+
+.w-screen {
+  width: 100vw;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.h-auto {
+  height: auto;
+}
+
+.h-screen {
+  height: 100vh;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.max-w-full {
+  max-width: 100%;
+}
+
+.max-h-full {
+  max-height: 100%;
+}
+
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.fixed {
+  position: fixed;
+}
+
+.sticky {
+  position: sticky;
+}
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.top-0 { top: 0; }
+.top-1 { top: 0.25rem; }
+.top-2 { top: 0.5rem; }
+.top-4 { top: 1rem; }
+.top-8 { top: 2rem; }
+
+.right-0 { right: 0; }
+.right-1 { right: 0.25rem; }
+.right-2 { right: 0.5rem; }
+.right-4 { right: 1rem; }
+.right-8 { right: 2rem; }
+
+.bottom-0 { bottom: 0; }
+.bottom-1 { bottom: 0.25rem; }
+.bottom-2 { bottom: 0.5rem; }
+.bottom-4 { bottom: 1rem; }
+.bottom-8 { bottom: 2rem; }
+
+.left-0 { left: 0; }
+.left-1 { left: 0.25rem; }
+.left-2 { left: 0.5rem; }
+.left-4 { left: 1rem; }
+.left-8 { left: 2rem; }
+
+.z-0 { z-index: 0; }
+.z-10 { z-index: 10; }
+.z-20 { z-index: 20; }
+.z-30 { z-index: 30; }
+.z-40 { z-index: 40; }
+.z-50 { z-index: 50; }
+
+/* ============================================================================
+ * 9. BORDER RADIUS
+ * ============================================================================ */
+.rounded-none {
+  border-radius: 0;
+}
+
+.rounded {
+  border-radius: var(--radius);
+}
+
+.rounded-sm {
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.rounded-md {
+  border-radius: calc(var(--radius) - 1px);
+}
+
+.rounded-lg {
+  border-radius: calc(var(--radius) + 2px);
+}
+
+.rounded-xl {
+  border-radius: calc(var(--radius) + 4px);
+}
+
+.rounded-2xl {
+  border-radius: calc(var(--radius) + 8px);
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+/* ============================================================================
+ * 10. PADDING
+ * ============================================================================ */
+.p-0 { padding: 0; }
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.p-5 { padding: 1.25rem; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+
+.px-0 { padding-left: 0; padding-right: 0; }
+.px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
+.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.px-8 { padding-left: 2rem; padding-right: 2rem; }
+
+.py-0 { padding-top: 0; padding-bottom: 0; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+
+.pt-0 { padding-top: 0; }
+.pt-1 { padding-top: 0.25rem; }
+.pt-2 { padding-top: 0.5rem; }
+.pt-4 { padding-top: 1rem; }
+.pt-6 { padding-top: 1.5rem; }
+.pt-8 { padding-top: 2rem; }
+
+.pr-0 { padding-right: 0; }
+.pr-1 { padding-right: 0.25rem; }
+.pr-2 { padding-right: 0.5rem; }
+.pr-4 { padding-right: 1rem; }
+.pr-6 { padding-right: 1.5rem; }
+.pr-8 { padding-right: 2rem; }
+
+.pb-0 { padding-bottom: 0; }
+.pb-1 { padding-bottom: 0.25rem; }
+.pb-2 { padding-bottom: 0.5rem; }
+.pb-4 { padding-bottom: 1rem; }
+.pb-6 { padding-bottom: 1.5rem; }
+.pb-8 { padding-bottom: 2rem; }
+
+.pl-0 { padding-left: 0; }
+.pl-1 { padding-left: 0.25rem; }
+.pl-2 { padding-left: 0.5rem; }
+.pl-4 { padding-left: 1rem; }
+.pl-6 { padding-left: 1.5rem; }
+.pl-8 { padding-left: 2rem; }
+
+/* ============================================================================
+ * 11. MARGIN
+ * ============================================================================ */
+.m-0 { margin: 0; }
+.m-1 { margin: 0.25rem; }
+.m-2 { margin: 0.5rem; }
+.m-3 { margin: 0.75rem; }
+.m-4 { margin: 1rem; }
+.m-6 { margin: 1.5rem; }
+.m-8 { margin: 2rem; }
+.m-auto { margin: auto; }
+
+.mx-0 { margin-left: 0; margin-right: 0; }
+.mx-1 { margin-left: 0.25rem; margin-right: 0.25rem; }
+.mx-2 { margin-left: 0.5rem; margin-right: 0.5rem; }
+.mx-4 { margin-left: 1rem; margin-right: 1rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+.my-0 { margin-top: 0; margin-bottom: 0; }
+.my-1 { margin-top: 0.25rem; margin-bottom: 0.25rem; }
+.my-2 { margin-top: 0.5rem; margin-bottom: 0.5rem; }
+.my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+.my-6 { margin-top: 1.5rem; margin-bottom: 1.5rem; }
+.my-8 { margin-top: 2rem; margin-bottom: 2rem; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-6 { margin-top: 1.5rem; }
+.mt-8 { margin-top: 2rem; }
+
+.mr-0 { margin-right: 0; }
+.mr-1 { margin-right: 0.25rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mr-4 { margin-right: 1rem; }
+.mr-6 { margin-right: 1.5rem; }
+.mr-8 { margin-right: 2rem; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+
+.ml-0 { margin-left: 0; }
+.ml-1 { margin-left: 0.25rem; }
+.ml-2 { margin-left: 0.5rem; }
+.ml-4 { margin-left: 1rem; }
+.ml-6 { margin-left: 1.5rem; }
+.ml-8 { margin-left: 2rem; }
+
+/* ============================================================================
+ * 12. CLASSES DE CORES ESPECÍFICAS
+ * ============================================================================ */
+.bg-orange {
+  background-color: hsl(25, 85%, 60%);
+}
+
+.text-orange {
+  color: hsl(25, 85%, 60%);
+}
+
+.bg-orange-50 {
+  background-color: hsl(25, 85%, 95%);
+}
+
+.text-orange-600 {
+  color: hsl(25, 85%, 45%);
+}
+
+.dark .text-orange-400 {
+  color: hsl(25, 85%, 65%);
+}
+
+.bg-emerald-50 {
+  background-color: hsl(160, 70%, 95%);
+}
+
+.text-emerald-600 {
+  color: hsl(160, 70%, 40%);
+}
+
+.dark .text-emerald-400 {
+  color: hsl(160, 70%, 60%);
+}
+
+.dark .bg-emerald-500\/10 {
+  background-color: hsl(160, 70%, 50% / 0.1);
+}
+
+.dark .bg-orange-500\/10 {
+  background-color: hsl(25, 85%, 60% / 0.1);
+}
+
+.bg-amber-50 {
+  background-color: hsl(45, 90%, 95%);
+}
+
+.text-amber-600 {
+  color: hsl(45, 90%, 45%);
+}
+
+.dark .text-amber-400 {
+  color: hsl(45, 90%, 65%);
+}
+
+.dark .bg-amber-500\/10 {
+  background-color: hsl(45, 90%, 60% / 0.1);
+}
+
+.bg-purple-50 {
+  background-color: hsl(280, 70%, 95%);
+}
+
+.dark .bg-purple-500\/10 {
+  background-color: hsl(280, 70%, 60% / 0.1);
+}
+
+.bg-red-50 {
+  background-color: hsl(0, 70%, 95%);
+}
+
+.dark .bg-red-500\/10 {
+  background-color: hsl(0, 70%, 60% / 0.1);
+}
+
+.bg-red-500 {
+  background-color: hsl(0, 70%, 60%);
+}
+
+.bg-amber-500 {
+  background-color: hsl(45, 90%, 60%);
+}
+
+.bg-emerald-500 {
+  background-color: hsl(160, 70%, 50%);
+}
+
+.bg-purple-500 {
+  background-color: hsl(280, 70%, 60%);
+}
+
+.bg-pink-500 {
+  background-color: hsl(330, 70%, 60%);
+}
+
+.bg-orange-500 {
+  background-color: hsl(25, 85%, 60%);
+}
+
+.text-red-600 {
+  color: hsl(0, 70%, 45%);
+}
+
+.dark .text-red-400 {
+  color: hsl(0, 70%, 65%);
+}
+
+.text-emerald-600 {
+  color: hsl(160, 70%, 40%);
+}
+
+.dark .text-emerald-400 {
+  color: hsl(160, 70%, 60%);
+}
+
+.bg-red-100 {
+  background-color: hsl(0, 70%, 90%);
+}
+
+.dark .bg-red-500\/20 {
+  background-color: hsl(0, 70%, 60% / 0.2);
+}
+
+.bg-emerald-100 {
+  background-color: hsl(160, 70%, 90%);
+}
+
+.dark .bg-emerald-500\/20 {
+  background-color: hsl(160, 70%, 50% / 0.2);
+}
+
+.bg-amber-500\/10 {
+  background-color: hsl(45, 90%, 60% / 0.1);
+}
+
+.border-amber-500\/30 {
+  border-color: hsl(45, 90%, 60% / 0.3);
+}
+
+.text-amber-500 {
+  color: hsl(45, 90%, 60%);
+}
+
+.hover\:bg-orange\/90:hover {
+  background-color: hsl(25, 85%, 60% / 0.9);
+}
+
+/* ============================================================================
+ * 13. ANIMAÇÕES
+ * ============================================================================ */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* ============================================================================
+ * 14. ESTILOS PARA CARDS
+ * ============================================================================ */
+.bg-card:not([style*="background-color"]) {
+  background-color: hsl(var(--card));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ============================================================================
+ * 15. ESTILOS PARA BODY
+ * ============================================================================ */
+body:not([style*="background-color"]) {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+

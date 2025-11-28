@@ -159,8 +159,12 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """
     Autentica um usuário e retorna um token JWT.
     """
-    # Buscar usuário pelo email
-    user = db.query(User).filter(User.email == credentials.email).first()
+    # Normalizar email (lowercase e trim) para garantir busca correta
+    normalized_email = credentials.email.strip().lower()
+    
+    # Buscar usuário pelo email (case-insensitive)
+    from sqlalchemy import func
+    user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     
     if not user:
         raise HTTPException(
@@ -310,6 +314,19 @@ def get_user_birth_chart(
     return birth_chart
 
 
+class GoogleVerifyRequest(BaseModel):
+    """Request para verificar token do Google"""
+    credential: str
+
+
+class GoogleVerifyResponse(BaseModel):
+    """Resposta da verificação do token Google"""
+    email: str
+    name: str
+    picture: Optional[str] = None
+    google_id: str
+
+
 class GoogleAuthRequest(BaseModel):
     """Request para autenticação via Google"""
     email: str
@@ -325,6 +342,209 @@ class GoogleAuthResponse(BaseModel):
     needs_onboarding: bool
 
 
+@router.post("/google/verify", response_model=GoogleVerifyResponse)
+def verify_google_token(request: GoogleVerifyRequest):
+    """
+    Verifica o token JWT do Google e retorna dados do usuário.
+    """
+    try:
+        credential = request.credential
+        if not credential:
+            raise HTTPException(status_code=400, detail="Credencial não fornecido")
+        
+        # Tentar validar token com Google
+        # Se google-auth não estiver instalado, usar decodificação básica do JWT
+        try:
+            from google.auth.transport import requests as google_requests
+            from google.oauth2 import id_token
+            import os
+            
+            CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID") or settings.GOOGLE_CLIENT_ID
+            if not CLIENT_ID:
+                # Se não tiver CLIENT_ID configurado, decodificar JWT manualmente
+                import base64
+                import json
+                
+                # JWT tem 3 partes separadas por ponto
+                parts = credential.split('.')
+                if len(parts) != 3:
+                    raise HTTPException(status_code=400, detail="Token JWT inválido")
+                
+                # Decodificar payload (segunda parte)
+                payload = parts[1]
+                # Adicionar padding se necessário
+                padding = 4 - len(payload) % 4
+                if padding != 4:
+                    payload += '=' * padding
+                
+                decoded = base64.urlsafe_b64decode(payload)
+                idinfo = json.loads(decoded)
+                
+                email = idinfo.get("email")
+                name = idinfo.get("name")
+                picture = idinfo.get("picture")
+                google_id = idinfo.get("sub")
+            else:
+                # Validar token com Google oficialmente
+                idinfo = id_token.verify_oauth2_token(
+                    credential,
+                    google_requests.Request(),
+                    CLIENT_ID
+                )
+                
+                email = idinfo.get("email")
+                name = idinfo.get("name")
+                picture = idinfo.get("picture")
+                google_id = idinfo.get("sub")
+        except ImportError:
+            # Se google-auth não estiver instalado, usar decodificação manual
+            import base64
+            import json
+            
+            parts = credential.split('.')
+            if len(parts) != 3:
+                raise HTTPException(status_code=400, detail="Token JWT inválido")
+            
+            payload = parts[1]
+            padding = 4 - len(payload) % 4
+            if padding != 4:
+                payload += '=' * padding
+            
+            try:
+                decoded = base64.urlsafe_b64decode(payload)
+                idinfo = json.loads(decoded)
+                
+                email = idinfo.get("email")
+                name = idinfo.get("name")
+                picture = idinfo.get("picture")
+                google_id = idinfo.get("sub")
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Erro ao decodificar token: {str(e)}")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Token inválido: {str(e)}")
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email não encontrado no token")
+        
+        return GoogleVerifyResponse(
+            email=email,
+            name=name or email.split('@')[0],
+            picture=picture,
+            google_id=google_id or credential[:50]  # Fallback se não tiver sub
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao verificar token Google: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao verificar token: {str(e)}"
+        )
+
+
+@router.post("/google/verify", response_model=GoogleVerifyResponse)
+def verify_google_token(request: GoogleVerifyRequest):
+    """
+    Verifica o token JWT do Google e retorna dados do usuário.
+    """
+    try:
+        credential = request.credential
+        if not credential:
+            raise HTTPException(status_code=400, detail="Credencial não fornecido")
+        
+        # Tentar validar token com Google
+        # Se google-auth não estiver instalado, usar decodificação básica do JWT
+        try:
+            from google.auth.transport import requests as google_requests
+            from google.oauth2 import id_token
+            
+            CLIENT_ID = settings.GOOGLE_CLIENT_ID
+            if not CLIENT_ID:
+                # Se não tiver CLIENT_ID configurado, decodificar JWT manualmente
+                import base64
+                import json
+                
+                # JWT tem 3 partes separadas por ponto
+                parts = credential.split('.')
+                if len(parts) != 3:
+                    raise HTTPException(status_code=400, detail="Token JWT inválido")
+                
+                # Decodificar payload (segunda parte)
+                payload = parts[1]
+                # Adicionar padding se necessário
+                padding = 4 - len(payload) % 4
+                if padding != 4:
+                    payload += '=' * padding
+                
+                decoded = base64.urlsafe_b64decode(payload)
+                idinfo = json.loads(decoded)
+                
+                email = idinfo.get("email")
+                name = idinfo.get("name")
+                picture = idinfo.get("picture")
+                google_id = idinfo.get("sub")
+            else:
+                # Validar token com Google oficialmente
+                idinfo = id_token.verify_oauth2_token(
+                    credential,
+                    google_requests.Request(),
+                    CLIENT_ID
+                )
+                
+                email = idinfo.get("email")
+                name = idinfo.get("name")
+                picture = idinfo.get("picture")
+                google_id = idinfo.get("sub")
+        except ImportError:
+            # Se google-auth não estiver instalado, usar decodificação manual
+            import base64
+            import json
+            
+            parts = credential.split('.')
+            if len(parts) != 3:
+                raise HTTPException(status_code=400, detail="Token JWT inválido")
+            
+            payload = parts[1]
+            padding = 4 - len(payload) % 4
+            if padding != 4:
+                payload += '=' * padding
+            
+            try:
+                decoded = base64.urlsafe_b64decode(payload)
+                idinfo = json.loads(decoded)
+                
+                email = idinfo.get("email")
+                name = idinfo.get("name")
+                picture = idinfo.get("picture")
+                google_id = idinfo.get("sub")
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Erro ao decodificar token: {str(e)}")
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=f"Token inválido: {str(e)}")
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email não encontrado no token")
+        
+        return GoogleVerifyResponse(
+            email=email,
+            name=name or email.split('@')[0],
+            picture=picture,
+            google_id=google_id or credential[:50]  # Fallback se não tiver sub
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao verificar token Google: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao verificar token: {str(e)}"
+        )
+
+
 @router.post("/google", response_model=GoogleAuthResponse)
 def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
     """
@@ -334,18 +554,25 @@ def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
     - Se o usuário já tem mapa astral, retorna needs_onboarding=False
     """
     try:
-        # Verificar se o usuário já existe pelo email
-        existing_user = db.query(User).filter(User.email == request.email).first()
+        # Normalizar email (lowercase e trim) para garantir busca correta
+        normalized_email = request.email.strip().lower()
+        print(f"[GOOGLE_AUTH] Email recebido: '{request.email}' -> normalizado: '{normalized_email}'")
         
+        # Verificar se o usuário já existe pelo email (usando func.lower para case-insensitive)
+        from sqlalchemy import func
+        existing_user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
+        
+        print(f"[GOOGLE_AUTH] Usuário encontrado: {existing_user is not None}")
         if existing_user:
+            print(f"[GOOGLE_AUTH] Usuário ID: {existing_user.id}, Email no banco: '{existing_user.email}'")
             # Usuário já existe - verificar se tem mapa astral
             birth_chart = db.query(BirthChart).filter(
                 BirthChart.user_id == existing_user.id,
                 BirthChart.is_primary == True
             ).first()
             
-            # Criar token JWT
-            access_token = create_access_token(data={"sub": existing_user.email})
+            # Criar token JWT (usar email normalizado)
+            access_token = create_access_token(data={"sub": normalized_email})
             
             return GoogleAuthResponse(
                 access_token=access_token,
@@ -356,7 +583,7 @@ def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
         else:
             # Novo usuário via Google - criar sem senha
             db_user = User(
-                email=request.email,
+                email=normalized_email,  # Usar email normalizado
                 password_hash=None,  # Usuário Google não tem senha
                 name=request.name
                 # google_id será adicionado quando a migração do banco for feita
@@ -365,8 +592,8 @@ def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(db_user)
             
-            # Criar token JWT
-            access_token = create_access_token(data={"sub": db_user.email})
+            # Criar token JWT (usar email normalizado)
+            access_token = create_access_token(data={"sub": normalized_email})
             
             return GoogleAuthResponse(
                 access_token=access_token,

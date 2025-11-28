@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../i18n';
+import '../styles/controls.css';
 
 interface LanguageToggleProps {
   className?: string;
@@ -10,28 +11,29 @@ export const LanguageToggle = ({ className = '', variant = 'flag' }: LanguageTog
   const { language, toggleLanguage } = useLanguage();
 
   return (
-    <button
+    <div
       onClick={toggleLanguage}
-      className={`
-        flex items-center justify-center
-        w-9 h-9 rounded-lg
-        bg-muted/50 hover:bg-muted border border-border/50
-        transition-all duration-200 hover:border-primary/30 hover:scale-105
-        ${className}
-      `}
+      className={`language-toggle-container ${className}`}
+      data-language={language}
       title={language === 'pt' ? 'Switch to English' : 'Mudar para Português'}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleLanguage();
+        }
+      }}
       aria-label={language === 'pt' ? 'Switch to English' : 'Mudar para Português'}
     >
-      {variant === 'flag' ? (
-        <span className="text-lg leading-none">
-          {language === 'pt' ? '🇧🇷' : '🇺🇸'}
-        </span>
-      ) : (
-        <span className="text-xs font-bold text-foreground">
-          {language === 'pt' ? 'PT' : 'EN'}
-        </span>
-      )}
-    </button>
+      <div className="language-toggle-indicator"></div>
+      <div className={`language-toggle-flag ${language === 'pt' ? 'active' : ''}`}>
+        <span>🇧🇷</span>
+      </div>
+      <div className={`language-toggle-flag ${language === 'en' ? 'active' : ''}`}>
+        <span>🇺🇸</span>
+      </div>
+    </div>
   );
 };
 

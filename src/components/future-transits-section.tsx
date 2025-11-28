@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { AstroCard } from './astro-card';
 import { planets } from './planet-icons';
-import { Badge } from './ui/badge';
 import { UIIcons } from './ui-icons';
 import { apiService } from '../services/api';
+import '../styles/transits-section.css';
 
 interface Transit {
   id: string;
@@ -80,7 +80,7 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
     const sections = text.split(/\n\n+/);
     
     return (
-      <div className="space-y-4">
+      <div>
         {sections.map((section, index) => {
           const trimmed = section.trim();
           if (!trimmed) return null;
@@ -91,23 +91,48 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
             if (titleMatch) {
               const title = titleMatch[1];
               const content = trimmed.replace(/\*\*(.+?)\*\*/, '').trim();
+              
+              // Verificar se é seção de exemplos
+              const isExamples = title.toLowerCase().includes('exemplo');
+              
               return (
-                <div key={index} className="mb-4">
-                  <h4 className="font-semibold text-foreground mb-2 text-base">{title}</h4>
+                <div key={index} style={{ marginBottom: '1rem' }}>
+                  <h4 className={`transits-transit-description-title ${isExamples ? 'transits-examples-title' : ''}`}>
+                    {title}
+                  </h4>
                   {content && (
-                    <div className="space-y-2">
+                    <div className={isExamples ? 'transits-examples-container' : ''}>
                       {content.split('\n').map((line, lineIndex) => {
+                        const trimmedLine = line.trim();
+                        if (!trimmedLine) return null;
+                        
                         // Verificar se é um bullet point
-                        if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+                        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+                          // Verificar se contém aspas (exemplo prático)
+                          if (isExamples && trimmedLine.includes('"')) {
+                            return (
+                              <div key={lineIndex} className="transits-example-box">
+                                <p className="transits-example-text">{trimmedLine}</p>
+                              </div>
+                            );
+                          }
                           return (
-                            <p key={lineIndex} className="text-sm text-foreground/90 ml-4 leading-relaxed">
-                              {line.trim()}
+                            <p key={lineIndex} className={`transits-transit-description-list-item ${isExamples ? 'transits-example-item' : ''}`} style={{ marginLeft: isExamples ? '0' : '1rem' }}>
+                              {trimmedLine}
                             </p>
                           );
                         }
+                        // Verificar se é um exemplo (contém aspas)
+                        if (isExamples && trimmedLine.includes('"')) {
+                          return (
+                            <div key={lineIndex} className="transits-example-box">
+                              <p className="transits-example-text">{trimmedLine}</p>
+                            </div>
+                          );
+                        }
                         return (
-                          <p key={lineIndex} className="text-sm text-foreground/90 leading-relaxed">
-                            {line.trim()}
+                          <p key={lineIndex} className="transits-transit-description-paragraph">
+                            {trimmedLine}
                           </p>
                         );
                       })}
@@ -120,18 +145,18 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
 
           // Parágrafo normal
           return (
-            <div key={index} className="space-y-2">
+            <div key={index}>
               {trimmed.split('\n').map((line, lineIndex) => {
                 // Verificar se é um bullet point
                 if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
                   return (
-                    <p key={lineIndex} className="text-sm text-foreground/90 ml-4 leading-relaxed">
+                    <p key={lineIndex} className="transits-transit-description-list-item" style={{ marginLeft: '1rem' }}>
                       {line.trim()}
                     </p>
                   );
                 }
                 return (
-                  <p key={lineIndex} className="text-sm text-foreground/90 leading-relaxed">
+                  <p key={lineIndex} className="transits-transit-description-paragraph">
                     {line.trim()}
                   </p>
                 );
@@ -183,175 +208,232 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
 
     fetchTransits();
   }, [propTransits]);
-  const getTypeColor = (type: Transit['type']) => {
-    const colors = {
-      'jupiter': 'text-[#E8B95A]',
-      'saturn-return': 'text-[#8B7355]',
-      'uranus': 'text-[#4ECDC4]',
-      'neptune': 'text-[#9B59B6]',
-      'pluto': 'text-[#E74C3C]'
-    };
-    return colors[type] || 'text-accent';
+
+  // Função para determinar o tipo de aspecto e retornar classe CSS
+  const getAspectTypeClass = (aspectType?: string): string => {
+    if (!aspectType) return 'other';
+    
+    const aspectLower = aspectType.toLowerCase();
+    
+    // Aspectos harmoniosos (verde)
+    if (aspectLower.includes('trígono') || aspectLower.includes('trigono') || 
+        aspectLower.includes('sextil') || aspectLower.includes('sextile')) {
+      return 'harmonious';
+    }
+    
+    // Aspectos tensos (vermelho)
+    if (aspectLower.includes('quadratura') || aspectLower.includes('square') ||
+        aspectLower.includes('oposição') || aspectLower.includes('opposition')) {
+      return 'tense';
+    }
+    
+    // Conjunção (amarelo/dourado - neutro/transformação)
+    if (aspectLower.includes('conjunção') || aspectLower.includes('conjunction')) {
+      return 'conjunction';
+    }
+    
+    return 'other';
   };
 
-  const getTypeBadgeStyle = (type: Transit['type']) => {
-    const styles = {
-      'jupiter': 'bg-[#E8B95A]/10 text-[#E8B95A] border-[#E8B95A]/30',
-      'saturn-return': 'bg-[#8B7355]/10 text-[#8B7355] border-[#8B7355]/30',
-      'uranus': 'bg-[#4ECDC4]/10 text-[#4ECDC4] border-[#4ECDC4]/30',
-      'neptune': 'bg-[#9B59B6]/10 text-[#9B59B6] border-[#9B59B6]/30',
-      'pluto': 'bg-[#E74C3C]/10 text-[#E74C3C] border-[#E74C3C]/30'
+  // Função para obter cor do ícone baseada no tipo de planeta (mantida para compatibilidade)
+  const getPlanetColor = (type: Transit['type']): string => {
+    const colors: Record<string, string> = {
+      'jupiter': '#E8B95A',
+      'saturn-return': '#8B7355',
+      'uranus': '#4ECDC4',
+      'neptune': '#9B59B6',
+      'pluto': '#E74C3C'
     };
-    return styles[type] || 'bg-accent/10 text-accent border-accent/30';
+    return colors[type] || 'hsl(var(--accent))';
   };
 
   return (
-    <div className="space-y-4">
+    <div className="transits-section-container">
       <div>
-        <h2 className="text-accent mb-1" style={{ fontFamily: 'var(--font-serif)' }}>
+        <h2 className="transits-title" style={{ color: 'hsl(var(--accent))' }}>
           Horizontes Futuros
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="transits-subtitle">
           Trânsitos de longo prazo que moldarão sua jornada
         </p>
       </div>
 
       {/* Loading State */}
       {isLoading && (
-        <AstroCard>
-          <div className="flex items-center justify-center gap-3 py-8">
-            <UIIcons.Loader className="w-5 h-5 animate-spin text-accent" />
-            <p className="text-secondary">Calculando trânsitos futuros...</p>
+        <div className="transits-loading-card">
+          <div className="transits-loading-content">
+            <UIIcons.Loader size={20} style={{ color: 'hsl(var(--accent))', animation: 'spin 1s linear infinite' }} />
+            <p style={{ color: 'hsl(var(--muted-foreground))' }}>Calculando trânsitos futuros...</p>
           </div>
-        </AstroCard>
+        </div>
       )}
 
       {/* Error State */}
       {error && !isLoading && (
-        <AstroCard className="border-destructive/30">
-          <div className="flex items-center gap-3 text-destructive">
+        <div className="transits-error-card" style={{ borderColor: 'hsl(var(--destructive) / 0.3)' }}>
+          <div className="transits-error-content">
             <UIIcons.AlertCircle size={20} />
-            <p className="text-sm">{error}</p>
+            <p style={{ fontSize: '0.875rem' }}>{error}</p>
           </div>
-        </AstroCard>
+        </div>
       )}
 
-      {/* Timeline Vertical com scrollbar */}
+      {/* Timeline com cards e linha do tempo horizontal */}
       {!isLoading && !error && (
-        <div className="relative pl-8 space-y-6 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-          {/* Linha vertical */}
-          <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gradient-to-b from-accent via-accent/50 to-accent/10"></div>
+        <div className="transits-timeline-wrapper">
+          {/* Linha do tempo horizontal */}
+          {transits.length > 0 && (
+            <div className="transits-horizontal-timeline">
+              <div className="transits-timeline-track">
+                {transits.map((transit, index) => {
+                  const aspectClass = getAspectTypeClass(transit.aspect_type);
+                  const startDate = transit.start_date ? new Date(transit.start_date) : null;
+                  const endDate = transit.end_date ? new Date(transit.end_date) : null;
+                  const now = new Date();
+                  
+                  // Calcular posição na timeline (0-100%)
+                  let position = 0;
+                  if (transits.length > 1 && startDate) {
+                    const firstDate = transits[0].start_date ? new Date(transits[0].start_date) : now;
+                    const lastDate = transits[transits.length - 1].end_date 
+                      ? new Date(transits[transits.length - 1].end_date) 
+                      : new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+                    const totalDuration = lastDate.getTime() - firstDate.getTime();
+                    const transitStart = startDate.getTime() - firstDate.getTime();
+                    position = (transitStart / totalDuration) * 100;
+                  }
+                  
+                  return (
+                    <div 
+                      key={`timeline-${transit.id}`}
+                      className={`transits-timeline-marker transits-timeline-marker-${aspectClass}`}
+                      style={{ left: `${position}%` }}
+                      title={transit.title}
+                    >
+                      <div className="transits-timeline-marker-dot"></div>
+                      {startDate && (
+                        <div className="transits-timeline-marker-date">
+                          {formatDate(transit.start_date)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-          {transits.length === 0 ? (
-            <AstroCard>
-              <p className="text-secondary text-center py-4">
+          {/* Container com linha vertical e cards */}
+          <div className="transits-timeline-container">
+            {/* Linha vertical */}
+            <div className="transits-timeline-line"></div>
+
+            {transits.length === 0 ? (
+            <div className="transits-loading-card">
+              <p style={{ color: 'hsl(var(--muted-foreground))', textAlign: 'center', padding: '1rem 0' }}>
                 Nenhum trânsito significativo encontrado no período calculado.
               </p>
-            </AstroCard>
+            </div>
           ) : (
             transits.map((transit, index) => {
               const PlanetIcon = planets.find(p => p.name === transit.planet)?.icon;
+              const aspectClass = getAspectTypeClass(transit.aspect_type);
+              const planetColor = getPlanetColor(transit.type);
               
               return (
                 <div 
                   key={transit.id} 
-                  className="relative animate-fadeIn"
+                  className="transits-timeline-item"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  {/* Ponto na timeline */}
-                  <div className={`absolute -left-[29px] top-6 w-5 h-5 rounded-full border-2 border-accent ${
-                    transit.isActive ? 'bg-accent' : 'bg-background'
-                  } flex items-center justify-center`}>
+                  {/* Ponto na timeline com cor baseada no aspecto */}
+                  <div className={`transits-timeline-dot transits-timeline-dot-${aspectClass} ${
+                    transit.isActive ? 'transits-timeline-dot-active' : ''
+                  }`}>
                     {transit.isActive && (
-                      <div className="w-2 h-2 rounded-full bg-background animate-pulse"></div>
+                      <div className="transits-timeline-dot-inner"></div>
                     )}
                   </div>
 
-                  <AstroCard className="hover:border-accent/40 transition-all duration-300 hover:shadow-lg hover:shadow-accent/10 animate-fadeIn">
-                    <div className="space-y-4">
-                      {/* Header */}
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 flex-1">
-                          {PlanetIcon && (
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                              transit.type === 'jupiter' ? 'bg-[#E8B95A]/20' :
-                              transit.type === 'saturn-return' ? 'bg-[#8B7355]/20' :
-                              transit.type === 'uranus' ? 'bg-[#4ECDC4]/20' :
-                              transit.type === 'neptune' ? 'bg-[#9B59B6]/20' :
-                              'bg-[#E74C3C]/20'
-                            }`}>
-                              <PlanetIcon size={28} className={getTypeColor(transit.type)} />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-foreground font-semibold text-base mb-2">{transit.title}</h3>
-                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                              {transit.aspect_type_display && (
-                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
-                                  {transit.aspect_type_display}
-                                </Badge>
-                              )}
-                              {transit.isActive && (
-                                <Badge variant="outline" className="bg-accent/20 text-accent border-accent/40">
-                                  ⚡ Em Progresso
-                                </Badge>
-                              )}
-                            </div>
-                            {transit.start_date && transit.end_date && (
-                              <div className="text-xs text-muted-foreground space-y-1">
-                                <p><span className="font-medium">Início:</span> {formatDate(transit.start_date)}</p>
-                                <p><span className="font-medium">Término:</span> {formatDate(transit.end_date)}</p>
-                              </div>
+                  <div className="transits-transit-card">
+                    {/* Header */}
+                    <div className="transits-transit-header">
+                      <div className="transits-transit-header-left">
+                        {PlanetIcon && (
+                          <div className={`transits-transit-icon-container transits-transit-icon-container-${aspectClass}`}>
+                            <PlanetIcon size={28} style={{ color: planetColor }} />
+                          </div>
+                        )}
+                        <div className="transits-transit-content">
+                          <h3 className="transits-transit-title">{transit.title}</h3>
+                          <div className="transits-transit-badges">
+                            {transit.aspect_type_display && (
+                              <span className="transits-badge transits-badge-primary">
+                                {transit.aspect_type_display}
+                              </span>
                             )}
-                            {!transit.start_date && transit.timeframe && (
-                              <p className="text-xs text-muted-foreground">📅 {transit.timeframe}</p>
+                            {transit.isActive && (
+                              <span className="transits-badge transits-badge-accent">
+                                ⚡ Em Progresso
+                              </span>
                             )}
                           </div>
+                          {transit.start_date && transit.end_date && (
+                            <div className="transits-transit-dates">
+                              <p className="transits-transit-date-item">
+                                <span className="transits-transit-date-label">Início:</span> {formatDate(transit.start_date)}
+                              </p>
+                              <p className="transits-transit-date-item">
+                                <span className="transits-transit-date-label">Término:</span> {formatDate(transit.end_date)}
+                              </p>
+                            </div>
+                          )}
+                          {!transit.start_date && transit.timeframe && (
+                            <p className="transits-transit-timeframe">📅 {transit.timeframe}</p>
+                          )}
                         </div>
                       </div>
-
-                      {/* Descrição formatada */}
-                      <div className="border-l-2 border-accent/30 pl-4 py-2 bg-muted/30 rounded-r-lg">
-                        {formatDescription(transit.description)}
-                      </div>
-
-                      {/* Tags do Tipo de Trânsito */}
-                      <div className="flex items-center gap-2 pt-2">
-                        <span className="text-xs text-muted-foreground">Tipo:</span>
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          transit.type === 'jupiter' ? 'bg-[#E8B95A]/10 text-[#E8B95A]' :
-                          transit.type === 'saturn-return' ? 'bg-[#8B7355]/10 text-[#8B7355]' :
-                          transit.type === 'uranus' ? 'bg-[#4ECDC4]/10 text-[#4ECDC4]' :
-                          transit.type === 'neptune' ? 'bg-[#9B59B6]/10 text-[#9B59B6]' :
-                          'bg-[#E74C3C]/10 text-[#E74C3C]'
-                        }`}>
-                          {transit.type === 'jupiter' ? '🌟 Expansão' :
-                           transit.type === 'saturn-return' ? '🏛️ Retorno de Saturno' :
-                           transit.type === 'uranus' ? '⚡ Mudança Súbita' :
-                           transit.type === 'neptune' ? '🌊 Espiritualidade' :
-                           '🔥 Transformação'}
-                        </span>
-                      </div>
                     </div>
-                  </AstroCard>
+
+                    {/* Descrição formatada */}
+                    <div className="transits-transit-description">
+                      {formatDescription(transit.description)}
+                    </div>
+
+                    {/* Tags do Tipo de Trânsito */}
+                    <div className="transits-transit-type-tags">
+                      <span className="transits-transit-type-label">Tipo:</span>
+                      <span className="transits-transit-type-badge" style={{ 
+                        backgroundColor: `${planetColor}20`,
+                        color: planetColor
+                      }}>
+                        {transit.type === 'jupiter' ? '🌟 Expansão' :
+                         transit.type === 'saturn-return' ? '🏛️ Retorno de Saturno' :
+                         transit.type === 'uranus' ? '⚡ Mudança Súbita' :
+                         transit.type === 'neptune' ? '🌊 Espiritualidade' :
+                         '🔥 Transformação'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               );
             })
           )}
+          </div>
         </div>
       )}
 
       {/* Footer informativo */}
-      <AstroCard className="bg-muted/20 border-muted-foreground/20">
-        <div className="flex items-start gap-3">
-          <UIIcons.Info size={20} className="text-muted-foreground mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-muted-foreground">
-            <span className="font-medium text-foreground">Dica:</span> Os trânsitos de planetas lentos 
+      <div className="transits-info-card">
+        <div className="transits-info-content">
+          <UIIcons.Info size={20} className="transits-info-icon" />
+          <p className="transits-info-text">
+            <span className="transits-info-text-bold">Dica:</span> Os trânsitos de planetas lentos 
             (Júpiter, Saturno, Urano, Netuno e Plutão) criam os grandes temas e lições de vida. Use 
             este conhecimento para planejar estrategicamente e surfar as ondas cósmicas.
           </p>
         </div>
-      </AstroCard>
+      </div>
     </div>
   );
 };

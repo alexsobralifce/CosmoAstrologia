@@ -1,0 +1,1183 @@
+/* 
+ * ============================================================================
+ * DASHBOARD SECTIONS - CSS PURO (FLEXBOX E CSS GRID)
+ * ============================================================================
+ * Estilos para seções do dashboard (Aspectos, Casas, etc.)
+ * Layout fluido e responsivo usando Flexbox e CSS Grid
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * CONTAINER PRINCIPAL DAS SEÇÕES
+ * ============================================================================ */
+.dashboard-section-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 2rem;
+  margin: 0;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-sizing: border-box;
+  min-height: calc(100vh - 80px); /* Altura mínima menos o header */
+}
+
+/* ============================================================================
+ * HEADER DAS SEÇÕES
+ * ============================================================================ */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.section-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.section-subtitle {
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.section-back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.section-back-button:hover {
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+/* ============================================================================
+ * ASPECTOS PLANETÁRIOS
+ * ============================================================================ */
+.aspects-legend-container {
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--border));
+  margin-bottom: 2rem;
+}
+
+.aspects-legend-title {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.aspects-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.aspects-legend-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  transition: transform 0.2s ease;
+  background-color: hsl(var(--card));
+}
+
+.aspects-legend-item:hover {
+  transform: scale(1.05);
+}
+
+.aspects-legend-icon-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.aspects-legend-icon-circle {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.aspects-legend-text {
+  flex: 1;
+}
+
+.aspects-legend-type {
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.aspects-legend-desc {
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin: 0.25rem 0 0 0;
+}
+
+.aspects-legend-meaning {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.5;
+  background-color: hsl(var(--muted) / 0.5);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.aspects-list-container {
+  margin-bottom: 2rem;
+}
+
+.aspects-list-title {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.aspects-list-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.aspect-card {
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: left;
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.aspect-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.aspect-card.selected {
+  background-color: hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.aspect-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.aspect-card-planets {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.aspect-card-symbol {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.aspect-card-chevron {
+  flex-shrink: 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.aspect-card.selected .aspect-card-chevron {
+  color: hsl(var(--primary));
+}
+
+.aspect-card-body {
+  margin-top: 0.75rem;
+}
+
+.aspect-card-planet-names {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.aspect-card-type {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.aspect-interpretation-panel {
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--border));
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aspect-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  gap: 1rem;
+}
+
+.aspect-loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  animation: spin 1s linear infinite;
+  color: hsl(var(--primary));
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.aspect-loading-text {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ============================================================================
+ * CASAS ASTROLÓGICAS
+ * ============================================================================ */
+.houses-info-container {
+  background-color: hsl(var(--card) / 0.5);
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.houses-info-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.houses-info-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: hsl(var(--primary) / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.houses-info-text {
+  flex: 1;
+}
+
+.houses-info-title {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.houses-info-description {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0 0 0.75rem 0;
+}
+
+.houses-info-categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.houses-info-category {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.houses-info-category-bullet {
+  color: hsl(var(--primary));
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.houses-info-category-text {
+  color: hsl(var(--foreground) / 0.8);
+}
+
+.houses-list-container {
+  margin-bottom: 2rem;
+}
+
+.houses-list-title {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.houses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.house-card {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  text-align: center;
+}
+
+.house-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.house-card.selected {
+  background-color: hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.house-card-number {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.house-card.selected .house-card-number {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.house-card-title {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.25rem 0;
+}
+
+.house-card-desc {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  line-height: 1.4;
+}
+
+.house-interpretation-panel {
+  background: linear-gradient(to bottom right, hsl(var(--card)), hsl(var(--card) / 0.5));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.house-interpretation-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.house-interpretation-number {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background-color: hsl(var(--primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: hsl(var(--primary-foreground));
+  font-size: 1.25rem;
+  font-weight: 700;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.house-interpretation-title-container {
+  flex: 1;
+}
+
+.house-interpretation-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.house-interpretation-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.house-loading-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 0;
+  justify-content: center;
+}
+
+.house-loading-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: spin 1s linear infinite;
+  color: hsl(var(--primary));
+}
+
+.house-loading-text {
+  color: hsl(var(--muted-foreground));
+}
+
+.house-interpretation-content {
+  margin-top: 1rem;
+}
+
+.house-interpretation-divider {
+  height: 1px;
+  background-color: hsl(var(--border) / 0.5);
+  margin: 1rem 0;
+}
+
+.house-interpretation-text {
+  color: hsl(var(--foreground) / 0.8);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.house-interpretation-heading {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  font-size: 1rem;
+  margin: 1.5rem 0 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.house-interpretation-heading-bullet {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: hsl(var(--primary));
+}
+
+.house-interpretation-list {
+  margin: 0 0 1.5rem 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.house-interpretation-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: hsl(var(--foreground) / 0.8);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.house-interpretation-list-bullet {
+  color: hsl(var(--primary));
+  margin-top: 0.375rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+ * RESPONSIVE
+ * ============================================================================ */
+@media (max-width: 1024px) {
+  .dashboard-section-container {
+    padding: 1.5rem;
+  }
+
+  .aspects-legend-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .aspects-list-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+
+  .houses-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-section-container {
+    padding: 1rem;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .aspects-legend-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .aspects-list-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .houses-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .houses-info-categories {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .houses-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================================
+ * BIORRITMOS SECTION
+ * ============================================================================ */
+.biorhythms-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+}
+
+/* Importance Card */
+.biorhythms-importance-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 2rem;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+}
+
+.biorhythms-importance-header {
+  margin-bottom: 1.5rem;
+}
+
+.biorhythms-importance-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.biorhythms-importance-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.biorhythms-importance-intro {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.biorhythms-benefits-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.biorhythms-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.biorhythms-benefit-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  transition: all 0.3s ease;
+}
+
+.biorhythms-benefit-item:hover {
+  background-color: hsl(var(--muted) / 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px hsl(var(--foreground) / 0.1);
+}
+
+.biorhythms-benefit-icon {
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: hsl(var(--primary) / 0.2);
+  border-radius: 0.5rem;
+  color: hsl(var(--primary));
+}
+
+.biorhythms-benefit-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.biorhythms-benefit-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.biorhythms-benefit-desc {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* Biorhythm Cards Grid */
+.biorhythms-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.biorhythm-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+}
+
+.biorhythm-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.biorhythm-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.biorhythm-card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.biorhythm-progress-container {
+  position: relative;
+  height: 1rem;
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.biorhythm-progress-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 9999px;
+  transition: all 0.5s ease;
+}
+
+.biorhythm-card-desc {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.biorhythm-card-period {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* Summary Card */
+.biorhythms-summary-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+}
+
+.biorhythms-summary-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.biorhythms-summary-text {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground) / 0.8);
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .biorhythms-benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .biorhythms-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .biorhythms-importance-card {
+    padding: 1.5rem;
+  }
+}
+
+/* ============================================================================
+ * SINASTRIA SECTION
+ * ============================================================================ */
+.synastry-info-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+}
+
+.synastry-info-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.synastry-info-text {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground) / 0.8);
+  margin: 0;
+}
+
+/* User Sign Card */
+.synastry-user-sign-card {
+  background-color: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.synastry-user-sign-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.synastry-sign-icon-container {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background-color: hsl(var(--primary) / 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.synastry-sign-icon {
+  color: hsl(var(--primary));
+  padding: 0.25rem;
+  border-radius: 50%;
+  /* Moldura branca no modo noite, preta no modo dia */
+  border: 2px solid #F2F1F4;
+  background-color: transparent;
+}
+
+.dark .synastry-sign-icon {
+  border-color: #F2F1F4; /* Branco no modo noite */
+}
+
+.light .synastry-sign-icon {
+  border-color: #160F24; /* Preto no modo dia */
+}
+
+.synastry-user-sign-label {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.synastry-user-sign-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+/* Partner Selection */
+.synastry-partner-selection-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+}
+
+.synastry-partner-selection-title {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.synastry-signs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.synastry-sign-button {
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--muted));
+  transition: all 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.synastry-sign-button:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+.synastry-sign-button-selected {
+  background-color: hsl(var(--primary) / 0.2);
+  border-color: hsl(var(--primary));
+}
+
+.synastry-sign-button-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.synastry-sign-button-icon {
+  color: hsl(var(--foreground));
+  padding: 0.25rem;
+  border-radius: 50%;
+  /* Moldura branca no modo noite, preta no modo dia */
+  border: 2px solid #F2F1F4;
+  background-color: transparent;
+}
+
+.dark .synastry-sign-button-icon {
+  border-color: #F2F1F4; /* Branco no modo noite */
+}
+
+.light .synastry-sign-button-icon {
+  border-color: #160F24; /* Preto no modo dia */
+}
+
+.synastry-sign-button-icon-selected {
+  color: hsl(var(--primary));
+}
+
+.synastry-sign-button-name {
+  font-size: 0.75rem;
+  text-align: center;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.synastry-interpretation-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.synastry-interpretation-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.synastry-interpretation-content {
+  color: hsl(var(--foreground) / 0.8);
+}
+
+/* Formatação de Texto da Sinastria */
+.synastry-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.synastry-text-title {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+  padding-top: 0.5rem;
+}
+
+.synastry-text-paragraph {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground) / 0.8);
+  margin: 0;
+}
+
+.synastry-text-paragraph strong {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.synastry-text-numbered {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.synastry-text-number {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  flex-shrink: 0;
+}
+
+.synastry-text-content {
+  flex: 1;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground) / 0.8);
+}
+
+.synastry-text-bullet {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.synastry-text-bullet-marker {
+  color: hsl(var(--accent));
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.synastry-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  gap: 1rem;
+}
+
+.synastry-loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  animation: spin 1s linear infinite;
+  color: hsl(var(--accent));
+}
+
+.synastry-loading-text {
+  font-size: 1rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Analyze Button */
+.synastry-analyze-button {
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  background-color: hsl(25, 85%, 60%); /* Laranja padrão do sistema */
+  color: #160F24; /* Texto preto */
+  font-weight: 500;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.synastry-analyze-button:hover:not(:disabled) {
+  background-color: hsl(25, 85%, 55%); /* Laranja um pouco mais escuro no hover */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsl(25, 85%, 60% / 0.3);
+}
+
+.synastry-analyze-button:active:not(:disabled) {
+  background-color: hsl(25, 85%, 50%);
+  transform: translateY(0);
+}
+
+.synastry-analyze-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: hsl(25, 85%, 50%);
+}
+
+.synastry-analyze-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.synastry-analyze-button-loader {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: spin 1s linear infinite;
+  color: #160F24;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .synastry-signs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

@@ -10,7 +10,12 @@ interface PlanetPosition {
   icon: any;
 }
 
-export const BirthChartWheel = () => {
+interface BirthChartWheelProps {
+  userData?: any;
+  size?: number;
+}
+
+export const BirthChartWheel = ({ userData, size = 400 }: BirthChartWheelProps) => {
   const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
 
   // Mock data - Em produção, isso viria de um cálculo astrológico real
@@ -28,20 +33,21 @@ export const BirthChartWheel = () => {
   ];
 
   return (
-    <div className="relative w-full aspect-square max-w-2xl mx-auto">
-      {/* Outer circle - Zodiac signs */}
-      <svg viewBox="0 0 400 400" className="w-full h-full">
-        {/* Background circles */}
-        <circle cx="200" cy="200" r="190" fill="none" stroke="var(--accent)" strokeWidth="0.5" opacity="0.3" />
-        <circle cx="200" cy="200" r="160" fill="none" stroke="var(--accent)" strokeWidth="0.5" opacity="0.3" />
-        <circle cx="200" cy="200" r="130" fill="none" stroke="var(--accent)" strokeWidth="0.5" opacity="0.3" />
-        <circle cx="200" cy="200" r="100" fill="none" stroke="var(--accent)" strokeWidth="0.5" opacity="0.3" />
+    <div style={{ width: '100%', maxWidth: `${size}px`, aspectRatio: '1', margin: '0 auto' }}>
+      <svg viewBox="0 0 400 400" style={{ width: '100%', height: '100%' }}>
+        {/* Background circles - múltiplos círculos concêntricos */}
+        <circle cx="200" cy="200" r="190" fill="none" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3" />
+        <circle cx="200" cy="200" r="170" fill="none" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3" />
+        <circle cx="200" cy="200" r="150" fill="none" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3" />
+        <circle cx="200" cy="200" r="130" fill="none" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3" />
+        <circle cx="200" cy="200" r="110" fill="none" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3" />
+        <circle cx="200" cy="200" r="90" fill="none" stroke="hsl(var(--border))" strokeWidth="1" opacity="0.3" />
         
-        {/* House divisions (12 houses) */}
+        {/* House divisions (12 houses) - linhas radiais */}
         {Array.from({ length: 12 }).map((_, i) => {
           const angle = (i * 30 - 90) * (Math.PI / 180);
-          const x1 = 200 + 100 * Math.cos(angle);
-          const y1 = 200 + 100 * Math.sin(angle);
+          const x1 = 200 + 90 * Math.cos(angle);
+          const y1 = 200 + 90 * Math.sin(angle);
           const x2 = 200 + 190 * Math.cos(angle);
           const y2 = 200 + 190 * Math.sin(angle);
           return (
@@ -51,18 +57,18 @@ export const BirthChartWheel = () => {
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke="var(--accent)"
+              stroke="hsl(var(--border))"
               strokeWidth="1"
               opacity="0.4"
             />
           );
         })}
 
-        {/* Zodiac sign symbols around the outer ring */}
+        {/* Zodiac sign symbols around the outer ring - roxo/escuro */}
         {zodiacSigns.map((sign, i) => {
           const angle = (i * 30 + 15 - 90) * (Math.PI / 180);
-          const x = 200 + 175 * Math.cos(angle);
-          const y = 200 + 175 * Math.sin(angle);
+          const x = 200 + 180 * Math.cos(angle);
+          const y = 200 + 180 * Math.sin(angle);
           return (
             <g key={sign.name}>
               <text
@@ -70,9 +76,10 @@ export const BirthChartWheel = () => {
                 y={y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fill="var(--accent)"
-                fontSize="24"
-                opacity="0.6"
+                fill="hsl(var(--primary))"
+                fontSize="20"
+                fontWeight="500"
+                style={{ fontFamily: 'var(--font-serif)' }}
               >
                 {sign.symbol}
               </text>
@@ -80,11 +87,11 @@ export const BirthChartWheel = () => {
           );
         })}
 
-        {/* House numbers */}
+        {/* House numbers - laranja (accent) */}
         {Array.from({ length: 12 }).map((_, i) => {
           const angle = (i * 30 + 15 - 90) * (Math.PI / 180);
-          const x = 200 + 115 * Math.cos(angle);
-          const y = 200 + 115 * Math.sin(angle);
+          const x = 200 + 120 * Math.cos(angle);
+          const y = 200 + 120 * Math.sin(angle);
           return (
             <text
               key={i}
@@ -92,21 +99,21 @@ export const BirthChartWheel = () => {
               y={y}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill="var(--secondary)"
-              fontSize="12"
-              opacity="0.5"
+              fill="hsl(var(--accent))"
+              fontSize="14"
+              fontWeight="600"
             >
               {i + 1}
             </text>
           );
         })}
 
-        {/* Planet positions */}
+        {/* Planet positions - roxo/rosa escuro com contornos laranja */}
         {planetPositions.map((planet, i) => {
           // Calculate position based on degree (simplified)
           const totalDegree = (zodiacSigns.findIndex(z => z.name === planet.sign) * 30) + planet.degree;
           const angle = (totalDegree - 90) * (Math.PI / 180);
-          const radius = 145;
+          const radius = 140;
           const x = 200 + radius * Math.cos(angle);
           const y = 200 + radius * Math.sin(angle);
 
@@ -117,21 +124,24 @@ export const BirthChartWheel = () => {
               onMouseLeave={() => setHoveredPlanet(null)}
               className="cursor-pointer transition-all"
             >
+              {/* Círculo de fundo com contorno laranja */}
               <circle
                 cx={x}
                 cy={y}
-                r={hoveredPlanet === planet.planet ? 12 : 10}
-                fill="var(--background)"
-                stroke="var(--accent)"
-                strokeWidth="1.5"
+                r={hoveredPlanet === planet.planet ? 14 : 12}
+                fill="hsl(var(--card))"
+                stroke="hsl(var(--accent))"
+                strokeWidth="2"
               />
+              {/* Símbolo do planeta em roxo/primary */}
               <text
                 x={x}
                 y={y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fill="var(--accent)"
-                fontSize={hoveredPlanet === planet.planet ? "18" : "16"}
+                fill="hsl(var(--primary))"
+                fontSize={hoveredPlanet === planet.planet ? "16" : "14"}
+                fontWeight="500"
               >
                 {planets.find(p => p.name === planet.planet)?.symbol}
               </text>

@@ -465,12 +465,12 @@ function AppContent({
   // Mostrar loading enquanto verifica autenticação
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background via-background to-[#1a1f4a] dark:to-[#1a1f4a] light:to-[#F0E6D2] relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30">
+      <div className="loading-screen">
+        <div className="loading-screen-particles">
           {Array.from({ length: 50 }).map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-accent rounded-full"
+              className="loading-screen-particle"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
@@ -479,11 +479,11 @@ function AppContent({
             />
           ))}
         </div>
-        <div className="relative z-10 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto animate-pulse">
-            <UIIcons.Star size={32} className="text-accent" />
+        <div className="loading-screen-content">
+          <div className="loading-screen-icon">
+            <UIIcons.Star size={32} style={{ color: 'hsl(var(--accent))' }} />
           </div>
-          <p className="text-secondary">Verificando autenticação...</p>
+          <p className="loading-screen-text">Verificando autenticação...</p>
         </div>
       </div>
     );
@@ -493,9 +493,9 @@ function AppContent({
   if (currentView === 'auth') {
     return (
       <>
-        <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
+        <div className="controls-container">
           <ThemeToggle />
-          <div className="w-px h-6 bg-border/50"></div>
+          <div className="controls-divider"></div>
           <LanguageToggle />
         </div>
         <AuthPortal 
@@ -511,7 +511,7 @@ function AppContent({
   if (currentView === 'google-onboarding' && googleData) {
     return (
       <>
-        <div className="absolute top-4 right-4 z-50">
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 50 }}>
           <ThemeToggle />
         </div>
         <GoogleOnboarding
@@ -533,7 +533,7 @@ function AppContent({
   if (currentView === 'onboarding') {
     return (
       <>
-        <div className="absolute top-4 right-4 z-50">
+        <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 50 }}>
           <ThemeToggle />
         </div>
         <Onboarding 

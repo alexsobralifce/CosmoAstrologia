@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { LanguageProvider } from "./i18n";
 import "./index.css";
-import "./styles/figma-theme.css";
+
 
 // Filtrar erros de extensões do navegador no console
 if (typeof window !== 'undefined') {

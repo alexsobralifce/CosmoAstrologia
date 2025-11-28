@@ -232,8 +232,8 @@ def get_future_transits(
                 try:
                     # Verificar se o índice RAG está carregado
                     if rag_service.embeddings is not None and len(rag_service.documents) > 0:
-                        # Buscar documentos relevantes
-                        rag_results = rag_service.search(transit_query, top_k=3)
+                        # Buscar documentos relevantes com busca expandida
+                        rag_results = rag_service.search(transit_query, top_k=5, expand_query=True)
                         
                         # Se RAG e Groq estiverem disponíveis, gerar interpretação enriquecida
                         if rag_service.groq_client and rag_results:
@@ -538,17 +538,197 @@ def get_chart_ruler_interpretation(
                 detail="Ascendente e regente são obrigatórios"
             )
         
-        # Construir query customizada
-        query = f"regente do mapa {ruler} ascendente {ascendant}"
+        # Construir múltiplas queries para buscar mais informações
+        queries = [
+            f"regente do mapa {ruler} ascendente {ascendant} importância significado",
+            f"{ruler} como regente do mapa astral personalidade energia vital",
+            f"planeta regente {ruler} influência comportamento características",
+        ]
+        if ruler_sign:
+            queries.append(f"{ruler} em {ruler_sign} regente do mapa interpretação")
+        if ruler_house:
+            queries.append(f"{ruler} casa {ruler_house} regente do mapa significado")
+        
+        # Buscar documentos relevantes com múltiplas queries e busca expandida
+        all_results = []
+        for q in queries:
+            try:
+                results = rag_service.search(q, top_k=10, expand_query=True)
+                all_results.extend(results)
+            except Exception as e:
+                print(f"[WARNING] Erro ao buscar com query '{q}': {e}")
+        
+        # Remover duplicatas mantendo os mais relevantes
+        seen_texts = set()
+        unique_results = []
+        for result in sorted(all_results, key=lambda x: x.get('score', 0), reverse=True):
+            text_key = result.get('text', '')[:100]  # Usar primeiros 100 chars como chave
+            if text_key not in seen_texts:
+                seen_texts.add(text_key)
+                unique_results.append(result)
+                if len(unique_results) >= 15:  # Limitar a 15 documentos únicos
+                    break
+        
+        # Preparar contexto dos documentos (mesmo se vazio, vamos tentar)
+        context_text = ""
+        if unique_results:
+            context_text = "\n\n".join([
+                f"--- Documento {i+1} (Fonte: {doc.get('source', 'N/A')}, Página {doc.get('page', 'N/A')}) ---\n{doc.get('text', '')}"
+                for i, doc in enumerate(unique_results[:12])  # Usar até 12 documentos
+            ])
+        
+        # Se não houver resultados do RAG, buscar mais uma vez com query única
+        if not unique_results or len(context_text.strip()) < 100:
+            print(f"[INFO] Poucos resultados do RAG ({len(unique_results)}), buscando novamente...")
+            try:
+                fallback_query = f"regente do mapa {ruler} ascendente {ascendant} importância significado autoconhecimento características personalidade"
+                if ruler_sign:
+                    fallback_query += f" {ruler} em {ruler_sign}"
+                if ruler_house:
+                    fallback_query += f" casa {ruler_house}"
+                
+                fallback_results = rag_service.search(fallback_query, top_k=15, expand_query=True)
+                if fallback_results:
+                    unique_results = fallback_results[:12]
+                    context_text = "\n\n".join([
+                        f"--- Documento {i+1} (Fonte: {doc.get('source', 'N/A')}, Página {doc.get('page', 'N/A')}) ---\n{doc.get('text', '')}"
+                        for i, doc in enumerate(unique_results)
+                    ])
+            except Exception as e:
+                print(f"[WARNING] Erro ao buscar fallback: {e}")
+        
+        # Limitar contexto para evitar token overflow
+        context_limit = min(len(context_text), 4000) if context_text else 0
+        context_snippet = context_text[:context_limit] if context_text else "Informações astrológicas gerais sobre regentes do mapa astral."
+        
+        # Gerar interpretação detalhada com Groq (sempre tentar, mesmo sem contexto do RAG)
+        if rag_service.groq_client:
+            try:
+                # Prompt detalhado para gerar pelo menos 2 parágrafos
+                system_prompt = """Você é um astrólogo experiente especializado em interpretação de regentes do mapa astral. 
+Sua função é criar interpretações profundas, didáticas e detalhadas sobre o planeta regente do mapa, explicando sua importância fundamental para o autoconhecimento.
+
+REGRAS DE FORMATAÇÃO:
+- Sempre escreva NO MÍNIMO 2 parágrafos completos e densos (mínimo 300 palavras)
+- Use estrutura didática com títulos em negrito quando apropriado
+- Explique termos astrológicos de forma simples
+- Conecte as informações de forma narrativa, não apenas listas
+- Foque na importância do regente para autoconhecimento e desenvolvimento pessoal
+- Seja específico e detalhado, evitando generalidades"""
+                
+                user_prompt = f"""REGENTE DO MAPA ASTRAL:
+
+Ascendente: {ascendant}
+Planeta Regente: {ruler}
+Regente em: {ruler_sign or 'não informado'}
+Regente na Casa: {ruler_house or 'não informado'}
+
+CONTEXTO ASTROLÓGICO DE REFERÊNCIA:
+{context_snippet}
+
+---
+
+INSTRUÇÕES DETALHADAS:
+Crie uma interpretação COMPLETA, DETALHADA e EXTENSA sobre o regente do mapa astral. A interpretação DEVE ter NO MÍNIMO 2 parágrafos completos e densos (mínimo 300 palavras no total).
+
+Estruture a interpretação explicando:
+
+1. **O que significa ter {ruler} como regente do mapa** (pelo menos 1 parágrafo completo e denso, mínimo 150 palavras):
+   - Explique o papel fundamental do regente do mapa
+   - Descreva o que significa especificamente ter {ruler} como regente
+   - Conecte com o signo ascendente {ascendant}
+   - Explique a importância para a personalidade e energia vital
+
+2. **Como {ruler} influencia a personalidade, energia vital e comportamento** (pelo menos 1 parágrafo completo e denso, mínimo 150 palavras):
+   - Descreva como o regente influencia o comportamento diário
+   - Explique como afeta a energia e vitalidade
+   - Detalhe características específicas da personalidade
+   - Conecte com a posição em {ruler_sign or 'seu signo'} e casa {ruler_house or 'sua casa'}
+
+3. **A importância do regente para o autoconhecimento e desenvolvimento pessoal**:
+   - Explique como conhecer o regente ajuda no autoconhecimento
+   - Descreva áreas de desenvolvimento pessoal relacionadas
+   - Conecte com o propósito de vida e missão
+
+4. **Como o regente revela forças naturais e áreas de atenção**:
+   - Liste e explique as forças naturais relacionadas
+   - Descreva áreas que precisam de atenção e cuidado
+   - Conecte com desafios e oportunidades
+
+IMPORTANTE:
+- Escreva NO MÍNIMO 2 parágrafos completos e densos (mínimo 300 palavras no total)
+- Cada parágrafo deve ter pelo menos 150 palavras
+- Use linguagem didática e acessível
+- Conecte as informações de forma narrativa e fluida
+- Explique a importância fundamental do regente para o autoconhecimento
+- Seja específico e detalhado, evitando generalidades
+- Baseie-se nos documentos de referência fornecidos acima quando disponíveis
+- Use títulos em negrito quando apropriado (formato markdown **texto**)
+
+Formate a resposta de forma didática, usando quebras de linha e estruturação adequada para facilitar a leitura."""
+                
+                chat_completion = rag_service.groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    model="llama-3.1-8b-instant",
+                    temperature=0.7,
+                    max_tokens=3000,  # Aumentado ainda mais para garantir respostas longas
+                    top_p=0.9,
+                )
+                
+                interpretation_text = chat_completion.choices[0].message.content.strip()
+                
+                # Verificar se a interpretação tem pelo menos 2 parágrafos e tamanho adequado
+                paragraphs = [p.strip() for p in interpretation_text.split('\n\n') if p.strip() and len(p.strip()) > 50]
+                
+                # Se não tiver 2 parágrafos ou for muito curta, tentar melhorar
+                if len(paragraphs) < 2 or len(interpretation_text) < 300:
+                    print(f"[WARNING] Interpretação muito curta ({len(interpretation_text)} chars, {len(paragraphs)} parágrafos), tentando melhorar...")
+                    # Se não tiver 2 parágrafos, tentar dividir por pontos finais
+                    sentences = [s.strip() for s in interpretation_text.split('. ') if s.strip()]
+                    if len(sentences) > 4:
+                        mid_point = len(sentences) // 2
+                        interpretation_text = '. '.join(sentences[:mid_point]) + '.\n\n' + '. '.join(sentences[mid_point:])
+                
+                # Garantir que tenha pelo menos 300 palavras
+                word_count = len(interpretation_text.split())
+                if word_count < 300:
+                    print(f"[WARNING] Interpretação tem apenas {word_count} palavras, mas continuando...")
+                
+                return {
+                    "interpretation": interpretation_text,
+                    "sources": [
+                        {
+                            'source': r.get('source', 'N/A'),
+                            'page': r.get('page', 'N/A'),
+                            'relevance': r.get('score', 0)
+                        }
+                        for r in unique_results[:10]
+                    ] if unique_results else [],
+                    "query_used": f"regente do mapa {ruler} (múltiplas queries, {len(unique_results)} documentos)",
+                    "generated_by": "groq"
+                }
+                
+            except Exception as e:
+                print(f"[ERROR] Erro ao gerar interpretação detalhada com Groq: {e}")
+                import traceback
+                print(f"[ERROR] Traceback: {traceback.format_exc()}")
+                # Continuar com método padrão
+        
+        # Fallback: usar método padrão se Groq falhar ou não estiver disponível
+        print(f"[INFO] Usando fallback - Groq não disponível ou falhou")
+        query = f"regente do mapa {ruler} ascendente {ascendant} importância significado autoconhecimento características personalidade comportamento influência"
         if ruler_sign:
             query += f" {ruler} em {ruler_sign}"
         if ruler_house:
             query += f" casa {ruler_house}"
         
-        # Buscar no RAG e gerar com Groq
         interpretation = rag_service.get_interpretation(
             custom_query=query,
-            use_groq=True
+            use_groq=True,
+            top_k=12  # Aumentar top_k no fallback também
         )
         
         return {
@@ -1349,6 +1529,19 @@ def generate_birth_chart_section(
         rag_service = get_rag_service()
         lang = request.language or 'pt'
         
+        # Verificar se o RAG service está funcionando
+        if not rag_service:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Serviço RAG não disponível. Verifique a configuração."
+            )
+        
+        # Tentar carregar índice se não estiver carregado
+        if not rag_service.documents or len(rag_service.documents) == 0:
+            print("[WARNING] Índice RAG vazio, tentando carregar...")
+            if not rag_service.load_index():
+                print("[WARNING] Não foi possível carregar índice RAG. Continuando com base local.")
+        
         # Obter prompt mestre e prompt da seção
         master_prompt = _get_master_prompt(lang)
         title, section_prompt = _generate_section_prompt(request, request.section)
@@ -1364,55 +1557,117 @@ def generate_birth_chart_section(
         }
         
         query = search_queries.get(request.section, "interpretação mapa astral")
-        rag_results = rag_service.search(query, top_k=10)
+        
+        # Buscar contexto do RAG com tratamento de erro
+        rag_results = []
+        try:
+            rag_results = rag_service.search(query, top_k=10)
+        except Exception as e:
+            print(f"[WARNING] Erro ao buscar no RAG: {e}")
+            # Continuar sem RAG se houver erro
         
         # Preparar contexto
-        context_text = "\n\n".join([doc['text'] for doc in rag_results[:8]])
+        context_text = "\n\n".join([doc.get('text', '') for doc in rag_results[:8] if doc.get('text')])
+        
+        # Se não houver contexto do RAG, usar base local
+        if not context_text or len(context_text.strip()) < 100:
+            try:
+                from app.services.local_knowledge_base import LocalKnowledgeBase
+                local_kb = LocalKnowledgeBase()
+                local_results = local_kb.get_context(
+                    planet=request.sunSign if request.section == 'triad' else None,
+                    sign=request.sunSign,
+                    house=request.sunHouse if request.section == 'roots' else None,
+                    query=query
+                )
+                if local_results:
+                    context_text = "\n\n".join([ctx.get('text', '') for ctx in local_results[:5] if ctx.get('text')])
+            except Exception as e:
+                print(f"[WARNING] Erro ao usar base local: {e}")
         
         # Gerar interpretação com Groq
         if rag_service.groq_client:
             try:
                 from groq import Groq
                 
-                full_prompt = f"""{master_prompt}
+                # Limitar contexto para evitar token overflow
+                context_limit = min(len(context_text), 3000)
+                context_snippet = context_text[:context_limit] if context_text else "Informações astrológicas gerais sobre o tema."
+                
+                full_user_prompt = f"""{section_prompt}
 
 ---
 
 CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
-{context_text}
-
----
-
-{section_prompt}"""
+{context_snippet}"""
                 
                 chat_completion = rag_service.groq_client.chat.completions.create(
                     messages=[
                         {"role": "system", "content": master_prompt},
-                        {"role": "user", "content": f"{section_prompt}\n\nCONTEXTO ASTROLÓGICO:\n{context_text[:3000]}"}
+                        {"role": "user", "content": full_user_prompt}
                     ],
                     model="llama-3.1-8b-instant",
                     temperature=0.7,
-                    max_tokens=1500,
+                    max_tokens=2000,
                     top_p=0.9,
                 )
                 
                 content = chat_completion.choices[0].message.content
                 
+                if not content or len(content.strip()) < 50:
+                    raise ValueError("Resposta do Groq muito curta ou vazia")
+                
                 return FullBirthChartResponse(
                     section=request.section,
                     title=title,
-                    content=content,
+                    content=content.strip(),
                     generated_by="groq"
                 )
                 
             except Exception as e:
                 print(f"[ERROR] Erro ao gerar com Groq: {e}")
+                import traceback
+                print(f"[ERROR] Traceback: {traceback.format_exc()}")
+                # Tentar fallback com RAG apenas
+                if rag_results and len(rag_results) > 0:
+                    fallback_content = "\n\n".join([doc['text'] for doc in rag_results[:3]])
+                    if fallback_content and len(fallback_content) > 100:
+                        return FullBirthChartResponse(
+                            section=request.section,
+                            title=title,
+                            content=fallback_content[:2000],  # Limitar tamanho
+                            generated_by="rag_only"
+                        )
         
-        # Fallback
+        # Fallback final: usar base de conhecimento local
+        try:
+            from app.services.local_knowledge_base import LocalKnowledgeBase
+            local_kb = LocalKnowledgeBase()
+            local_context = local_kb.get_context(
+                planet=request.sunSign if request.section == 'triad' else None,
+                sign=request.sunSign,
+                house=request.sunHouse if request.section == 'roots' else None,
+                query=query
+            )
+            
+            if local_context and len(local_context) > 0:
+                fallback_text = "\n\n".join([ctx.get('text', '') for ctx in local_context[:2] if ctx.get('text')])
+                if fallback_text and len(fallback_text) > 100:
+                    return FullBirthChartResponse(
+                        section=request.section,
+                        title=title,
+                        content=fallback_text[:2000],
+                        generated_by="local_kb"
+                    )
+        except Exception as e:
+            print(f"[ERROR] Erro ao usar base local: {e}")
+        
+        # Último fallback: mensagem de erro
+        error_msg = "Não foi possível gerar a análise no momento. Por favor, tente novamente." if lang == 'pt' else "Could not generate the analysis at this time. Please try again."
         return FullBirthChartResponse(
             section=request.section,
             title=title,
-            content=f"Não foi possível gerar a análise no momento. Por favor, tente novamente.",
+            content=error_msg,
             generated_by="error"
         )
         

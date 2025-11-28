@@ -16,12 +16,8 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     const savedTheme = localStorage.getItem('astro-theme') as Theme;
     if (savedTheme) return savedTheme;
     
-    // Check system preference
-    if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'light';
-    }
-    
-    return 'dark';
+    // Default to light mode (como estava antes)
+    return 'light';
   });
 
   useEffect(() => {

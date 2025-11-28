@@ -70,6 +70,27 @@ O frontend estará disponível em: `http://localhost:5173`
 
 O banco de dados SQLite é criado automaticamente na primeira execução em `backend/astrologia.db`.
 
+## ⚙️ Configuração de Variáveis de Ambiente
+
+### Desenvolvimento Local
+
+**Backend:**
+1. Copie `backend/.env.example` para `backend/.env`
+2. Configure `SECRET_KEY` e `GROQ_API_KEY`
+
+**Frontend:**
+1. Copie `.env.local.example` para `.env.local`
+2. Configure `VITE_API_URL=http://localhost:8000`
+
+📚 **Guia completo:** [docs/CONFIGURACAO_LOCAL.md](./docs/CONFIGURACAO_LOCAL.md)
+
+### Produção
+
+- **Backend (Railway):** Configure variáveis no painel do Railway
+- **Frontend (Vercel):** Configure `VITE_API_URL` no painel do Vercel
+
+📚 **Resumo rápido:** [docs/VARIAVEIS_AMBIENTE_RESUMO.md](./docs/VARIAVEIS_AMBIENTE_RESUMO.md)
+
 ## 🔧 Estrutura do Projeto
 
 ```
@@ -120,7 +141,8 @@ Astrologia/
 ### Frontend não conecta ao backend
 
 - Certifique-se de que o backend está rodando em `http://localhost:8000`
-- Verifique a variável `VITE_API_URL` no `.env` (se configurada)
+- Verifique a variável `VITE_API_URL` no `.env.local` (deve ser `http://localhost:8000`)
+- Reinicie o servidor de desenvolvimento após mudar variáveis
 
 ### Erro de banco de dados
 

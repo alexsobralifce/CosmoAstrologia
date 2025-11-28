@@ -35,6 +35,197 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
 
   const chartRuler = rulerMap[ascendantSign] || 'Sol';
 
+  // Informações detalhadas sobre cada planeta regente
+  const rulerDetails: Record<string, {
+    meaning: { pt: string; en: string };
+    famousPeople: { pt: string[]; en: string[] };
+    characteristics: { pt: string[]; en: string[] };
+    influence: { pt: string; en: string };
+  }> = {
+    'Sol': {
+      meaning: {
+        pt: 'Ter o Sol como regente significa que sua identidade e propósito de vida são fundamentais para sua expressão no mundo. Você brilha naturalmente e busca reconhecimento.',
+        en: 'Having the Sun as ruler means your identity and life purpose are fundamental to your expression in the world. You naturally shine and seek recognition.'
+      },
+      famousPeople: {
+        pt: ['Leonardo DiCaprio', 'Oprah Winfrey', 'Madonna', 'Barack Obama', 'Jennifer Lopez'],
+        en: ['Leonardo DiCaprio', 'Oprah Winfrey', 'Madonna', 'Barack Obama', 'Jennifer Lopez']
+      },
+      characteristics: {
+        pt: ['Liderança natural', 'Confiança e carisma', 'Busca por reconhecimento', 'Criatividade expressiva', 'Vitalidade e energia'],
+        en: ['Natural leadership', 'Confidence and charisma', 'Seeking recognition', 'Expressive creativity', 'Vitality and energy']
+      },
+      influence: {
+        pt: 'O Sol como regente traz uma necessidade de expressar sua essência única e ser reconhecido por suas conquistas. Você tem uma presença marcante e inspira outros.',
+        en: 'The Sun as ruler brings a need to express your unique essence and be recognized for your achievements. You have a striking presence and inspire others.'
+      }
+    },
+    'Lua': {
+      meaning: {
+        pt: 'Ter a Lua como regente significa que suas emoções e intuição guiam sua vida. Você é sensível, adaptável e profundamente conectado ao seu mundo interior.',
+        en: 'Having the Moon as ruler means your emotions and intuition guide your life. You are sensitive, adaptable and deeply connected to your inner world.'
+      },
+      famousPeople: {
+        pt: ['Princesa Diana', 'Meryl Streep', 'Tom Hanks', 'Julia Roberts', 'Johnny Depp'],
+        en: ['Princess Diana', 'Meryl Streep', 'Tom Hanks', 'Julia Roberts', 'Johnny Depp']
+      },
+      characteristics: {
+        pt: ['Sensibilidade emocional', 'Intuição desenvolvida', 'Adaptabilidade', 'Cuidado e proteção', 'Memória emocional forte'],
+        en: ['Emotional sensitivity', 'Developed intuition', 'Adaptability', 'Care and protection', 'Strong emotional memory']
+      },
+      influence: {
+        pt: 'A Lua como regente traz uma natureza emocional profunda e uma capacidade única de se conectar com as necessidades dos outros. Você nutre e protege naturalmente.',
+        en: 'The Moon as ruler brings a deep emotional nature and a unique ability to connect with the needs of others. You naturally nurture and protect.'
+      }
+    },
+    'Mercúrio': {
+      meaning: {
+        pt: 'Ter Mercúrio como regente significa que comunicação, aprendizado e movimento são essenciais para você. Você é curioso, versátil e sempre em busca de conhecimento.',
+        en: 'Having Mercury as ruler means communication, learning and movement are essential to you. You are curious, versatile and always seeking knowledge.'
+      },
+      famousPeople: {
+        pt: ['Albert Einstein', 'Stephen Hawking', 'Neil deGrasse Tyson', 'Emma Watson', 'Daniel Radcliffe'],
+        en: ['Albert Einstein', 'Stephen Hawking', 'Neil deGrasse Tyson', 'Emma Watson', 'Daniel Radcliffe']
+      },
+      characteristics: {
+        pt: ['Comunicação fluida', 'Curiosidade intelectual', 'Versatilidade', 'Raciocínio rápido', 'Adaptação mental'],
+        en: ['Fluid communication', 'Intellectual curiosity', 'Versatility', 'Quick reasoning', 'Mental adaptation']
+      },
+      influence: {
+        pt: 'Mercúrio como regente traz uma mente ágil e uma necessidade constante de aprender e comunicar. Você processa informações rapidamente e se adapta facilmente.',
+        en: 'Mercury as ruler brings an agile mind and a constant need to learn and communicate. You process information quickly and adapt easily.'
+      }
+    },
+    'Vênus': {
+      meaning: {
+        pt: 'Ter Vênus como regente significa que amor, beleza, harmonia e valores são centrais na sua vida. Você busca relacionamentos significativos e aprecia o que é belo.',
+        en: 'Having Venus as ruler means love, beauty, harmony and values are central to your life. You seek meaningful relationships and appreciate what is beautiful.'
+      },
+      famousPeople: {
+        pt: ['Marilyn Monroe', 'Grace Kelly', 'Audrey Hepburn', 'Ryan Gosling', 'Scarlett Johansson'],
+        en: ['Marilyn Monroe', 'Grace Kelly', 'Audrey Hepburn', 'Ryan Gosling', 'Scarlett Johansson']
+      },
+      characteristics: {
+        pt: ['Charme natural', 'Apreciação pela beleza', 'Busca por harmonia', 'Valores relacionais', 'Estilo e elegância'],
+        en: ['Natural charm', 'Appreciation for beauty', 'Seeking harmony', 'Relational values', 'Style and elegance']
+      },
+      influence: {
+        pt: 'Vênus como regente traz uma natureza harmoniosa e uma capacidade de criar beleza e conexões. Você valoriza relacionamentos e busca equilíbrio em todas as áreas.',
+        en: 'Venus as ruler brings a harmonious nature and an ability to create beauty and connections. You value relationships and seek balance in all areas.'
+      }
+    },
+    'Marte': {
+      meaning: {
+        pt: 'Ter Marte como regente significa que ação, coragem e iniciativa são suas forças. Você é determinado, direto e não tem medo de lutar pelo que deseja.',
+        en: 'Having Mars as ruler means action, courage and initiative are your strengths. You are determined, direct and not afraid to fight for what you want.'
+      },
+      famousPeople: {
+        pt: ['Bruce Lee', 'Muhammad Ali', 'Serena Williams', 'Tom Cruise', 'Angelina Jolie'],
+        en: ['Bruce Lee', 'Muhammad Ali', 'Serena Williams', 'Tom Cruise', 'Angelina Jolie']
+      },
+      characteristics: {
+        pt: ['Iniciativa e ação', 'Coragem e determinação', 'Competitividade', 'Impulso e energia', 'Liderança assertiva'],
+        en: ['Initiative and action', 'Courage and determination', 'Competitiveness', 'Drive and energy', 'Assertive leadership']
+      },
+      influence: {
+        pt: 'Marte como regente traz uma energia combativa e uma necessidade de agir. Você é pioneiro, corajoso e não hesita em defender seus ideais.',
+        en: 'Mars as ruler brings a combative energy and a need to act. You are a pioneer, courageous and do not hesitate to defend your ideals.'
+      }
+    },
+    'Júpiter': {
+      meaning: {
+        pt: 'Ter Júpiter como regente significa que expansão, sabedoria e oportunidades são seus guias. Você busca crescimento, conhecimento e tem uma visão otimista da vida.',
+        en: 'Having Jupiter as ruler means expansion, wisdom and opportunities are your guides. You seek growth, knowledge and have an optimistic view of life.'
+      },
+      famousPeople: {
+        pt: ['Walt Disney', 'Richard Branson', 'Oprah Winfrey', 'Morgan Freeman', 'Denzel Washington'],
+        en: ['Walt Disney', 'Richard Branson', 'Oprah Winfrey', 'Morgan Freeman', 'Denzel Washington']
+      },
+      characteristics: {
+        pt: ['Otimismo e fé', 'Busca por sabedoria', 'Expansão e crescimento', 'Generosidade', 'Visão ampla'],
+        en: ['Optimism and faith', 'Seeking wisdom', 'Expansion and growth', 'Generosity', 'Broad vision']
+      },
+      influence: {
+        pt: 'Júpiter como regente traz uma natureza expansiva e uma busca constante por significado e crescimento. Você atrai oportunidades e tem uma visão positiva da vida.',
+        en: 'Jupiter as ruler brings an expansive nature and a constant search for meaning and growth. You attract opportunities and have a positive view of life.'
+      }
+    },
+    'Saturno': {
+      meaning: {
+        pt: 'Ter Saturno como regente significa que disciplina, estrutura e responsabilidade são fundamentais. Você constrói com paciência e valoriza a maturidade e o trabalho árduo.',
+        en: 'Having Saturn as ruler means discipline, structure and responsibility are fundamental. You build with patience and value maturity and hard work.'
+      },
+      famousPeople: {
+        pt: ['Warren Buffett', 'Michelle Obama', 'Meryl Streep', 'Clint Eastwood', 'Helen Mirren'],
+        en: ['Warren Buffett', 'Michelle Obama', 'Meryl Streep', 'Clint Eastwood', 'Helen Mirren']
+      },
+      characteristics: {
+        pt: ['Disciplina e estrutura', 'Responsabilidade', 'Paciência e persistência', 'Maturidade', 'Construção sólida'],
+        en: ['Discipline and structure', 'Responsibility', 'Patience and persistence', 'Maturity', 'Solid building']
+      },
+      influence: {
+        pt: 'Saturno como regente traz uma natureza séria e responsável. Você constrói sua vida com método e disciplina, valorizando o trabalho árduo e a consistência.',
+        en: 'Saturn as ruler brings a serious and responsible nature. You build your life with method and discipline, valuing hard work and consistency.'
+      }
+    },
+    'Urano': {
+      meaning: {
+        pt: 'Ter Urano como regente significa que inovação, liberdade e originalidade são essenciais. Você é único, revolucionário e busca quebrar padrões estabelecidos.',
+        en: 'Having Uranus as ruler means innovation, freedom and originality are essential. You are unique, revolutionary and seek to break established patterns.'
+      },
+      famousPeople: {
+        pt: ['Elon Musk', 'Lady Gaga', 'David Bowie', 'Björk', 'Tim Burton'],
+        en: ['Elon Musk', 'Lady Gaga', 'David Bowie', 'Björk', 'Tim Burton']
+      },
+      characteristics: {
+        pt: ['Originalidade e inovação', 'Independência radical', 'Rebeldia construtiva', 'Visão futurista', 'Quebra de padrões'],
+        en: ['Originality and innovation', 'Radical independence', 'Constructive rebellion', 'Futuristic vision', 'Breaking patterns']
+      },
+      influence: {
+        pt: 'Urano como regente traz uma natureza única e revolucionária. Você é inovador, independente e tem uma visão única do mundo, sempre buscando progresso.',
+        en: 'Uranus as ruler brings a unique and revolutionary nature. You are innovative, independent and have a unique view of the world, always seeking progress.'
+      }
+    },
+    'Netuno': {
+      meaning: {
+        pt: 'Ter Netuno como regente significa que espiritualidade, intuição e criatividade são seus guias. Você é sensível, compassivo e profundamente conectado ao mundo espiritual.',
+        en: 'Having Neptune as ruler means spirituality, intuition and creativity are your guides. You are sensitive, compassionate and deeply connected to the spiritual world.'
+      },
+      famousPeople: {
+        pt: ['Princesa Diana', 'Kurt Cobain', 'Jimi Hendrix', 'Amy Winehouse', 'Heath Ledger'],
+        en: ['Princess Diana', 'Kurt Cobain', 'Jimi Hendrix', 'Amy Winehouse', 'Heath Ledger']
+      },
+      characteristics: {
+        pt: ['Intuição profunda', 'Criatividade artística', 'Compaixão e empatia', 'Sensibilidade espiritual', 'Imaginação vívida'],
+        en: ['Deep intuition', 'Artistic creativity', 'Compassion and empathy', 'Spiritual sensitivity', 'Vivid imagination']
+      },
+      influence: {
+        pt: 'Netuno como regente traz uma natureza sensível e intuitiva. Você é artista, místico e tem uma conexão profunda com o mundo invisível e espiritual.',
+        en: 'Neptune as ruler brings a sensitive and intuitive nature. You are an artist, mystic and have a deep connection with the invisible and spiritual world.'
+      }
+    },
+    'Plutão': {
+      meaning: {
+        pt: 'Ter Plutão como regente significa que transformação, poder e regeneração são seus temas. Você passa por profundas transformações e tem uma intensidade única.',
+        en: 'Having Pluto as ruler means transformation, power and regeneration are your themes. You go through deep transformations and have a unique intensity.'
+      },
+      famousPeople: {
+        pt: ['Frida Kahlo', 'Leonardo da Vinci', 'Edgar Allan Poe', 'Sigmund Freud', 'Marilyn Manson'],
+        en: ['Frida Kahlo', 'Leonardo da Vinci', 'Edgar Allan Poe', 'Sigmund Freud', 'Marilyn Manson']
+      },
+      characteristics: {
+        pt: ['Intensidade profunda', 'Transformação constante', 'Poder de regeneração', 'Psicologia profunda', 'Mistério e profundidade'],
+        en: ['Deep intensity', 'Constant transformation', 'Regenerative power', 'Deep psychology', 'Mystery and depth']
+      },
+      influence: {
+        pt: 'Plutão como regente traz uma natureza intensa e transformadora. Você passa por ciclos profundos de morte e renascimento, sempre emergindo mais forte.',
+        en: 'Pluto as ruler brings an intense and transformative nature. You go through deep cycles of death and rebirth, always emerging stronger.'
+      }
+    }
+  };
+
+  const currentRulerDetails = rulerDetails[chartRuler] || rulerDetails['Sol'];
+
   // Função para formatar o texto do regente organizando por tópicos
   const formatChartRulerText = (text: string): React.ReactNode => {
     if (!text) return null;
@@ -61,18 +252,18 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
       if (numberedMatch) {
         // Tópico numerado
         formattedParagraphs.push(
-          <div key={index} className="mb-4">
-            <p className="text-foreground/80 leading-relaxed">
-              <span className="font-semibold text-foreground">{numberedMatch[1]}.</span> {numberedMatch[2]}
+          <div key={index} className="overview-chart-ruler-numbered">
+            <p className="overview-chart-ruler-content">
+              <span className="overview-chart-ruler-number">{numberedMatch[1]}.</span> {numberedMatch[2]}
             </p>
           </div>
         );
       } else if (bulletMatch) {
         // Tópico com bullet
         formattedParagraphs.push(
-          <div key={index} className="mb-4 ml-4">
-            <p className="text-foreground/80 leading-relaxed">
-              <span className="text-primary mr-2">•</span> {bulletMatch[1]}
+          <div key={index} className="overview-chart-ruler-bullet">
+            <p className="overview-chart-ruler-content">
+              <span className="overview-chart-ruler-bullet-marker">•</span> {bulletMatch[1]}
             </p>
           </div>
         );
@@ -80,9 +271,9 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
         // Título ou texto em negrito
         const content = boldMatch ? trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') : trimmed;
         formattedParagraphs.push(
-          <div key={index} className="mb-4">
+          <div key={index}>
             <p 
-              className="font-semibold text-foreground mb-2" 
+              className="overview-chart-ruler-heading" 
               dangerouslySetInnerHTML={{ __html: content }}
             />
           </div>
@@ -90,14 +281,14 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
       } else {
         // Parágrafo normal
         formattedParagraphs.push(
-          <div key={index} className="mb-4">
-            <p className="text-foreground/80 leading-relaxed">{trimmed}</p>
+          <div key={index} className="overview-chart-ruler-paragraph">
+            <p className="overview-chart-ruler-content">{trimmed}</p>
           </div>
         );
       }
     });
 
-    return <div className="space-y-1">{formattedParagraphs}</div>;
+    return <div>{formattedParagraphs}</div>;
   };
 
   // Dados dos elementos baseados nos planetas
@@ -138,20 +329,20 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
   const MoonIcon = zodiacSigns.find(z => z.name === moonSign)?.icon || zodiacSigns[0].icon;
 
   return (
-    <div className="space-y-8">
+    <div className="dashboard-section-container overview-container">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-3xl font-bold text-foreground">
+      <div className="overview-header">
+        <div className="overview-header-content">
+          <h2 className="overview-title">
             {language === 'pt' ? 'Visão Geral do Seu Mapa' : 'Your Chart Overview'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="overview-subtitle">
             {language === 'pt' ? 'Explore os principais elementos do seu mapa astral' : 'Explore the main elements of your birth chart'}
           </p>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+          className="overview-back-button"
         >
           <UIIcons.ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
@@ -159,109 +350,344 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
       </div>
 
       {/* Big Three Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-500/20 dark:to-orange-500/5 rounded-xl p-6 border border-orange-300 dark:border-orange-500/30">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-orange-200 dark:bg-orange-500/20 flex items-center justify-center">
-              <SunIcon size={28} className="text-orange-600 dark:text-orange-400" />
+      <div className="overview-big-three">
+        <div className="overview-big-three-grid">
+          <div className="overview-big-three-card overview-big-three-card-sun">
+            <div className="overview-big-three-card-header">
+              <div className="overview-big-three-card-icon-container overview-big-three-card-icon-container-sun">
+                <SunIcon size={28} className="text-foreground" />
+              </div>
+              <div>
+                <p className="overview-big-three-card-label">{language === 'pt' ? 'Sol' : 'Sun'}</p>
+                <p className="overview-big-three-card-sign">{sunSign}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Sol' : 'Sun'}</p>
-              <p className="font-bold text-xl text-foreground">{sunSign}</p>
-            </div>
+            <p className="overview-big-three-card-description">
+              {language === 'pt' ? 'Sua essência e identidade central' : 'Your essence and core identity'}
+            </p>
           </div>
-          <p className="text-sm text-foreground">
-            {language === 'pt' ? 'Sua essência e identidade central' : 'Your essence and core identity'}
-          </p>
-        </div>
 
-        <div className="bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-500/20 dark:to-purple-500/5 rounded-xl p-6 border border-purple-300 dark:border-purple-500/30">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-purple-200 dark:bg-purple-500/20 flex items-center justify-center">
-              <MoonIcon size={28} className="text-purple-600 dark:text-purple-400" />
+          <div className="overview-big-three-card overview-big-three-card-moon">
+            <div className="overview-big-three-card-header">
+              <div className="overview-big-three-card-icon-container overview-big-three-card-icon-container-moon">
+                <MoonIcon size={28} className="text-foreground" />
+              </div>
+              <div>
+                <p className="overview-big-three-card-label">{language === 'pt' ? 'Lua' : 'Moon'}</p>
+                <p className="overview-big-three-card-sign">{moonSign}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Lua' : 'Moon'}</p>
-              <p className="font-bold text-xl text-foreground">{moonSign}</p>
-            </div>
+            <p className="overview-big-three-card-description">
+              {language === 'pt' ? 'Suas emoções e mundo interior' : 'Your emotions and inner world'}
+            </p>
           </div>
-          <p className="text-sm text-foreground">
-            {language === 'pt' ? 'Suas emoções e mundo interior' : 'Your emotions and inner world'}
-          </p>
-        </div>
 
-        <div className="bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-500/20 dark:to-blue-500/5 rounded-xl p-6 border border-blue-300 dark:border-blue-500/30">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-blue-200 dark:bg-blue-500/20 flex items-center justify-center">
-              <AscIcon size={28} className="text-blue-600 dark:text-blue-400" />
+          <div className="overview-big-three-card overview-big-three-card-asc">
+            <div className="overview-big-three-card-header">
+              <div className="overview-big-three-card-icon-container overview-big-three-card-icon-container-asc">
+                <AscIcon size={28} className="text-foreground" />
+              </div>
+              <div>
+                <p className="overview-big-three-card-label">{language === 'pt' ? 'Ascendente' : 'Ascendant'}</p>
+                <p className="overview-big-three-card-sign">{ascendantSign}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Ascendente' : 'Ascendant'}</p>
-              <p className="font-bold text-xl text-foreground">{ascendantSign}</p>
-            </div>
+            <p className="overview-big-three-card-description">
+              {language === 'pt' ? 'Como você se apresenta ao mundo' : 'How you present yourself to the world'}
+            </p>
           </div>
-          <p className="text-sm text-foreground">
-            {language === 'pt' ? 'Como você se apresenta ao mundo' : 'How you present yourself to the world'}
-          </p>
         </div>
       </div>
 
       {/* Birth Chart Wheel */}
-      <div className="bg-card rounded-xl p-6 border border-border">
-        <h3 className="font-serif text-xl font-bold text-foreground mb-6">
+      <div className="overview-chart-wheel-section">
+        <h3 className="overview-chart-wheel-title">
           {language === 'pt' ? 'Roda do Mapa Astral' : 'Birth Chart Wheel'}
         </h3>
-        <BirthChartWheel />
+        <div className="overview-chart-wheel-container">
+          <BirthChartWheel userData={userData} size={500} />
+        </div>
+        
+        {/* Legenda */}
+        <div className="overview-chart-wheel-legend">
+          <div className="overview-chart-wheel-legend-section">
+            <h4 className="overview-chart-wheel-legend-title">
+              {language === 'pt' ? 'Como ler o mapa' : 'How to read the chart'}
+            </h4>
+            <div className="overview-chart-wheel-legend-items">
+              <div className="overview-chart-wheel-legend-item">
+                <div className="overview-chart-wheel-legend-icon-container">
+                  <div className="overview-chart-wheel-legend-icon-signs">
+                    <span style={{ color: 'hsl(var(--primary))', fontSize: '1.5rem' }}>♈</span>
+                  </div>
+                </div>
+                <div className="overview-chart-wheel-legend-content">
+                  <p className="overview-chart-wheel-legend-label">
+                    {language === 'pt' ? 'Signos do Zodíaco' : 'Zodiac Signs'}
+                  </p>
+                  <p className="overview-chart-wheel-legend-desc">
+                    {language === 'pt' 
+                      ? 'Os 12 signos na borda externa representam as constelações'
+                      : 'The 12 signs on the outer edge represent the constellations'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overview-chart-wheel-legend-item">
+                <div className="overview-chart-wheel-legend-icon-container">
+                  <div className="overview-chart-wheel-legend-icon-planets">
+                    <span style={{ color: 'hsl(var(--primary))', fontSize: '1.25rem' }}>☉</span>
+                  </div>
+                </div>
+                <div className="overview-chart-wheel-legend-content">
+                  <p className="overview-chart-wheel-legend-label">
+                    {language === 'pt' ? 'Planetas' : 'Planets'}
+                  </p>
+                  <p className="overview-chart-wheel-legend-desc">
+                    {language === 'pt' 
+                      ? 'Símbolos planetários mostram onde cada planeta estava no seu nascimento'
+                      : 'Planetary symbols show where each planet was at your birth'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overview-chart-wheel-legend-item">
+                <div className="overview-chart-wheel-legend-icon-container">
+                  <div className="overview-chart-wheel-legend-icon-houses">
+                    <span style={{ color: 'hsl(var(--accent))', fontSize: '1.25rem', fontWeight: '600' }}>1</span>
+                  </div>
+                </div>
+                <div className="overview-chart-wheel-legend-content">
+                  <p className="overview-chart-wheel-legend-label">
+                    {language === 'pt' ? 'Casas Astrológicas' : 'Astrological Houses'}
+                  </p>
+                  <p className="overview-chart-wheel-legend-desc">
+                    {language === 'pt' 
+                      ? 'As 12 casas dividem o mapa em áreas da vida (1-12)'
+                      : 'The 12 houses divide the chart into life areas (1-12)'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overview-chart-wheel-legend-item">
+                <div className="overview-chart-wheel-legend-icon-container">
+                  <div className="overview-chart-wheel-legend-icon-lines">
+                    <div className="overview-chart-wheel-legend-line"></div>
+                  </div>
+                </div>
+                <div className="overview-chart-wheel-legend-content">
+                  <p className="overview-chart-wheel-legend-label">
+                    {language === 'pt' ? 'Linhas Divisórias' : 'Division Lines'}
+                  </p>
+                  <p className="overview-chart-wheel-legend-desc">
+                    {language === 'pt' 
+                      ? 'Separam as 12 casas astrológicas do mapa'
+                      : 'Separate the 12 astrological houses of the chart'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Chart Ruler & Elements Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="overview-details-grid">
         {/* Chart Ruler */}
-        <div className="bg-card rounded-xl p-6 border border-border">
-          <h3 className="font-serif text-xl font-bold text-foreground mb-4">
+        <div className="overview-detail-card">
+          <h3 className="overview-detail-card-title">
+            <UIIcons.Star size={20} className="text-primary" />
             {language === 'pt' ? 'Regente do Mapa' : 'Chart Ruler'}
           </h3>
-          <div className="flex items-center gap-4 mb-4 p-4 bg-primary/10 rounded-lg">
-            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
-              {planets.find(p => p.name === chartRuler)?.icon && (
-                <div className="text-primary">
-                  {(() => {
-                    const PlanetIcon = planets.find(p => p.name === chartRuler)?.icon;
-                    return PlanetIcon ? <PlanetIcon size={32} /> : null;
-                  })()}
+          
+          {/* Informações sobre a importância do regente */}
+          <div className="overview-chart-ruler-importance">
+            <div className="overview-chart-ruler-importance-header">
+              <UIIcons.Info size={18} className="text-primary" />
+              <h4 className="overview-chart-ruler-importance-title">
+                {language === 'pt' ? 'Por que o regente do mapa é importante?' : 'Why is the chart ruler important?'}
+              </h4>
+            </div>
+            <p className="overview-chart-ruler-importance-intro">
+              {language === 'pt' 
+                ? 'O regente do mapa astral é fundamental para o autoconhecimento, pois ele é o planeta que rege o seu signo ascendente, influenciando diretamente sua personalidade e energia vital. Ele funciona como um guia, revelando suas forças naturais, os tipos de energia que te impulsionam e para onde sua atenção tende a se voltar.'
+                : 'The chart ruler is fundamental for self-knowledge, as it is the planet that rules your ascendant sign, directly influencing your personality and vital energy. It functions as a guide, revealing your natural strengths, the types of energy that drive you, and where your attention tends to turn.'}
+            </p>
+            <div className="overview-chart-ruler-importance-points">
+              <div className="overview-chart-ruler-importance-point">
+                <div className="overview-chart-ruler-importance-point-icon">
+                  <UIIcons.Compass size={16} />
                 </div>
+                <div className="overview-chart-ruler-importance-point-content">
+                  <p className="overview-chart-ruler-importance-point-title">
+                    {language === 'pt' ? 'Guia para a personalidade' : 'Guide for personality'}
+                  </p>
+                  <p className="overview-chart-ruler-importance-point-text">
+                    {language === 'pt' 
+                      ? 'O planeta regente influencia o seu "jeito de ser", determinando características e comportamentos específicos.'
+                      : 'The ruling planet influences your "way of being", determining specific characteristics and behaviors.'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overview-chart-ruler-importance-point">
+                <div className="overview-chart-ruler-importance-point-icon">
+                  <UIIcons.Sparkles size={16} />
+                </div>
+                <div className="overview-chart-ruler-importance-point-content">
+                  <p className="overview-chart-ruler-importance-point-title">
+                    {language === 'pt' ? 'Revela forças naturais' : 'Reveals natural strengths'}
+                  </p>
+                  <p className="overview-chart-ruler-importance-point-text">
+                    {language === 'pt' 
+                      ? 'Indica onde reside sua força, seu impulso natural e para quais áreas da vida sua atenção retorna com frequência.'
+                      : 'Indicates where your strength lies, your natural drive and which areas of life your attention frequently returns to.'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overview-chart-ruler-importance-point">
+                <div className="overview-chart-ruler-importance-point-icon">
+                  <UIIcons.Heart size={16} />
+                </div>
+                <div className="overview-chart-ruler-importance-point-content">
+                  <p className="overview-chart-ruler-importance-point-title">
+                    {language === 'pt' ? 'Influencia emoções e instintos' : 'Influences emotions and instincts'}
+                  </p>
+                  <p className="overview-chart-ruler-importance-point-text">
+                    {language === 'pt' 
+                      ? 'Por exemplo, a Lua, planeta regente de algumas pessoas, está associada às emoções, instintos e reações emocionais, além da vida doméstica e passado.'
+                      : 'For example, the Moon, ruling planet of some people, is associated with emotions, instincts and emotional reactions, as well as domestic life and the past.'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overview-chart-ruler-importance-point">
+                <div className="overview-chart-ruler-importance-point-icon">
+                  <UIIcons.Scale size={16} />
+                </div>
+                <div className="overview-chart-ruler-importance-point-content">
+                  <p className="overview-chart-ruler-importance-point-title">
+                    {language === 'pt' ? 'Ajuda no equilíbrio' : 'Helps with balance'}
+                  </p>
+                  <p className="overview-chart-ruler-importance-point-text">
+                    {language === 'pt' 
+                      ? 'Ao conhecer as energias do seu regente, você pode usá-las de forma consciente para harmonizar e equilibrar sua personalidade.'
+                      : 'By knowing the energies of your ruler, you can use them consciously to harmonize and balance your personality.'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="overview-chart-ruler-importance-point">
+                <div className="overview-chart-ruler-importance-point-icon">
+                  <UIIcons.BookOpen size={16} />
+                </div>
+                <div className="overview-chart-ruler-importance-point-content">
+                  <p className="overview-chart-ruler-importance-point-title">
+                    {language === 'pt' ? 'Aprofunda a interpretação' : 'Deepens interpretation'}
+                  </p>
+                  <p className="overview-chart-ruler-importance-point-text">
+                    {language === 'pt' 
+                      ? 'O regente do seu ascendente é o "regente" do seu mapa como um todo. Analisar a casa e a posição em que ele se encontra no seu mapa é essencial para uma análise mais completa.'
+                      : 'The ruler of your ascendant is the "ruler" of your chart as a whole. Analyzing the house and position where it is located in your chart is essential for a more complete analysis.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="overview-chart-ruler-header">
+            <div className="overview-chart-ruler-icon-container">
+              {planets.find(p => p.name === chartRuler)?.icon && (
+                (() => {
+                  const PlanetIcon = planets.find(p => p.name === chartRuler)?.icon;
+                  return PlanetIcon ? <PlanetIcon size={32} className="text-primary" /> : null;
+                })()
               )}
             </div>
-            <div>
-              <p className="font-bold text-lg text-foreground">{chartRuler}</p>
-              <p className="text-sm text-muted-foreground">
+            <div className="overview-chart-ruler-info">
+              <p className="overview-chart-ruler-name">{chartRuler}</p>
+              <p className="overview-chart-ruler-desc">
                 {language === 'pt' ? `Regente de ${ascendantSign}` : `Ruler of ${ascendantSign}`}
               </p>
             </div>
           </div>
           {isLoading ? (
-            <div className="flex items-center gap-3 py-4">
-              <UIIcons.Loader className="w-5 h-5 animate-spin text-primary" />
-              <p className="text-muted-foreground">
+            <div className="overview-chart-ruler-loading">
+              <div className="overview-chart-ruler-spinner"></div>
+              <p className="overview-chart-ruler-loading-text">
                 {language === 'pt' ? 'Gerando interpretação...' : 'Generating interpretation...'}
               </p>
             </div>
           ) : (
-            <div className="text-foreground/80">
+            <div className="overview-chart-ruler-content">
               {formatChartRulerText(chartRulerInterpretation)}
+              
+              {/* Informações Adicionais sobre o Regente */}
+              <div className="overview-chart-ruler-additional-info">
+                <div className="overview-chart-ruler-info-section">
+                  <h4 className="overview-chart-ruler-info-title">
+                    {language === 'pt' ? 'O que significa ter ' : 'What it means to have '}
+                    <span className="overview-chart-ruler-info-highlight">{chartRuler}</span>
+                    {language === 'pt' ? ' como regente' : ' as ruler'}
+                  </h4>
+                  <p className="overview-chart-ruler-info-text">
+                    {currentRulerDetails.meaning[language === 'pt' ? 'pt' : 'en']}
+                  </p>
+                </div>
+
+                <div className="overview-chart-ruler-info-section">
+                  <h4 className="overview-chart-ruler-info-title">
+                    {language === 'pt' ? 'Características principais' : 'Main characteristics'}
+                  </h4>
+                  <ul className="overview-chart-ruler-characteristics">
+                    {currentRulerDetails.characteristics[language === 'pt' ? 'pt' : 'en'].map((char, idx) => (
+                      <li key={idx} className="overview-chart-ruler-characteristic-item">
+                        <span className="overview-chart-ruler-characteristic-marker">•</span>
+                        {char}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="overview-chart-ruler-info-section">
+                  <h4 className="overview-chart-ruler-info-title">
+                    {language === 'pt' ? 'Pessoas famosas com esta regência' : 'Famous people with this rulership'}
+                  </h4>
+                  <div className="overview-chart-ruler-famous-people">
+                    {currentRulerDetails.famousPeople[language === 'pt' ? 'pt' : 'en'].map((person, idx) => (
+                      <span key={idx} className="overview-chart-ruler-famous-person">
+                        {person}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="overview-chart-ruler-info-section">
+                  <h4 className="overview-chart-ruler-info-title">
+                    {language === 'pt' ? 'Influência na sua vida' : 'Influence on your life'}
+                  </h4>
+                  <p className="overview-chart-ruler-info-text">
+                    {currentRulerDetails.influence[language === 'pt' ? 'pt' : 'en']}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
 
         {/* Elements Distribution */}
-        <div className="bg-card rounded-xl p-6 border border-border">
-          <h3 className="font-serif text-xl font-bold text-foreground mb-4">
+        <div className="overview-detail-card">
+          <h3 className="overview-detail-card-title">
+            <UIIcons.Sparkles size={20} className="text-primary" />
             {language === 'pt' ? 'Distribuição dos Elementos' : 'Elements Distribution'}
           </h3>
-          <ElementChart 
-            data={elementData} 
-            title="" 
-          />
+          <div className="overview-elements-container">
+            <ElementChart 
+              data={elementData} 
+              title="" 
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -745,20 +1171,20 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="dashboard-section-container">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-3xl font-bold text-foreground">
+      <div className="section-header">
+        <div className="section-header-content">
+          <h2 className="section-title">
             {language === 'pt' ? 'As 12 Casas Astrológicas' : 'The 12 Astrological Houses'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="section-subtitle">
             {language === 'pt' ? 'Cada casa representa uma área da sua vida' : 'Each house represents an area of your life'}
           </p>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+          className="section-back-button"
         >
           <UIIcons.ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
@@ -766,36 +1192,36 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
       </div>
 
       {/* Explicação */}
-      <div className="bg-card/50 border border-border rounded-xl p-5">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+      <div className="houses-info-container">
+        <div className="houses-info-content">
+          <div className="houses-info-icon">
             <UIIcons.Info size={20} className="text-primary" />
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground mb-2">
+          <div className="houses-info-text">
+            <h3 className="houses-info-title">
               {language === 'pt' ? 'Como usar esta seção' : 'How to use this section'}
             </h3>
-            <p className="text-muted-foreground text-sm leading-relaxed mb-3">
+            <p className="houses-info-description">
               {language === 'pt' 
                 ? 'As 12 casas astrológicas dividem o mapa natal em áreas específicas da vida, cada uma representando diferentes aspectos da sua experiência humana. Clique em qualquer uma das casas abaixo para ver uma análise personalizada baseada no seu mapa natal.'
                 : 'The 12 astrological houses divide the birth chart into specific life areas, each representing different aspects of your human experience. Click on any house below to see a personalized analysis based on your birth chart.'}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-              <div className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">•</span>
-                <span className="text-foreground/80">
+            <div className="houses-info-categories">
+              <div className="houses-info-category">
+                <span className="houses-info-category-bullet">•</span>
+                <span className="houses-info-category-text">
                   {language === 'pt' ? 'Casas 1-4: Identidade e Fundamentos' : 'Houses 1-4: Identity and Foundations'}
                 </span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">•</span>
-                <span className="text-foreground/80">
+              <div className="houses-info-category">
+                <span className="houses-info-category-bullet">•</span>
+                <span className="houses-info-category-text">
                   {language === 'pt' ? 'Casas 5-8: Criatividade e Relações' : 'Houses 5-8: Creativity and Relationships'}
                 </span>
               </div>
-              <div className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">•</span>
-                <span className="text-foreground/80">
+              <div className="houses-info-category">
+                <span className="houses-info-category-bullet">•</span>
+                <span className="houses-info-category-text">
                   {language === 'pt' ? 'Casas 9-12: Expansão e Transcendência' : 'Houses 9-12: Expansion and Transcendence'}
                 </span>
               </div>
@@ -805,33 +1231,25 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
       </div>
 
       {/* Houses Grid */}
-      <div>
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="houses-list-container">
+        <h3 className="houses-list-title">
           <UIIcons.Home size={18} className="text-primary" />
           {language === 'pt' ? 'Selecione uma Casa para Ver a Análise' : 'Select a House to See the Analysis'}
         </h3>
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="houses-grid">
           {houses.map((house) => {
             const isSelected = selectedHouse === house.house;
             return (
               <button
                 key={house.house}
                 onClick={() => fetchHouseInterpretation(house.house)}
-                className={`p-4 rounded-xl border transition-all hover:scale-105 ${
-                  isSelected 
-                    ? 'bg-primary/20 border-primary shadow-lg' 
-                    : 'bg-card border-border hover:border-primary/50'
-                }`}
+                className={`house-card ${isSelected ? 'selected' : ''}`}
               >
-                <div className="text-center">
-                  <div className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2 ${
-                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                  }`}>
-                    <span className="font-bold">{house.house}</span>
-                  </div>
-                  <p className="font-medium text-sm text-foreground">{house.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{house.desc}</p>
+                <div className="house-card-number">
+                  {house.house}
                 </div>
+                <p className="house-card-title">{house.title}</p>
+                <p className="house-card-desc">{house.desc}</p>
               </button>
             );
           })}
@@ -840,16 +1258,16 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
 
       {/* Interpretation Panel */}
       {selectedHouse && (
-        <div className="bg-gradient-to-br from-card to-card/50 rounded-xl p-6 border border-border shadow-lg animate-fadeIn">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-primary-foreground text-xl font-bold shadow-md">
+        <div className="house-interpretation-panel">
+          <div className="house-interpretation-header">
+            <div className="house-interpretation-number">
               {selectedHouse}
             </div>
-            <div className="flex-1">
-              <h3 className="font-serif text-2xl font-bold text-foreground mb-2">
+            <div className="house-interpretation-title-container">
+              <h3 className="house-interpretation-title">
                 Casa {selectedHouse}: {houses.find(h => h.house === selectedHouse)?.title}
               </h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <div className="house-interpretation-meta">
                 <UIIcons.Home size={14} />
                 <span>{houses.find(h => h.house === selectedHouse)?.desc}</span>
               </div>
@@ -857,16 +1275,16 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center gap-3 py-8 justify-center">
-              <UIIcons.Loader className="w-5 h-5 animate-spin text-primary" />
-              <p className="text-muted-foreground">
+            <div className="house-loading-container">
+              <UIIcons.Loader className="house-loading-spinner" />
+              <p className="house-loading-text">
                 {language === 'pt' ? 'Buscando interpretação personalizada...' : 'Fetching personalized interpretation...'}
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="h-px bg-border/50"></div>
-              <div className="prose prose-sm max-w-none space-y-6">
+            <div className="house-interpretation-content">
+              <div className="house-interpretation-divider"></div>
+              <div className="house-interpretation-text">
                 {interpretation.split('\n\n').map((paragraph, idx) => {
                   // Detecta se é um título/tópico (linhas que começam com maiúscula e terminam com :)
                   const isHeading = paragraph.match(/^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][^.!?]*:$/);
@@ -875,21 +1293,21 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
                   
                   if (isHeading) {
                     return (
-                      <h4 key={idx} className="font-semibold text-foreground text-base mt-6 mb-3 flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                      <h4 key={idx} className="house-interpretation-heading">
+                        <span className="house-interpretation-heading-bullet"></span>
                         {paragraph.replace(':', '')}
                       </h4>
                     );
                   } else if (isList) {
                     const items = paragraph.split('\n').filter(line => line.trim());
                     return (
-                      <ul key={idx} className="space-y-2 ml-2 mb-6">
+                      <ul key={idx} className="house-interpretation-list">
                         {items.map((item, i) => {
                           const cleanItem = item.replace(/^[-•*]\s*/, '').trim();
                           if (!cleanItem) return null;
                           return (
-                            <li key={i} className="flex items-start gap-2 text-foreground/80 leading-relaxed">
-                              <span className="text-primary mt-1.5 flex-shrink-0">•</span>
+                            <li key={i} className="house-interpretation-list-item">
+                              <span className="house-interpretation-list-bullet">•</span>
                               <span>{cleanItem}</span>
                             </li>
                           );
@@ -898,7 +1316,7 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
                     );
                   } else if (paragraph.trim()) {
                     return (
-                      <p key={idx} className="text-foreground/80 leading-relaxed mb-6">
+                      <p key={idx} className="house-interpretation-text">
                         {paragraph}
                       </p>
                     );
@@ -937,20 +1355,20 @@ export const Guide2026Section = ({ userData, onBack }: Guide2026SectionProps) =>
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="transits-section-container">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-3xl font-bold text-foreground">
+      <div className="transits-header">
+        <div className="transits-header-content">
+          <h2 className="transits-title">
             {language === 'pt' ? 'Trânsitos Astrológicos' : 'Astrological Transits'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="transits-subtitle">
             {language === 'pt' ? 'Acompanhe os movimentos planetários e suas influências' : 'Track planetary movements and their influences'}
           </p>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+          className="transits-back-button"
         >
           <UIIcons.ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
@@ -958,77 +1376,111 @@ export const Guide2026Section = ({ userData, onBack }: Guide2026SectionProps) =>
       </div>
 
       {/* Destaques do Ano */}
-      <div className="bg-card rounded-xl p-5 border border-border">
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-          <UIIcons.Star size={18} className="text-primary" />
+      <div className="transits-highlights-card">
+        <h3 className="transits-highlights-title">
+          <UIIcons.Star size={18} style={{ color: 'hsl(var(--primary))' }} />
           {language === 'pt' ? 'Destaques Astrológicos' : 'Astrological Highlights'}
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="transits-highlights-grid">
           {highlights.map((item, idx) => (
-            <div key={idx} className={`${item.bg} rounded-lg p-4 border border-border/50`}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`text-2xl ${item.color}`}>{item.icon}</span>
-                <span className="text-xs text-muted-foreground">{item.period}</span>
+            <div key={idx} className="transits-highlight-item" style={{
+              backgroundColor: item.bg.includes('amber') ? 'hsl(45, 90%, 60% / 0.1)' :
+                              item.bg.includes('gray') ? 'hsl(0, 0%, 50% / 0.1)' :
+                              item.bg.includes('teal') ? 'hsl(173, 80%, 40% / 0.1)' :
+                              item.bg.includes('blue') ? 'hsl(217, 91%, 60% / 0.1)' : 'hsl(var(--muted) / 0.1)',
+              borderColor: item.bg.includes('amber') ? 'hsl(45, 90%, 60% / 0.3)' :
+                          item.bg.includes('gray') ? 'hsl(0, 0%, 50% / 0.3)' :
+                          item.bg.includes('teal') ? 'hsl(173, 80%, 40% / 0.3)' :
+                          item.bg.includes('blue') ? 'hsl(217, 91%, 60% / 0.3)' : 'hsl(var(--border) / 0.5)'
+            }}>
+              <div className="transits-highlight-header">
+                <span className="transits-highlight-icon" style={{
+                  color: item.color.includes('amber') ? 'hsl(45, 90%, 60%)' :
+                         item.color.includes('muted') ? 'hsl(var(--muted-foreground))' :
+                         item.color.includes('teal') ? 'hsl(173, 80%, 40%)' :
+                         item.color.includes('blue') ? 'hsl(217, 91%, 60%)' : 'hsl(var(--foreground))'
+                }}>{item.icon}</span>
+                <span className="transits-highlight-period">{item.period}</span>
               </div>
-              <p className={`font-semibold text-sm ${item.color}`}>{item.title}</p>
-              <p className="text-xs text-foreground mt-1">{item.desc}</p>
+              <p className="transits-highlight-title" style={{
+                color: item.color.includes('amber') ? 'hsl(45, 90%, 60%)' :
+                       item.color.includes('muted') ? 'hsl(var(--muted-foreground))' :
+                       item.color.includes('teal') ? 'hsl(173, 80%, 40%)' :
+                       item.color.includes('blue') ? 'hsl(217, 91%, 60%)' : 'hsl(var(--foreground))'
+              }}>{item.title}</p>
+              <p className="transits-highlight-desc">{item.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Legenda de Tipos de Trânsitos */}
-      <AstroCard className="p-5">
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-          <UIIcons.Info size={18} className="text-primary" />
+      <div className="transits-legend-card">
+        <h3 className="transits-legend-title">
+          <UIIcons.Info size={18} style={{ color: 'hsl(var(--primary))' }} />
           {language === 'pt' ? 'Tipos de Trânsitos' : 'Transit Types'}
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30">
-            <span className="text-lg">🌟</span>
-            <div>
-              <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Expansão' : 'Expansion'}</p>
-              <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Júpiter' : 'Jupiter'}</p>
+        <div className="transits-legend-grid">
+          <div className="transits-legend-item" style={{
+            backgroundColor: 'hsl(45, 90%, 60% / 0.15)',
+            borderColor: 'hsl(45, 90%, 60% / 0.3)'
+          }}>
+            <span className="transits-legend-icon">🌟</span>
+            <div className="transits-legend-content">
+              <p className="transits-legend-name">{language === 'pt' ? 'Expansão' : 'Expansion'}</p>
+              <p className="transits-legend-planet">{language === 'pt' ? 'Júpiter' : 'Jupiter'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-stone-500/15 border border-stone-500/30">
-            <span className="text-lg">🏛️</span>
-            <div>
-              <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Estrutura' : 'Structure'}</p>
-              <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
+          <div className="transits-legend-item" style={{
+            backgroundColor: 'hsl(25, 5%, 45% / 0.15)',
+            borderColor: 'hsl(25, 5%, 45% / 0.3)'
+          }}>
+            <span className="transits-legend-icon">🏛️</span>
+            <div className="transits-legend-content">
+              <p className="transits-legend-name">{language === 'pt' ? 'Estrutura' : 'Structure'}</p>
+              <p className="transits-legend-planet">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-teal-500/15 border border-teal-500/30">
-            <span className="text-lg">⚡</span>
-            <div>
-              <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Mudança' : 'Change'}</p>
-              <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Urano' : 'Uranus'}</p>
+          <div className="transits-legend-item" style={{
+            backgroundColor: 'hsl(173, 80%, 40% / 0.15)',
+            borderColor: 'hsl(173, 80%, 40% / 0.3)'
+          }}>
+            <span className="transits-legend-icon">⚡</span>
+            <div className="transits-legend-content">
+              <p className="transits-legend-name">{language === 'pt' ? 'Mudança' : 'Change'}</p>
+              <p className="transits-legend-planet">{language === 'pt' ? 'Urano' : 'Uranus'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-500/15 border border-purple-500/30">
-            <span className="text-lg">🌊</span>
-            <div>
-              <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Espiritualidade' : 'Spirituality'}</p>
-              <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Netuno' : 'Neptune'}</p>
+          <div className="transits-legend-item" style={{
+            backgroundColor: 'hsl(280, 70%, 60% / 0.15)',
+            borderColor: 'hsl(280, 70%, 60% / 0.3)'
+          }}>
+            <span className="transits-legend-icon">🌊</span>
+            <div className="transits-legend-content">
+              <p className="transits-legend-name">{language === 'pt' ? 'Espiritualidade' : 'Spirituality'}</p>
+              <p className="transits-legend-planet">{language === 'pt' ? 'Netuno' : 'Neptune'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/15 border border-red-500/30">
-            <span className="text-lg">🔥</span>
-            <div>
-              <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Transformação' : 'Transformation'}</p>
-              <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Plutão' : 'Pluto'}</p>
+          <div className="transits-legend-item" style={{
+            backgroundColor: 'hsl(0, 70%, 60% / 0.15)',
+            borderColor: 'hsl(0, 70%, 60% / 0.3)'
+          }}>
+            <span className="transits-legend-icon">🔥</span>
+            <div className="transits-legend-content">
+              <p className="transits-legend-name">{language === 'pt' ? 'Transformação' : 'Transformation'}</p>
+              <p className="transits-legend-planet">{language === 'pt' ? 'Plutão' : 'Pluto'}</p>
             </div>
           </div>
         </div>
-      </AstroCard>
+      </div>
 
       {/* Future Transits Component */}
       <div>
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
-          <UIIcons.Calendar size={18} className="text-primary" />
+        <h3 className="transits-highlights-title" style={{ marginBottom: '1rem' }}>
+          <UIIcons.Calendar size={18} style={{ color: 'hsl(var(--primary))' }} />
           {language === 'pt' ? 'Seus Trânsitos Pessoais' : 'Your Personal Transits'}
         </h3>
-      <FutureTransitsSection />
+        <FutureTransitsSection />
       </div>
     </div>
   );
@@ -1363,20 +1815,20 @@ export const AspectsSection = ({ userData, onBack }: AspectsSectionProps) => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="dashboard-section-container">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-3xl font-bold text-foreground">
+      <div className="section-header">
+        <div className="section-header-content">
+          <h2 className="section-title">
             {language === 'pt' ? 'Aspectos Planetários' : 'Planetary Aspects'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="section-subtitle">
             {language === 'pt' ? 'As conexões entre os planetas do seu mapa' : 'The connections between planets in your chart'}
           </p>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+          className="section-back-button"
         >
           <UIIcons.ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
@@ -1384,38 +1836,38 @@ export const AspectsSection = ({ userData, onBack }: AspectsSectionProps) => {
       </div>
 
       {/* Legenda Detalhada dos Aspectos */}
-      <div className="bg-card rounded-xl p-5 border border-border">
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="aspects-legend-container">
+        <h3 className="aspects-legend-title">
           <UIIcons.Info size={18} className="text-primary" />
           {language === 'pt' ? 'Tipos de Aspectos' : 'Aspect Types'}
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="aspects-legend-grid">
           {aspectLegend.map((item) => {
             const IconComponent = item.icon;
             return (
               <div 
                 key={item.type} 
-                className="flex flex-col p-4 rounded-xl border transition-all hover:scale-105"
+                className="aspects-legend-item"
                 style={{ 
                   borderColor: item.bgColor,
                   backgroundColor: `${item.bgColor}10` 
                 }}
               >
                 {/* Ícone SVG Grande */}
-                <div className="flex items-center gap-3 mb-3">
+                <div className="aspects-legend-icon-container">
                   <div 
-                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
+                    className="aspects-legend-icon-circle"
                     style={{ backgroundColor: item.bgColor }}
                   >
                     <IconComponent size={28} color="currentColor" />
-          </div>
-                  <div>
-                    <p className="font-bold text-foreground">{item.type}</p>
-                    <p className={`text-xs font-medium ${item.textColor}`}>{item.desc}</p>
+                  </div>
+                  <div className="aspects-legend-text">
+                    <p className="aspects-legend-type">{item.type}</p>
+                    <p className={`aspects-legend-desc ${item.textColor}`}>{item.desc}</p>
                   </div>
                 </div>
                 {/* Significado */}
-                <p className="text-xs text-foreground leading-relaxed bg-muted/50 rounded-lg p-2">
+                <p className="aspects-legend-meaning">
                   {item.meaning}
                 </p>
               </div>
@@ -1425,58 +1877,52 @@ export const AspectsSection = ({ userData, onBack }: AspectsSectionProps) => {
       </div>
 
       {/* Lista de Aspectos */}
-      <div>
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+      <div className="aspects-list-container">
+        <h3 className="aspects-list-title">
           <UIIcons.Sparkles size={18} className="text-primary" />
           {language === 'pt' ? 'Seus Aspectos' : 'Your Aspects'}
         </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {aspects.map((aspect, index) => {
-          const Planet1Icon = planets.find(p => p.name === aspect.planet1)?.icon;
-          const Planet2Icon = planets.find(p => p.name === aspect.planet2)?.icon;
-          const isSelected = selectedAspect === `${aspect.planet1}-${aspect.planet2}`;
+        <div className="aspects-list-grid">
+          {aspects.map((aspect, index) => {
+            const Planet1Icon = planets.find(p => p.name === aspect.planet1)?.icon;
+            const Planet2Icon = planets.find(p => p.name === aspect.planet2)?.icon;
+            const isSelected = selectedAspect === `${aspect.planet1}-${aspect.planet2}`;
 
-          return (
-            <button
-              key={index}
+            return (
+              <button
+                key={index}
                 onClick={() => fetchAspectInterpretation(aspect.planet1, aspect.planet2, aspect.type, aspect.typeEn)}
-                className={`p-5 rounded-xl border transition-all text-left hover:scale-[1.02] ${
-                isSelected 
-                  ? 'bg-primary/20 border-primary shadow-lg' 
-                  : `${aspect.bgColor} border-border hover:border-primary/50`
-              }`}
-            >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                      {Planet1Icon && <Planet1Icon size={28} className={aspect.color} />}
-                      <span className={`text-2xl font-bold ${aspect.color}`}>{aspect.symbol}</span>
-                      {Planet2Icon && <Planet2Icon size={28} className={aspect.color} />}
-                </div>
+                className={`aspect-card ${isSelected ? 'selected' : ''}`}
+              >
+                <div className="aspect-card-header">
+                  <div className="aspect-card-planets">
+                    {Planet1Icon && <Planet1Icon size={28} className={aspect.color} />}
+                    <span className={`aspect-card-symbol ${aspect.color}`}>{aspect.symbol}</span>
+                    {Planet2Icon && <Planet2Icon size={28} className={aspect.color} />}
                   </div>
-                  <UIIcons.ChevronRight size={20} className={`${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <UIIcons.ChevronRight size={20} className={`aspect-card-chevron ${isSelected ? 'text-primary' : ''}`} />
                 </div>
-                <div className="mt-3">
-                  <p className="font-semibold text-foreground">
+                <div className="aspect-card-body">
+                  <p className="aspect-card-planet-names">
                     {aspect.planet1} {language === 'pt' ? 'e' : 'and'} {aspect.planet2}
                   </p>
-                  <p className={`text-sm ${aspect.color} font-medium`}>
+                  <p className={`aspect-card-type ${aspect.color}`}>
                     {language === 'pt' ? aspect.type : aspect.typeEn}
                   </p>
-              </div>
-            </button>
-          );
-        })}
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Painel de Interpretação */}
       {selectedAspect && selectedAspectData && (
-        <div className="bg-card rounded-xl p-6 border border-border animate-fadeIn">
+        <div className="aspect-interpretation-panel">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <UIIcons.Loader className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-muted-foreground">
+            <div className="aspect-loading-container">
+              <UIIcons.Loader className="aspect-loading-spinner" />
+              <p className="aspect-loading-text">
                 {language === 'pt' ? 'Analisando o aspecto...' : 'Analyzing the aspect...'}
               </p>
             </div>
@@ -1984,56 +2430,155 @@ export const BiorhythmsSection = ({ userData, onBack }: BiorhythmsSectionProps) 
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="biorhythms-section">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-3xl font-bold text-foreground">
+      <div className="section-header">
+        <div className="section-header-content">
+          <h2 className="section-title">
             {language === 'pt' ? 'Seus Biorritmos' : 'Your Biorhythms'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="section-subtitle">
             {language === 'pt' ? 'Ciclos naturais baseados na sua data de nascimento' : 'Natural cycles based on your birth date'}
           </p>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+          className="section-back-button"
         >
           <UIIcons.ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
         </button>
       </div>
 
+      {/* Importance Section */}
+      <div className="biorhythms-importance-card">
+        <div className="biorhythms-importance-header">
+          <h3 className="biorhythms-importance-title">
+            {language === 'pt' ? 'A Importância de Entender os Biorritmos' : 'The Importance of Understanding Biorhythms'}
+          </h3>
+        </div>
+        <div className="biorhythms-importance-content">
+          <p className="biorhythms-importance-intro">
+            {language === 'pt' 
+              ? 'A importância de entender os biorritmos é otimizar o bem-estar e a produtividade, ao alinhar as atividades do dia a dia com os picos naturais de energia e concentração do seu corpo. Conhecer e respeitar seu "relógio biológico" ajuda a evitar o cansaço e a irritabilidade, melhorando o humor, a autoestima e o rendimento em tarefas que exigem foco ou criatividade.'
+              : 'The importance of understanding biorhythms is to optimize well-being and productivity by aligning daily activities with your body\'s natural peaks of energy and concentration. Knowing and respecting your "biological clock" helps avoid fatigue and irritability, improving mood, self-esteem and performance in tasks that require focus or creativity.'}
+          </p>
+          
+          <h4 className="biorhythms-benefits-title">
+            {language === 'pt' ? 'Principais benefícios de conhecer seus biorritmos' : 'Main benefits of knowing your biorhythms'}
+          </h4>
+          
+          <div className="biorhythms-benefits-grid">
+            <div className="biorhythms-benefit-item">
+              <div className="biorhythms-benefit-icon">
+                <UIIcons.TrendingUp size={24} />
+              </div>
+              <div className="biorhythms-benefit-content">
+                <h5 className="biorhythms-benefit-name">
+                  {language === 'pt' ? 'Mais produtividade' : 'More productivity'}
+                </h5>
+                <p className="biorhythms-benefit-desc">
+                  {language === 'pt' 
+                    ? 'Adequar tarefas aos seus horários de pico de concentração, como estudar pela manhã ou após o almoço, se você for matutino.'
+                    : 'Adapt tasks to your peak concentration times, such as studying in the morning or after lunch, if you are a morning person.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="biorhythms-benefit-item">
+              <div className="biorhythms-benefit-icon">
+                <UIIcons.Heart size={24} />
+              </div>
+              <div className="biorhythms-benefit-content">
+                <h5 className="biorhythms-benefit-name">
+                  {language === 'pt' ? 'Melhor bem-estar' : 'Better well-being'}
+                </h5>
+                <p className="biorhythms-benefit-desc">
+                  {language === 'pt' 
+                    ? 'Evitar a sensação de "preguiça" ou frustração por não conseguir ser produtivo em certos horários, percebendo que é uma questão de ajuste e não de falta de vontade.'
+                    : 'Avoid the feeling of "laziness" or frustration at not being able to be productive at certain times, realizing that it is a matter of adjustment and not lack of will.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="biorhythms-benefit-item">
+              <div className="biorhythms-benefit-icon">
+                <UIIcons.Zap size={24} />
+              </div>
+              <div className="biorhythms-benefit-content">
+                <h5 className="biorhythms-benefit-name">
+                  {language === 'pt' ? 'Gerenciamento de energia' : 'Energy management'}
+                </h5>
+                <p className="biorhythms-benefit-desc">
+                  {language === 'pt' 
+                    ? 'Planejar atividades físicas mais leves nos períodos de menor energia física, e aproveitar os momentos de alta criatividade para projetos inovadores.'
+                    : 'Plan lighter physical activities during periods of lower physical energy, and take advantage of high creativity moments for innovative projects.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="biorhythms-benefit-item">
+              <div className="biorhythms-benefit-icon">
+                <UIIcons.Shield size={24} />
+              </div>
+              <div className="biorhythms-benefit-content">
+                <h5 className="biorhythms-benefit-name">
+                  {language === 'pt' ? 'Saúde física e mental' : 'Physical and mental health'}
+                </h5>
+                <p className="biorhythms-benefit-desc">
+                  {language === 'pt' 
+                    ? 'Respeitar os ciclos do corpo pode melhorar o humor e a autoestima, pois reduz a autocrítica pela falta de produtividade em determinados momentos.'
+                    : 'Respecting the body\'s cycles can improve mood and self-esteem, as it reduces self-criticism for lack of productivity at certain times.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="biorhythms-benefit-item">
+              <div className="biorhythms-benefit-icon">
+                <UIIcons.RefreshCw size={24} />
+              </div>
+              <div className="biorhythms-benefit-content">
+                <h5 className="biorhythms-benefit-name">
+                  {language === 'pt' ? 'Adaptação a mudanças' : 'Adaptation to changes'}
+                </h5>
+                <p className="biorhythms-benefit-desc">
+                  {language === 'pt' 
+                    ? 'Entender os biorritmos ajuda a se adaptar melhor a mudanças como o jet lag, que é um desajuste natural do relógio biológico.'
+                    : 'Understanding biorhythms helps you adapt better to changes such as jet lag, which is a natural disruption of the biological clock.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Biorhythm Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="biorhythms-cards-grid">
         {biorhythms.map((bio) => (
-          <div key={bio.name} className="bg-card rounded-xl p-6 border border-border">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">{bio.name}</h3>
+          <div key={bio.name} className="biorhythm-card">
+            <div className="biorhythm-card-header">
+              <h3 className="biorhythm-card-title">{bio.name}</h3>
               <span 
-                className="text-2xl font-bold" 
+                className="biorhythm-card-value" 
                 style={{ color: bio.color }}
               >
-                {Math.round(bio.value)}%
+                {Math.round(Math.abs(bio.value))}%
               </span>
             </div>
             
             {/* Progress Bar */}
-            <div className="relative h-4 bg-muted rounded-full overflow-hidden mb-4">
+            <div className="biorhythm-progress-container">
               <div 
-                className="absolute left-0 top-0 h-full rounded-full transition-all duration-500"
+                className="biorhythm-progress-bar"
                 style={{ 
                   width: `${Math.abs(bio.value)}%`,
-                  backgroundColor: bio.color,
-                  marginLeft: bio.value < 0 ? `${50 - Math.abs(bio.value) / 2}%` : '50%',
-                  transform: bio.value < 0 ? 'translateX(-100%)' : 'none'
+                  backgroundColor: bio.color
                 }}
               />
-              <div className="absolute left-1/2 top-0 w-0.5 h-full bg-foreground/30" />
             </div>
 
-            <p className="text-sm text-muted-foreground">{bio.desc}</p>
-            <p className="text-xs text-muted-foreground mt-2">
+            <p className="biorhythm-card-desc">{bio.desc}</p>
+            <p className="biorhythm-card-period">
               {language === 'pt' ? `Ciclo de ${bio.period} dias` : `${bio.period}-day cycle`}
             </p>
           </div>
@@ -2041,11 +2586,11 @@ export const BiorhythmsSection = ({ userData, onBack }: BiorhythmsSectionProps) 
       </div>
 
       {/* Summary */}
-      <div className="bg-card rounded-xl p-6 border border-border">
-        <h3 className="font-serif text-xl font-bold text-foreground mb-4">
+      <div className="biorhythms-summary-card">
+        <h3 className="biorhythms-summary-title">
           {language === 'pt' ? 'Resumo do Dia' : 'Daily Summary'}
         </h3>
-        <p className="text-foreground/80 leading-relaxed">
+        <p className="biorhythms-summary-text">
           {language === 'pt' 
             ? `Hoje você está no dia ${daysSinceBirth} desde o seu nascimento. ${
                 physical > 50 ? 'Sua energia física está alta, ótimo para exercícios e atividades físicas.' :
@@ -2096,10 +2641,18 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
 
   // Função para formatar o texto da compatibilidade organizando por tópicos
   const formatCompatibilityText = (text: string): React.ReactNode => {
-    if (!text) return null;
+    if (!text || !text.trim()) {
+      console.warn('[Sinastria] Texto vazio para formatar');
+      return null;
+    }
 
-    // Dividir o texto em parágrafos
-    const paragraphs = text.split('\n').filter(p => p.trim());
+    // Dividir o texto em parágrafos (por quebras de linha duplas ou simples)
+    const paragraphs = text.split(/\n\n|\n/).filter(p => p.trim());
+    
+    if (paragraphs.length === 0) {
+      console.warn('[Sinastria] Nenhum parágrafo encontrado');
+      return <p className="synastry-text-paragraph">{text}</p>;
+    }
     
     // Identificar tópicos (números, bullets, títulos em negrito, etc.)
     const formattedParagraphs: React.ReactNode[] = [];
@@ -2112,70 +2665,140 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
       const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s*(.+)$/);
       // Verificar se é um bullet (-, •, etc.)
       const bulletMatch = trimmed.match(/^[-•*]\s*(.+)$/);
-      // Verificar se é um título (texto em negrito ou em maiúsculas curtas)
-      const titleMatch = trimmed.match(/^([A-ZÁÊÇ][A-ZÁÊÇ\s]{2,30}):?\s*$/);
       // Verificar se contém texto em negrito (markdown **texto**)
       const boldMatch = trimmed.match(/\*\*(.+?)\*\*/);
+      // Verificar se é um título (linha que termina com : e tem menos de 60 chars)
+      const isTitle = trimmed.endsWith(':') && trimmed.length < 60 && !trimmed.includes('.');
 
-      if (numberedMatch) {
+      if (isTitle || (boldMatch && trimmed.length < 60)) {
+        // Título ou texto em negrito como título
+        const titleText = boldMatch ? boldMatch[1] : trimmed.replace(':', '');
+        formattedParagraphs.push(
+          <h4 key={index} className="synastry-text-title">
+            {titleText}
+          </h4>
+        );
+      } else if (numberedMatch) {
         // Tópico numerado
         formattedParagraphs.push(
-          <div key={index} className="mb-4">
-            <p className="text-foreground/80 leading-relaxed">
-              <span className="font-semibold text-foreground">{numberedMatch[1]}.</span> {numberedMatch[2]}
-            </p>
+          <div key={index} className="synastry-text-numbered">
+            <span className="synastry-text-number">{numberedMatch[1]}.</span>
+            <span className="synastry-text-content">{numberedMatch[2]}</span>
           </div>
         );
       } else if (bulletMatch) {
         // Tópico com bullet
         formattedParagraphs.push(
-          <div key={index} className="mb-4 ml-4">
-            <p className="text-foreground/80 leading-relaxed">
-              <span className="text-primary mr-2">•</span> {bulletMatch[1]}
-            </p>
-          </div>
-        );
-      } else if (boldMatch || (titleMatch && trimmed.length < 50)) {
-        // Título ou texto em negrito
-        const content = boldMatch ? trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') : trimmed;
-        formattedParagraphs.push(
-          <div key={index} className="mb-4">
-            <p 
-              className="font-semibold text-foreground mb-2" 
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
+          <div key={index} className="synastry-text-bullet">
+            <span className="synastry-text-bullet-marker">•</span>
+            <span className="synastry-text-content">{bulletMatch[1]}</span>
           </div>
         );
       } else {
-        // Parágrafo normal
+        // Parágrafo normal - processar markdown inline
+        const processedText = trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         formattedParagraphs.push(
-          <div key={index} className="mb-4">
-            <p className="text-foreground/80 leading-relaxed">{trimmed}</p>
-          </div>
+          <p 
+            key={index} 
+            className="synastry-text-paragraph"
+            dangerouslySetInnerHTML={{ __html: processedText }}
+          />
         );
       }
     });
 
-    return <div className="space-y-1">{formattedParagraphs}</div>;
+    return <div className="synastry-text-container">{formattedParagraphs}</div>;
   };
 
   const fetchCompatibility = async () => {
-    if (!partnerSign) return;
+    if (!partnerSign) {
+      console.warn('[Sinastria] Nenhum signo do parceiro selecionado');
+      return;
+    }
     
     try {
       setIsLoading(true);
+      setInterpretation(''); // Limpar interpretação anterior
+      
+      console.log(`[Sinastria] Buscando compatibilidade: ${userSunSign} + ${partnerSign}`);
+      
+      // Query mais específica e detalhada para sinastria
+      const compatibilityQuery = language === 'pt'
+        ? `sinastria compatibilidade ${userSunSign} com ${partnerSign} relacionamento amor casal dinâmica pontos fortes desafios comunicação intimidade valores objetivos vida prática atual`
+        : `synastry compatibility ${userSunSign} with ${partnerSign} relationship love couple dynamics strengths challenges communication intimacy values life goals practical current`;
+      
       const result = await apiService.getInterpretation({
-        custom_query: `compatibilidade sinastria ${userSunSign} com ${partnerSign} relacionamento amor`,
+        custom_query: compatibilityQuery,
         use_groq: true,
       });
-      setInterpretation(result.interpretation);
+      
+      console.log('[Sinastria] Resposta recebida:', {
+        hasInterpretation: !!result?.interpretation,
+        length: result?.interpretation?.length || 0,
+        generatedBy: result?.generated_by,
+        queryUsed: result?.query_used
+      });
+      
+      // Verificar se a interpretação foi gerada corretamente
+      if (result && result.interpretation) {
+        const interpretationText = result.interpretation.trim();
+        
+        if (interpretationText.length > 20) {
+          // Se tiver conteúdo válido, usar
+          setInterpretation(interpretationText);
+          console.log('[Sinastria] Interpretação definida com sucesso');
+        } else {
+          console.warn('[Sinastria] Interpretação muito curta, usando fallback');
+          throw new Error('Interpretação muito curta');
+        }
+      } else {
+        console.error('[Sinastria] Resposta sem interpretação válida');
+        throw new Error('Resposta sem interpretação');
+      }
     } catch (error) {
-      console.error('Erro ao buscar compatibilidade:', error);
-      setInterpretation(
-        language === 'pt'
-          ? `A combinação entre ${userSunSign} e ${partnerSign} traz dinâmicas únicas para o relacionamento. Cada signo contribui com suas qualidades e desafios, criando uma conexão que pode ser tanto complementar quanto desafiadora.`
-          : `The combination between ${userSunSign} and ${partnerSign} brings unique dynamics to the relationship. Each sign contributes its qualities and challenges, creating a connection that can be both complementary and challenging.`
-      );
+      console.error('[Sinastria] Erro ao buscar compatibilidade:', error);
+      
+      // Fallback mais detalhado
+      const fallbackText = language === 'pt'
+        ? `**Compatibilidade entre ${userSunSign} e ${partnerSign}**
+
+A combinação entre ${userSunSign} e ${partnerSign} traz dinâmicas únicas para o relacionamento. Cada signo contribui com suas qualidades e desafios, criando uma conexão que pode ser tanto complementar quanto desafiadora.
+
+**Pontos Fortes:**
+- Cada signo traz características que podem complementar o outro
+- A diferença entre os signos pode criar atração e interesse mútuo
+- O relacionamento pode oferecer oportunidades de crescimento pessoal
+
+**Desafios:**
+- Pode haver diferenças na forma de expressar emoções e necessidades
+- Estilos de comunicação podem variar e precisar de ajustes
+- Valores e prioridades podem diferir, exigindo diálogo e compreensão
+
+**Orientações Práticas:**
+- Comunicação aberta e honesta é fundamental
+- Respeitar as diferenças e buscar pontos em comum
+- Trabalhar juntos para construir uma base sólida de confiança e respeito`
+        : `**Compatibility between ${userSunSign} and ${partnerSign}**
+
+The combination between ${userSunSign} and ${partnerSign} brings unique dynamics to the relationship. Each sign contributes its qualities and challenges, creating a connection that can be both complementary and challenging.
+
+**Strengths:**
+- Each sign brings characteristics that can complement the other
+- The difference between signs can create attraction and mutual interest
+- The relationship can offer opportunities for personal growth
+
+**Challenges:**
+- There may be differences in how emotions and needs are expressed
+- Communication styles may vary and need adjustments
+- Values and priorities may differ, requiring dialogue and understanding
+
+**Practical Guidance:**
+- Open and honest communication is fundamental
+- Respect differences and seek common ground
+- Work together to build a solid foundation of trust and respect`;
+      
+      setInterpretation(fallbackText);
+      console.log('[Sinastria] Fallback aplicado');
     } finally {
       setIsLoading(false);
     }
@@ -2184,46 +2807,58 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-3xl font-bold text-foreground">
+      <div className="section-header">
+        <div className="section-header-content">
+          <h2 className="section-title">
             {language === 'pt' ? 'Sinastria' : 'Synastry'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="section-subtitle">
             {language === 'pt' ? 'Análise de compatibilidade entre mapas' : 'Compatibility analysis between charts'}
           </p>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+          className="section-back-button"
         >
           <UIIcons.ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
         </button>
       </div>
 
+      {/* Information Card */}
+      <div className="synastry-info-card">
+        <h3 className="synastry-info-title">
+          {language === 'pt' ? 'O que é Sinastria?' : 'What is Synastry?'}
+        </h3>
+        <p className="synastry-info-text">
+          {language === 'pt' 
+            ? 'A sinastria é uma técnica astrológica que analisa a compatibilidade entre dois mapas astrais, comparando as posições planetárias de duas pessoas para entender as dinâmicas do relacionamento. Ela revela pontos de conexão, desafios e potenciais de crescimento conjunto, ajudando a compreender melhor como as energias de cada pessoa interagem e se complementam.'
+            : 'Synastry is an astrological technique that analyzes compatibility between two birth charts by comparing the planetary positions of two people to understand relationship dynamics. It reveals connection points, challenges, and potential for joint growth, helping to better understand how each person\'s energies interact and complement each other.'}
+        </p>
+      </div>
+
       {/* Your Sign */}
-      <div className="bg-primary/10 rounded-xl p-6 border border-primary/30">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+      <div className="synastry-user-sign-card">
+        <div className="synastry-user-sign-content">
+          <div className="synastry-sign-icon-container">
             {(() => {
               const SignIcon = zodiacSigns.find(z => z.name === userSunSign)?.icon;
-              return SignIcon ? <SignIcon size={32} className="text-primary" /> : null;
+              return SignIcon ? <SignIcon size={32} className="synastry-sign-icon" /> : null;
             })()}
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Seu Signo Solar' : 'Your Sun Sign'}</p>
-            <p className="font-bold text-2xl text-foreground">{userSunSign}</p>
+            <p className="synastry-user-sign-label">{language === 'pt' ? 'Seu Signo Solar' : 'Your Sun Sign'}</p>
+            <p className="synastry-user-sign-name">{userSunSign}</p>
           </div>
         </div>
       </div>
 
       {/* Partner Sign Selection */}
-      <div className="bg-card rounded-xl p-6 border border-border">
-        <h3 className="font-serif text-lg font-bold text-foreground mb-4">
+      <div className="synastry-partner-selection-card">
+        <h3 className="synastry-partner-selection-title">
           {language === 'pt' ? 'Selecione o signo do parceiro(a)' : 'Select partner\'s sign'}
         </h3>
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="synastry-signs-grid">
           {zodiacSigns.map((sign) => {
             const SignIcon = sign.icon;
             const isSelected = partnerSign === sign.name;
@@ -2231,14 +2866,12 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
               <button
                 key={sign.name}
                 onClick={() => setPartnerSign(sign.name)}
-                className={`p-3 rounded-xl border transition-all ${
-                  isSelected 
-                    ? 'bg-primary/20 border-primary' 
-                    : 'bg-muted border-border hover:border-primary/50'
-                }`}
+                className={`synastry-sign-button ${isSelected ? 'synastry-sign-button-selected' : ''}`}
               >
-                <SignIcon size={24} className={isSelected ? 'text-primary mx-auto' : 'text-foreground mx-auto'} />
-                <p className="text-xs text-center mt-2 text-foreground">{sign.name}</p>
+                <div className="synastry-sign-button-icon-container">
+                  <SignIcon size={24} className={`synastry-sign-button-icon ${isSelected ? 'synastry-sign-button-icon-selected' : ''}`} />
+                </div>
+                <p className="synastry-sign-button-name">{sign.name}</p>
               </button>
             );
           })}
@@ -2248,11 +2881,11 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
           <button
             onClick={fetchCompatibility}
             disabled={isLoading}
-            className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="synastry-analyze-button"
           >
             {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <UIIcons.Loader className="w-5 h-5 animate-spin" />
+              <span className="synastry-analyze-button-content">
+                <UIIcons.Loader className="synastry-analyze-button-loader" />
                 {language === 'pt' ? 'Analisando...' : 'Analyzing...'}
               </span>
             ) : (
@@ -2263,16 +2896,25 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
       </div>
 
       {/* Interpretation */}
-      {interpretation && (
-        <div className="bg-card rounded-xl p-6 border border-border animate-fadeIn">
-          <h3 className="font-serif text-xl font-bold text-foreground mb-4">
+      {interpretation ? (
+        <div className="synastry-interpretation-card">
+          <h3 className="synastry-interpretation-title">
             {userSunSign} + {partnerSign}
           </h3>
-          <div className="text-foreground/80">
+          <div className="synastry-interpretation-content">
             {formatCompatibilityText(interpretation)}
           </div>
         </div>
-      )}
+      ) : isLoading ? (
+        <div className="synastry-interpretation-card">
+          <div className="synastry-loading-container">
+            <UIIcons.Loader className="synastry-loading-spinner" />
+            <p className="synastry-loading-text">
+              {language === 'pt' ? 'Analisando compatibilidade...' : 'Analyzing compatibility...'}
+            </p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

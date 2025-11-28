@@ -8,7 +8,13 @@ import pickle
 import re
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
-import numpy as np
+
+try:
+    import numpy as np
+    HAS_NUMPY = True
+except ImportError:
+    HAS_NUMPY = False
+    np = None
 
 try:
     from fastembed import TextEmbedding
@@ -26,11 +32,13 @@ except ImportError:
 from app.services.local_knowledge_base import LocalKnowledgeBase
 
 
-def cosine_similarity(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+def cosine_similarity(a, b):
     """
     Implementação própria de similaridade de cosseno para evitar dependências
     que exigem compilação em alguns ambientes (ex.: scikit-learn).
     """
+    if not HAS_NUMPY:
+        raise ImportError("numpy is required for cosine_similarity. Please install numpy.")
     a_norm = a / (np.linalg.norm(a, axis=1, keepdims=True) + 1e-9)
     b_norm = b / (np.linalg.norm(b, axis=1, keepdims=True) + 1e-9)
     return np.dot(a_norm, b_norm.T)
@@ -348,13 +356,14 @@ class RAGService:
             print(f"[ERROR] Erro ao carregar índice: {e}")
             return False
     
-    def search(self, query: str, top_k: int = 5) -> List[Dict[str, any]]:
+    def search(self, query: str, top_k: int = 5, expand_query: bool = False) -> List[Dict[str, any]]:
         """
         Busca documentos relevantes para a query.
         
         Args:
             query: Texto da consulta
             top_k: Número de resultados a retornar
+            expand_query: Se True, faz múltiplas buscas com variações da query
         
         Returns:
             Lista de documentos relevantes com metadados e score de similaridade
@@ -368,27 +377,86 @@ class RAGService:
         if self.embeddings is None or len(self.documents) == 0:
             raise ValueError("Índice não carregado. Execute load_index() ou process_all_pdfs() primeiro.")
         
-        # Criar embedding da query usando FastEmbed
-        query_embeddings_list = list(self.model.embed([query]))
-        query_embedding = np.array(query_embeddings_list)
+        all_results = {}
         
-        # Calcular similaridade de cosseno
-        similarities = cosine_similarity(query_embedding, self.embeddings)[0]
+        # Busca principal
+        queries = [query]
         
-        # Obter top_k resultados
-        top_indices = np.argsort(similarities)[::-1][:top_k]
+        # Expandir query se solicitado
+        if expand_query:
+            # Criar variações da query
+            query_lower = query.lower()
+            
+            # Adicionar termos relacionados
+            if 'sinastria' in query_lower or 'compatibilidade' in query_lower:
+                # Para sinastria, buscar por cada signo individualmente
+                signos = ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 
+                         'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes']
+                for signo in signos:
+                    if signo.lower() in query_lower:
+                        queries.append(f"{signo} características personalidade relacionamento")
+                        queries.append(f"{signo} em relacionamentos compatibilidade")
+            
+            # Adicionar termos genéricos relacionados
+            if 'planeta' in query_lower or any(p in query_lower for p in ['sol', 'lua', 'marte', 'venus', 'jupiter', 'saturno']):
+                queries.append(f"{query} significado astrologia")
+                queries.append(f"{query} interpretação mapa astral")
+            
+            if 'casa' in query_lower:
+                queries.append(f"{query} área vida significado")
+                queries.append(f"{query} interpretação astrológica")
+            
+            if 'aspecto' in query_lower:
+                queries.append(f"{query} relação planetas")
+                queries.append(f"{query} dinâmica astrológica")
         
-        results = []
-        for idx in top_indices:
-            results.append({
-                'text': self.documents[idx],
-                'score': float(similarities[idx]),
-                'source': self.metadata[idx]['source'],
-                'page': self.metadata[idx]['page'],
-                'chunk_index': self.metadata[idx]['chunk_index']
-            })
+        # Buscar com cada variação da query
+        for q in queries:
+            try:
+                # Criar embedding da query usando FastEmbed
+                query_embeddings_list = list(self.model.embed([q]))
+                query_embedding = np.array(query_embeddings_list)
+                
+                # Calcular similaridade de cosseno
+                similarities = cosine_similarity(query_embedding, self.embeddings)[0]
+                
+                # Obter top_k resultados para esta query
+                top_indices = np.argsort(similarities)[::-1][:top_k * 2]  # Buscar mais para depois filtrar
+                
+                for idx in top_indices:
+                    score = float(similarities[idx])
+                    # Usar índice como chave única
+                    result_key = idx
+                    
+                    # Manter o melhor score para cada documento
+                    if result_key not in all_results or score > all_results[result_key]['score']:
+                        all_results[result_key] = {
+                            'text': self.documents[idx],
+                            'score': score,
+                            'source': self.metadata[idx]['source'],
+                            'page': self.metadata[idx]['page'],
+                            'chunk_index': self.metadata[idx]['chunk_index']
+                        }
+            except Exception as e:
+                print(f"[RAG] Erro ao buscar com query '{q}': {e}")
+                continue
         
-        return results
+        # Ordenar por score e retornar top_k
+        sorted_results = sorted(all_results.values(), key=lambda x: x['score'], reverse=True)
+        
+        # Remover duplicatas muito similares (mesmo texto)
+        unique_results = []
+        seen_texts = set()
+        for result in sorted_results:
+            # Normalizar texto para comparação
+            text_normalized = result['text'][:200].lower().strip()
+            if text_normalized not in seen_texts:
+                seen_texts.add(text_normalized)
+                unique_results.append(result)
+                if len(unique_results) >= top_k:
+                    break
+        
+        return unique_results[:top_k]
     
     def _generate_with_groq(
         self,
@@ -410,35 +478,243 @@ class RAGService:
         
         # Preparar contexto dos documentos (sem informações de fonte)
         context_text = "\n\n".join([
-            doc['text']
+            doc.get('text', '')
             for doc in context_documents
+            if doc.get('text')
         ])
         
-        # Prompt otimizado para interpretações completas: passado, presente e futuro
-        system_prompt = """Você é um astrólogo especialista com profundo conhecimento em astrologia tradicional, cármica e preditiva.
+        # Se não há contexto, criar contexto mínimo para sinastria
+        if not context_text or len(context_text.strip()) < 50:
+            if is_synastry_query:
+                # Extrair signos da query
+                sign1_match = None
+                sign2_match = None
+                query_lower_for_context = query.lower()
+                for sign_name in ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 
+                                 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes']:
+                    if sign_name.lower() in query_lower_for_context:
+                        if not sign1_match:
+                            sign1_match = sign_name
+                        elif not sign2_match and sign_name != sign1_match:
+                            sign2_match = sign_name
+                            break
+                
+                if sign1_match and sign2_match:
+                    context_text = f"""
+Análise de compatibilidade astrológica entre {sign1_match} e {sign2_match}.
 
-MISSÃO: Criar interpretações astrológicas PRECISAS e COMPLETAS baseadas nos documentos fornecidos.
+{sign1_match} e {sign2_match} são signos do zodíaco com características distintas. A sinastria analisa como essas características interagem em relacionamentos, revelando pontos de conexão, desafios e potencial de crescimento conjunto.
 
-ESTRUTURA OBRIGATÓRIA da interpretação:
-1. **PASSADO/KARMA**: O que essa configuração indica sobre padrões herdados, vidas passadas, condicionamentos e lições que a alma traz
-2. **PRESENTE/ESSÊNCIA**: Como essa energia se manifesta AGORA na personalidade, comportamentos, talentos e desafios atuais
-3. **FUTURO/EVOLUÇÃO**: Para onde os astros estão inclinando - tendências, oportunidades de crescimento, direcionamentos e potenciais a desenvolver
+Cada signo traz suas próprias necessidades, valores e formas de expressão. A compatibilidade depende de como esses elementos se complementam ou se desafiam mutuamente.
+"""
+                else:
+                    context_text = "Análise de compatibilidade astrológica entre signos do zodíaco, focando em dinâmicas de relacionamento, comunicação, valores e objetivos de vida."
+        
+        # Detectar se é consulta sobre regente do mapa
+        is_chart_ruler_query = any(phrase in query.lower() for phrase in [
+            'regente do mapa', 'regente do ascendente', 'planeta regente', 
+            'chart ruler', 'ruler of', 'ascendant ruler'
+        ])
+        
+        # Detectar se é consulta sobre sinastria/compatibilidade
+        is_synastry_query = any(phrase in query.lower() for phrase in [
+            'sinastria', 'synastry', 'compatibilidade', 'compatibility', 
+            'relacionamento', 'relationship', 'casal', 'couple'
+        ])
+        
+        # Prompt específico para sinastria/compatibilidade
+        if is_synastry_query:
+            system_prompt = """Você é um astrólogo experiente especializado em sinastria e análise de compatibilidade entre signos. 
+Sua função é criar interpretações práticas, didáticas e atuais sobre relacionamentos, focando em dinâmicas reais e aplicáveis.
+
+REGRAS DE FORMATAÇÃO:
+- Sempre escreva interpretações práticas e aplicáveis ao dia a dia
+- Use estrutura didática com títulos em negrito quando apropriado (formato: **TÍTULO:**)
+- Explique termos astrológicos de forma simples
+- Foque em dinâmicas práticas do relacionamento
+- Inclua pontos fortes, desafios e orientações práticas
+- Seja específico sobre comunicação, valores, intimidade e objetivos de vida
+- Use linguagem atual e relevante para relacionamentos modernos"""
+            
+            # Extrair signos da query para contexto
+            sign1_match = None
+            sign2_match = None
+            query_lower_for_signs = query.lower()
+            for sign_name in ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 
+                             'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes']:
+                if sign_name.lower() in query_lower_for_signs:
+                    if not sign1_match:
+                        sign1_match = sign_name
+                    elif not sign2_match and sign_name != sign1_match:
+                        sign2_match = sign_name
+                        break
+            
+            # Se não há contexto do RAG, criar contexto mínimo baseado nos signos
+            if not context_snippet or len(context_snippet.strip()) < 100:
+                if sign1_match and sign2_match:
+                    context_snippet = f"""
+Informações sobre os signos {sign1_match} e {sign2_match}:
+
+{sign1_match} é um signo do zodíaco com características específicas que influenciam a personalidade e o comportamento em relacionamentos.
+
+{sign2_match} é outro signo do zodíaco com suas próprias características e necessidades em relacionamentos.
+
+A compatibilidade entre signos analisa como essas características interagem, criando dinâmicas únicas de atração, complementaridade e desafios.
+"""
+                else:
+                    context_snippet = "Informações gerais sobre compatibilidade astrológica e análise de relacionamentos entre signos do zodíaco."
+            
+            user_prompt = f"""SINASTRIA / COMPATIBILIDADE:
+
+Consulta: {query}
+{f"Signos analisados: {sign1_match} + {sign2_match}" if (sign1_match and sign2_match) else ""}
+
+CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
+{context_snippet}
+
+---
+
+INSTRUÇÕES:
+Crie uma interpretação COMPLETA, PRÁTICA e DIDÁTICA sobre a compatibilidade entre os signos mencionados na consulta. A interpretação DEVE ser útil para pessoas em relacionamentos reais.
+
+Estruture a interpretação explicando:
+
+1. **Dinâmica Geral do Relacionamento** (1 parágrafo):
+   - Como os signos interagem entre si
+   - Energia geral da combinação
+   - Potencial de conexão e atração
+
+2. **Pontos Fortes e Complementaridade** (1 parágrafo):
+   - O que cada signo traz de positivo para o relacionamento
+   - Como se complementam
+   - Áreas onde há harmonia natural
+
+3. **Desafios e Áreas de Atenção** (1 parágrafo):
+   - Diferenças que podem gerar tensão
+   - Estilos de comunicação que podem conflitar
+   - Valores ou prioridades que podem diferir
+
+4. **Orientações Práticas** (1 parágrafo):
+   - Como melhorar a comunicação
+   - Dicas para navegar diferenças
+   - Formas de fortalecer o relacionamento
+
+IMPORTANTE:
+- Escreva NO MÍNIMO 4 parágrafos completos e práticos
+- Use linguagem didática, atual e aplicável ao dia a dia
+- Foque em dinâmicas reais de relacionamento
+- Seja específico sobre comunicação, valores, intimidade e objetivos
+- Use títulos em negrito quando apropriado (formato markdown **texto**)
+- Baseie-se no conhecimento astrológico geral sobre os signos mencionados
+- Seja criativo e prático, mesmo sem documentos específicos de referência
+
+Formate a resposta de forma didática, usando quebras de linha e estruturação adequada para facilitar a leitura."""
+        
+        # Prompt específico para regente do mapa (mais detalhado)
+        elif is_chart_ruler_query:
+            system_prompt = """Você é um astrólogo experiente especializado em interpretação de regentes do mapa astral. 
+Sua função é criar interpretações PROFUNDAS, DETALHADAS e DIDÁTICAS sobre o planeta regente do mapa, explicando sua importância fundamental para o autoconhecimento.
+
+REGRAS DE FORMATAÇÃO:
+- Sempre escreva NO MÍNIMO 2 parágrafos completos e densos sobre o regente
+- Use estrutura didática com títulos em negrito quando apropriado (formato: **TÍTULO:**)
+- Explique termos astrológicos de forma simples
+- Conecte as informações de forma narrativa, não apenas listas
+- Foque na importância do regente para autoconhecimento e desenvolvimento pessoal
+- Explique como o regente influencia personalidade, energia vital e comportamento
+- Conecte o regente com o signo ascendente e sua posição no mapa
+
+ESTRUTURA RECOMENDADA:
+1. Explicação sobre o que significa ter esse planeta como regente (1-2 parágrafos)
+2. Como o regente influencia a personalidade e energia vital (1-2 parágrafos)
+3. A importância do regente para autoconhecimento e desenvolvimento (1 parágrafo)
+4. Como o regente revela forças naturais e áreas de atenção (1 parágrafo)
+
+IMPORTANTE: O texto deve ter NO MÍNIMO 2 parágrafos completos e densos."""
+            
+            user_prompt = f"""REGENTE DO MAPA ASTRAL:
+
+Consulta: {query}
+
+CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
+{context_text}
+
+---
+
+INSTRUÇÕES:
+Crie uma interpretação COMPLETA e DETALHADA sobre o regente do mapa astral, explicando:
+
+1. O que significa ter esse planeta como regente do mapa (pelo menos 1 parágrafo completo e denso)
+2. Como o regente influencia a personalidade, energia vital e comportamento (pelo menos 1 parágrafo completo e denso)
+3. A importância do regente para o autoconhecimento e desenvolvimento pessoal
+4. Como o regente revela forças naturais e áreas de atenção
+5. A relação entre o regente e o signo ascendente
+
+IMPORTANTE:
+- Escreva NO MÍNIMO 2 parágrafos completos e densos
+- Use linguagem didática e acessível
+- Conecte as informações de forma narrativa
+- Explique a importância fundamental do regente para o autoconhecimento
+- Baseie-se nos documentos de referência fornecidos acima
+- Use títulos em negrito quando apropriado (formato markdown **texto**)
+
+Formate a resposta de forma didática, usando quebras de linha e estruturação adequada para facilitar a leitura."""
+        else:
+            # Prompt padrão para outras consultas
+            system_prompt = """Você é um astrólogo especialista com profundo conhecimento em astrologia tradicional, cármica e preditiva.
+
+MISSÃO: Criar interpretações astrológicas PRECISAS, COMPLETAS e DIDÁTICAS baseadas nos documentos fornecidos.
+
+ESTRUTURA OBRIGATÓRIA da interpretação (formatação didática):
+1. **PASSADO/KARMA**: 
+   - O que essa configuração indica sobre padrões herdados, vidas passadas, condicionamentos e lições que a alma traz
+   - Use parágrafos claros e separados por quebras de linha duplas (\n\n)
+   - Se houver múltiplos pontos, use listas com marcadores (- ou •)
+
+2. **PRESENTE/ESSÊNCIA**: 
+   - Como essa energia se manifesta AGORA na personalidade, comportamentos, talentos e desafios atuais
+   - Seja específico sobre características pessoais e padrões de comportamento
+   - Use exemplos práticos quando possível
+
+3. **FUTURO/EVOLUÇÃO**: 
+   - Para onde os astros estão inclinando - tendências, oportunidades de crescimento, direcionamentos e potenciais a desenvolver
+   - Inclua orientações práticas e direcionamentos claros
+
+FORMATAÇÃO DIDÁTICA OBRIGATÓRIA:
+- Use títulos em negrito para seções principais (formato: **TÍTULO:**)
+- Separe parágrafos com quebras de linha duplas (\n\n)
+- Use listas com marcadores (- ou •) para múltiplos pontos
+- Títulos de seções devem terminar com dois pontos (:)
+- Cada seção deve ter pelo menos um parágrafo completo
+- Use linguagem clara, profunda e acessível
+- Evite jargões técnicos sem explicação
 
 REGRAS:
 - Use APENAS os documentos como base factual
-- Linguagem clara, profunda e acessível
 - Conecte passado → presente → futuro de forma fluida
 - Seja específico e prático, não genérico
 - NÃO mencione fontes, páginas ou referências aos documentos
-- Mínimo 3 parágrafos (um para cada dimensão temporal)"""
-        
-        user_prompt = f"""TEMA DA CONSULTA: {query}
+- NÃO repita a query ou o tema da consulta no início da resposta
+- Mínimo 3 parágrafos principais (um para cada dimensão temporal)
+- Formate o texto de forma organizada e fácil de ler"""
+            
+            user_prompt = f"""TEMA DA CONSULTA: {query}
 
 CONHECIMENTO ASTROLÓGICO DISPONÍVEL:
 {context_text}
 
-Crie uma interpretação astrológica completa seguindo a estrutura PASSADO → PRESENTE → FUTURO.
-Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."""
+INSTRUÇÕES:
+1. Crie uma interpretação astrológica completa seguindo a estrutura PASSADO → PRESENTE → FUTURO
+2. Formate o texto de forma DIDÁTICA e ORGANIZADA:
+   - Use títulos em negrito para cada seção principal (formato: **PASSADO/KARMA:**)
+   - Separe parágrafos com quebras de linha duplas
+   - Use listas com marcadores (- ou •) para múltiplos pontos
+   - Cada seção deve ter pelo menos um parágrafo completo
+3. Seja preciso, profundo e útil para quem busca autoconhecimento e orientação
+4. NÃO repita o tema da consulta no início da resposta
+5. Comece diretamente com a interpretação do PASSADO/KARMA
+
+IMPORTANTE: O texto deve ser formatado de forma clara e didática, usando quebras de linha e estruturação adequada para facilitar a leitura."""
         
         try:
             # Chamar Groq API
@@ -454,8 +730,8 @@ Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."
                     }
                 ],
                 model="llama-3.1-8b-instant",  # Modelo rápido e disponível
-                temperature=0.6,  # Mais focado e preciso
-                max_tokens=1200,  # Espaço para 3 parágrafos detalhados (passado/presente/futuro)
+                temperature=0.7,  # Balanceado entre criatividade e precisão
+                max_tokens=2500 if (is_chart_ruler_query or is_synastry_query) else 2000,  # Mais tokens para regente do mapa e sinastria
                 top_p=0.9,
             )
             
@@ -552,7 +828,8 @@ Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."
         house: Optional[int] = None,
         aspect: Optional[str] = None,
         custom_query: Optional[str] = None,
-        use_groq: bool = True
+        use_groq: bool = True,
+        top_k: int = 8  # Adicionar parâmetro para controlar número de documentos
     ) -> Dict[str, any]:
         """
         Obtém interpretação astrológica baseada nos parâmetros do mapa.
@@ -598,14 +875,19 @@ Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."
         # Buscar mais documentos para ter contexto suficiente
         # Queries mais complexas precisam de mais contexto
         if is_karma_query or is_transit_query:
-            top_k = 12  # Mais contexto para temas de karma e trânsitos
+            top_k = 20  # Mais contexto para temas de karma e trânsitos
         elif is_aspect_query:
-            top_k = 10
+            top_k = 15
+        elif is_synastry_query:
+            top_k = 18  # Mais contexto para sinastria
         else:
-            top_k = 8
+            top_k = 12  # Aumentado de 8 para 12
+        
         results: List[Dict[str, any]] = []
         try:
-            results = self.search(query, top_k=top_k)
+            # Usar busca expandida para coletar mais informações
+            results = self.search(query, top_k=top_k, expand_query=True)
+            print(f"[RAG] Busca expandida retornou {len(results)} resultados para query: {query[:100]}")
         except Exception as e:
             print(f"[RAG] Falha ao consultar índice vetorial ({e}). Usando base local.")
         
@@ -618,15 +900,40 @@ Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."
                 query=query
             )
         
-        if not results:
-            return {
-                'interpretation': "Nenhum documento relevante encontrado para esta consulta.",
-                'sources': [],
-                'query_used': query,
-                'generated_by': 'none'
-            }
+        # Para sinastria, mesmo sem resultados do RAG, tentar gerar com Groq usando conhecimento geral
+        if is_synastry_query and not results and use_groq and self.groq_client:
+            print(f"[RAG] Sinastria sem resultados do RAG, tentando gerar com Groq usando conhecimento geral")
+            try:
+                # Criar contexto mínimo baseado nos signos mencionados
+                sign1_match = None
+                sign2_match = None
+                for sign_name in ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 
+                                 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes']:
+                    if sign_name.lower() in query_lower:
+                        if not sign1_match:
+                            sign1_match = sign_name
+                        elif not sign2_match and sign_name != sign1_match:
+                            sign2_match = sign_name
+                            break
+                
+                # Buscar informações sobre os signos individualmente
+                sign_contexts = []
+                if sign1_match:
+                    sign1_context = _local_knowledge_base.get_context(sign=sign1_match, query=query)
+                    if sign1_context:
+                        sign_contexts.extend(sign1_context)
+                if sign2_match:
+                    sign2_context = _local_knowledge_base.get_context(sign=sign2_match, query=query)
+                    if sign2_context:
+                        sign_contexts.extend(sign2_context)
+                
+                if sign_contexts:
+                    results = sign_contexts
+                    print(f"[RAG] Usando contexto dos signos individuais para sinastria")
+            except Exception as e:
+                print(f"[RAG] Erro ao buscar contexto dos signos para sinastria: {e}")
         
-        # Tentar usar Groq se disponível e solicitado
+        # Tentar usar Groq mesmo sem resultados do RAG (para sinastria e outras consultas)
         if use_groq:
             if not HAS_GROQ:
                 # Silenciosamente usar fallback se Groq não estiver instalado
@@ -636,16 +943,29 @@ Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."
                 pass
             else:
                 try:
-                    interpretation_text = self._generate_with_groq(query, results)
+                    # Para sinastria, mesmo sem resultados do RAG, gerar com Groq
+                    if is_synastry_query and not results:
+                        print(f"[RAG] Gerando sinastria com Groq sem contexto do RAG")
+                        # Criar contexto mínimo para o Groq
+                        minimal_context = [{
+                            'text': f"Informações sobre compatibilidade astrológica entre signos. {query}",
+                            'source': 'knowledge_base',
+                            'page': 1,
+                            'score': 0.5
+                        }]
+                        interpretation_text = self._generate_with_groq(query, minimal_context)
+                    else:
+                        interpretation_text = self._generate_with_groq(query, results)
+                    
                     return {
                         'interpretation': interpretation_text,
                         'sources': [
                             {
-                                'source': r['source'],
-                                'page': r['page'],
-                                'relevance': r['score']
+                                'source': r.get('source', 'knowledge_base'),
+                                'page': r.get('page', 1),
+                                'relevance': r.get('score', 0.5)
                             }
-                            for r in results
+                            for r in (results if results else [])
                         ],
                         'query_used': query,
                         'generated_by': 'groq'
@@ -667,14 +987,51 @@ Seja preciso, profundo e útil para quem busca autoconhecimento e orientação."
             if r.get('text') and len(r['text'].strip()) > 10  # Filtrar textos muito curtos
         ])
         
-        # Se não há texto suficiente, retornar mensagem
+        # Se não há texto suficiente, tentar fallback específico para sinastria
         if not interpretation_text or len(interpretation_text.strip()) < 50:
-            return {
-                'interpretation': "Não foi possível encontrar informações suficientes sobre este tema na base de conhecimento. Por favor, tente uma consulta diferente.",
-                'sources': [],
-                'query_used': query,
-                'generated_by': 'none'
-            }
+            if is_synastry_query:
+                # Extrair signos da query
+                sign1_match = None
+                sign2_match = None
+                for sign_name in ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 
+                                 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes']:
+                    if sign_name.lower() in query_lower:
+                        if not sign1_match:
+                            sign1_match = sign_name
+                        elif not sign2_match and sign_name != sign1_match:
+                            sign2_match = sign_name
+                            break
+                
+                if sign1_match and sign2_match:
+                    # Gerar interpretação básica de sinastria usando Groq mesmo sem RAG
+                    if self.groq_client:
+                        try:
+                            print(f"[RAG] Tentando gerar sinastria {sign1_match} + {sign2_match} com Groq sem RAG")
+                            minimal_context = [{
+                                'text': f"Compatibilidade astrológica entre signos. {sign1_match} e {sign2_match} são signos do zodíaco com características distintas que podem criar dinâmicas interessantes em relacionamentos.",
+                                'source': 'knowledge_base',
+                                'page': 1,
+                                'score': 0.5
+                            }]
+                            interpretation_text = self._generate_with_groq(query, minimal_context)
+                            if interpretation_text and len(interpretation_text.strip()) > 50:
+                                return {
+                                    'interpretation': interpretation_text,
+                                    'sources': [],
+                                    'query_used': query,
+                                    'generated_by': 'groq'
+                                }
+                        except Exception as e:
+                            print(f"[RAG] Erro ao gerar sinastria com Groq sem RAG: {e}")
+            
+            # Se ainda não há interpretação, retornar mensagem
+            if not interpretation_text or len(interpretation_text.strip()) < 50:
+                return {
+                    'interpretation': "Não foi possível encontrar informações suficientes sobre este tema na base de conhecimento. Por favor, tente uma consulta diferente.",
+                    'sources': [],
+                    'query_used': query,
+                    'generated_by': 'none'
+                }
         
         # Criar resposta estruturada
         return {

@@ -248,6 +248,25 @@ class ApiService {
 
   // ===== AUTENTICAÇÃO GOOGLE =====
   
+  async verifyGoogleToken(credential: string): Promise<{
+    email: string;
+    name: string;
+    picture?: string;
+    google_id: string;
+  }> {
+    const response = await this.request<{
+      email: string;
+      name: string;
+      picture?: string;
+      google_id: string;
+    }>('/api/auth/google/verify', {
+      method: 'POST',
+      body: JSON.stringify({ credential }),
+    });
+
+    return response;
+  }
+
   async googleAuth(data: {
     email: string;
     name: string;

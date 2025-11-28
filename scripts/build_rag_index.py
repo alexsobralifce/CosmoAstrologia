@@ -7,8 +7,9 @@ Execute este script após instalar as dependências para criar o banco de consul
 import sys
 from pathlib import Path
 
-# Adicionar o diretório app ao path
-sys.path.insert(0, str(Path(__file__).parent))
+# Adicionar o diretório backend ao path
+backend_path = Path(__file__).parent.parent / "backend"
+sys.path.insert(0, str(backend_path))
 
 from app.services.rag_service import RAGService
 
@@ -18,7 +19,7 @@ def main():
     print("=" * 60)
     
     # Determinar caminhos
-    backend_path = Path(__file__).parent
+    backend_path = Path(__file__).parent.parent / "backend"
     docs_path = backend_path / "docs"
     index_path = backend_path / "rag_index.pkl"
     
@@ -34,16 +35,29 @@ def main():
     
     # Verificar dependências
     try:
-        from sentence_transformers import SentenceTransformer
-        from sklearn.metrics.pairwise import cosine_similarity
+        from fastembed import TextEmbedding
         import PyPDF2
-        print("✓ Dependências verificadas")
+        import numpy as np
+        print("✓ Dependências verificadas (FastEmbed, PyPDF2, NumPy)")
     except ImportError as e:
         print(f"\n✗ ERRO: Dependências não instaladas!")
         print(f"\nInstale as dependências com:")
-        print("  pip install sentence-transformers scikit-learn PyPDF2")
+        print("  pip install fastembed PyPDF2 numpy")
         print(f"\nErro: {e}")
         return 1
+    
+    # Verificar se há documentos
+    pdf_files = list(docs_path.glob("*.pdf"))
+    md_files = list(docs_path.glob("*.md"))
+    total_files = len(pdf_files) + len(md_files)
+    
+    if total_files == 0:
+        print(f"\n⚠ AVISO: Nenhum documento encontrado em {docs_path}")
+        print("   Coloque arquivos PDF ou Markdown (.md) na pasta docs/ para processar")
+        print("   O índice será criado vazio ou usando apenas a base local de conhecimento.")
+        response = input("\nDeseja continuar mesmo sem documentos? (s/N): ")
+        if response.lower() != 's':
+            return 1
     
     # Processar PDFs
     try:

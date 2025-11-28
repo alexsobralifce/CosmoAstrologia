@@ -1,0 +1,369 @@
+/* 
+ * ============================================================================
+ * MODAIS E COMPONENTES COMUNS - CSS PURO (FLEXBOX E CSS GRID)
+ * ============================================================================
+ * Estilos para modais, dialogs e componentes comuns
+ * Layout fluido e responsivo usando Flexbox e CSS Grid
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * MODAL OVERLAY
+ * ============================================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ============================================================================
+ * MODAL CONTENT
+ * ============================================================================ */
+.modal-content {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 28rem; /* 448px */
+  width: 100%;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content-large {
+  max-width: 56rem; /* 896px */
+}
+
+/* ============================================================================
+ * MODAL HEADER
+ * ============================================================================ */
+.modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-icon-container {
+  width: 4rem; /* 64px */
+  height: 4rem;
+  border-radius: 50%;
+  background-color: hsl(45, 90%, 60% / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  text-align: center;
+  margin: 0;
+}
+
+.modal-description {
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  margin: 0;
+}
+
+/* ============================================================================
+ * MODAL BODY
+ * ============================================================================ */
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-countdown-container {
+  background-color: hsl(var(--muted) / 0.5);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.modal-countdown-label {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.modal-countdown-time {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: hsl(45, 90%, 60%);
+  font-family: monospace;
+  margin: 0;
+}
+
+.modal-message {
+  font-size: 0.875rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* ============================================================================
+ * MODAL FOOTER
+ * ============================================================================ */
+.modal-footer {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.modal-button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.modal-button-secondary {
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+
+.modal-button-secondary:hover {
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+.modal-button-primary {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.modal-button-primary:hover {
+  background-color: hsl(var(--primary) / 0.9);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.modal-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+ * MODAL INFO SECTION
+ * ============================================================================ */
+.modal-info-section {
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.modal-info-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.modal-info-icon {
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+ * DIALOG COMPONENT (shadcn/ui compatible)
+ * ============================================================================ */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.dialog-content {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 56rem; /* 896px */
+  max-height: 90vh;
+  width: 90vw;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.dialog-content-large {
+  max-width: 64rem; /* 1024px */
+}
+
+.dialog-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid hsl(var(--border) / 0.3);
+  position: sticky;
+  top: 0;
+  background-color: hsl(var(--background));
+  z-index: 10;
+}
+
+.dialog-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--accent));
+  margin: 0 0 0.5rem 0;
+}
+
+.dialog-description {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.dialog-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog-body-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .dialog-body-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.dialog-body-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dialog-body-field-full {
+  grid-column: 1 / -1;
+}
+
+.dialog-footer {
+  padding: 1.5rem;
+  border-top: 1px solid hsl(var(--border) / 0.3);
+  display: flex;
+  gap: 1rem;
+}
+
+.dialog-button {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.dialog-button-secondary {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.dialog-button-secondary:hover:not(:disabled) {
+  background-color: hsl(var(--secondary) / 0.8);
+}
+
+.dialog-button-primary {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.dialog-button-primary:hover:not(:disabled) {
+  background-color: hsl(var(--accent) / 0.9);
+}
+
+.dialog-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+ * VALIDATION MESSAGES
+ * ============================================================================ */
+.validation-message {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.25rem;
+}
+
+.validation-message-error {
+  color: hsl(var(--destructive));
+}
+
+.validation-message-success {
+  color: hsl(160, 70%, 40%);
+}
+
+.dark .validation-message-success {
+  color: hsl(160, 70%, 60%);
+}
+
+/* ============================================================================
+ * RESPONSIVE
+ * ============================================================================ */
+@media (max-width: 767px) {
+  .modal-content {
+    padding: 1.5rem;
+    max-width: 100%;
+  }
+
+  .dialog-content {
+    width: 95vw;
+    max-height: 95vh;
+  }
+
+  .dialog-body-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dialog-body-field-full {
+    grid-column: 1;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .dialog-footer {
+    flex-direction: column;
+  }
+}
+

@@ -8,6 +8,31 @@ Este projeto possui documentação abrangente sobre o redesign "Cosmos Astral". 
 
 ## 🎯 Documentos Principais
 
+### 0. **CONFIGURACAO_LOCAL.md** ⚙️
+**O que é:** Guia completo para configurar o sistema localmente  
+**Para quem:** Desenvolvedores iniciando no projeto  
+**Conteúdo:**
+- Configuração de variáveis de ambiente
+- Setup do backend e frontend
+- Solução de problemas comuns
+- Checklist de verificação
+
+**📍 Quando usar:** Primeira vez configurando o ambiente de desenvolvimento
+
+---
+
+### 0.1. **VARIAVEIS_AMBIENTE_RESUMO.md** 📋
+**O que é:** Resumo rápido de variáveis de ambiente  
+**Para quem:** Desenvolvedores que precisam de referência rápida  
+**Conteúdo:**
+- Comparação local vs produção
+- Checklist rápido
+- Links para documentação completa
+
+**📍 Quando usar:** Para referência rápida durante desenvolvimento
+
+---
+
 ### 1. **RESUMO_IMPLEMENTACAO.md** 📊
 **O que é:** Resumo executivo da implementação completa  
 **Para quem:** Gestores, stakeholders, overview rápido  
@@ -110,13 +135,24 @@ Este projeto possui documentação abrangente sobre o redesign "Cosmos Astral". 
 ### Desenvolvimento 💻
 
 ```
-1. COSMOS_ASTRAL_REDESIGN.md
+1. CONFIGURACAO_LOCAL.md
+   ├─ Setup inicial
+   ├─ Variáveis de ambiente
+   ├─ Backend e frontend
+   └─ Troubleshooting
+
+2. VARIAVEIS_AMBIENTE_RESUMO.md
+   ├─ Comparação local/produção
+   ├─ Checklist rápido
+   └─ Referências
+
+3. COSMOS_ASTRAL_REDESIGN.md
    ├─ Arquivos modificados
    ├─ Componentes implementados
    ├─ Código técnico
    └─ Integração
 
-2. RESUMO_IMPLEMENTACAO.md
+4. RESUMO_IMPLEMENTACAO.md
    ├─ Tecnologias
    ├─ Métricas código
    └─ Decisões técnicas
@@ -157,16 +193,22 @@ Este projeto possui documentação abrangente sobre o redesign "Cosmos Astral". 
 
 ### Para Desenvolvedores Novos no Projeto:
 
-1. **RESUMO_IMPLEMENTACAO.md** (15 min)
+1. **CONFIGURACAO_LOCAL.md** (10 min)
+   - Configurar ambiente de desenvolvimento
+   
+2. **VARIAVEIS_AMBIENTE_RESUMO.md** (5 min)
+   - Entender variáveis de ambiente
+   
+3. **RESUMO_IMPLEMENTACAO.md** (15 min)
    - Entender o que foi feito
    
-2. **COSMOS_ASTRAL_REDESIGN.md** (30 min)
+4. **COSMOS_ASTRAL_REDESIGN.md** (30 min)
    - Mergulhar nos detalhes técnicos
    
-3. **GUIA_VISUAL_COSMOS_ASTRAL.md** (20 min)
+5. **GUIA_VISUAL_COSMOS_ASTRAL.md** (20 min)
    - Ver cada seção visualmente
    
-4. **Código**: `/src/components/cosmos-dashboard.tsx`
+6. **Código**: `/src/components/cosmos-dashboard.tsx`
    - Ler implementação real
 
 ---
@@ -203,23 +245,35 @@ Este projeto possui documentação abrangente sobre o redesign "Cosmos Astral". 
 ## 📁 Localização dos Arquivos
 
 ```
-/Astrologia/
-├── INDICE_DOCUMENTACAO.md          (este arquivo)
-├── RESUMO_IMPLEMENTACAO.md          ⭐ Start aqui
-├── COSMOS_ASTRAL_REDESIGN.md        📖 Documentação técnica
-├── GUIA_VISUAL_COSMOS_ASTRAL.md     🎨 Guia visual
-├── REFERENCIA_VISUAL.md             📸 Referências Figma
-├── TESTE_COSMOS_ASTRAL.md           🧪 Guia de testes
+/CosmoAstrologia/
+├── docs/
+│   ├── INDICE_DOCUMENTACAO.md          (este arquivo)
+│   ├── CONFIGURACAO_LOCAL.md            ⚙️ Setup local
+│   ├── VARIAVEIS_AMBIENTE_RESUMO.md     📋 Variáveis resumo
+│   ├── RESUMO_IMPLEMENTACAO.md          ⭐ Start aqui
+│   ├── COSMOS_ASTRAL_REDESIGN.md        📖 Documentação técnica
+│   ├── GUIA_VISUAL_COSMOS_ASTRAL.md     🎨 Guia visual
+│   ├── REFERENCIA_VISUAL.md             📸 Referências Figma
+│   └── TESTE_COSMOS_ASTRAL.md           🧪 Guia de testes
+│
+├── backend/
+│   ├── .env.example                     📝 Exemplo variáveis backend
+│   └── ...
+│
+├── .env.local.example                   📝 Exemplo variáveis frontend
+│
+├── scripts/
+│   └── setup-env.sh                     🔧 Script setup ambiente
 │
 ├── src/
 │   ├── components/
-│   │   ├── cosmos-dashboard.tsx     ⭐ Componente principal
-│   │   ├── ui-icons.tsx             🔧 Ícones atualizados
+│   │   ├── cosmos-dashboard.tsx         ⭐ Componente principal
+│   │   ├── ui-icons.tsx                🔧 Ícones atualizados
 │   │   └── ...
-│   ├── index.css                    🎨 Cores customizadas
-│   └── App.tsx                      🔌 Integração
+│   ├── index.css                       🎨 Cores customizadas
+│   └── App.tsx                         🔌 Integração
 │
-└── README.md                        📝 Documentação geral projeto
+└── README.md                            📝 Documentação geral projeto
 ```
 
 ---

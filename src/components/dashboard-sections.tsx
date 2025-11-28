@@ -10,6 +10,33 @@ import { useLanguage } from '../i18n';
 import { OnboardingData } from './onboarding';
 import { AstroCard } from './astro-card';
 
+// Função utilitária para remover informações de suporte e conteúdo técnico
+const removeSupportAndTechnicalContent = (text: string): string => {
+  let cleaned = text;
+  
+  // Remover seção "Suporte" completa (todas as variações)
+  cleaned = cleaned.replace(/##?\s*📞\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
+  cleaned = cleaned.replace(/##?\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
+  cleaned = cleaned.replace(/Suporte[\s\S]*?Consulta com astrólogo profissional[\s\S]*?(?=\n\n|$)/gi, '');
+  cleaned = cleaned.replace(/Para dúvidas sobre interpretação astrológica[\s\S]*?Consulta com astrólogo profissional[\s\S]*?(?=\n\n|$)/gi, '');
+  
+  // Remover linhas específicas de suporte
+  cleaned = cleaned.replace(/Livros de astrologia na pasta.*?/gi, '');
+  cleaned = cleaned.replace(/Análise com IA.*?botão.*?/gi, '');
+  cleaned = cleaned.replace(/Análise com IA.*?/gi, '');
+  cleaned = cleaned.replace(/Consulta com astrólogo profissional.*?/gi, '');
+  
+  // Remover rodapé
+  cleaned = cleaned.replace(/Desenvolvido com.*?autoconhecimento profundo[\s\S]*?(?=\n\n|$)/gi, '');
+  cleaned = cleaned.replace(/Desenvolvido com.*?❤️.*?autoconhecimento[\s\S]*?(?=\n\n|$)/gi, '');
+  
+  // Remover separadores markdown
+  cleaned = cleaned.replace(/^[-]{3,}$/gm, '');
+  cleaned = cleaned.replace(/^[=]{3,}$/gm, '');
+  
+  return cleaned;
+};
+
 // ===== VISÃO GERAL =====
 interface OverviewSectionProps {
   userData: OnboardingData;
@@ -291,13 +318,79 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
     return <div>{formattedParagraphs}</div>;
   };
 
-  // Dados dos elementos baseados nos planetas
-  const elementData = [
-    { name: language === 'pt' ? 'Fogo' : 'Fire', percentage: 35, color: '#F97316' },
-    { name: language === 'pt' ? 'Terra' : 'Earth', percentage: 25, color: '#22C55E' },
-    { name: language === 'pt' ? 'Ar' : 'Air', percentage: 25, color: '#3B82F6' },
-    { name: language === 'pt' ? 'Água' : 'Water', percentage: 15, color: '#8B5CF6' },
+  // Mapeamento de signos para elementos
+  const signToElement: Record<string, 'Fogo' | 'Terra' | 'Ar' | 'Água'> = {
+    'Áries': 'Fogo', 'Leão': 'Fogo', 'Sagitário': 'Fogo',
+    'Touro': 'Terra', 'Virgem': 'Terra', 'Capricórnio': 'Terra',
+    'Gêmeos': 'Ar', 'Libra': 'Ar', 'Aquário': 'Ar',
+    'Câncer': 'Água', 'Escorpião': 'Água', 'Peixes': 'Água'
+  };
+
+  // Calcular distribuição real dos elementos baseado nos planetas
+  const planetSigns = [
+    userData.sunSign,
+    userData.moonSign,
+    userData.ascendant,
+    userData.mercurySign,
+    userData.venusSign,
+    userData.marsSign,
+    userData.jupiterSign,
+    userData.saturnSign,
+    userData.uranusSign,
+    userData.neptuneSign,
+    userData.plutoSign,
+  ].filter(Boolean) as string[];
+
+  const elementCounts = {
+    'Fogo': 0,
+    'Terra': 0,
+    'Ar': 0,
+    'Água': 0
+  };
+
+  planetSigns.forEach(sign => {
+    const element = signToElement[sign];
+    if (element) {
+      elementCounts[element]++;
+    }
+  });
+
+  const total = planetSigns.length || 1; // Evitar divisão por zero
+
+  const elementDataWithCounts = [
+    { 
+      name: language === 'pt' ? 'Fogo' : 'Fire', 
+      percentage: Math.round((elementCounts['Fogo'] / total) * 100), 
+      color: '#F97316',
+      count: elementCounts['Fogo']
+    },
+    { 
+      name: language === 'pt' ? 'Terra' : 'Earth', 
+      percentage: Math.round((elementCounts['Terra'] / total) * 100), 
+      color: '#22C55E',
+      count: elementCounts['Terra']
+    },
+    { 
+      name: language === 'pt' ? 'Ar' : 'Air', 
+      percentage: Math.round((elementCounts['Ar'] / total) * 100), 
+      color: '#3B82F6',
+      count: elementCounts['Ar']
+    },
+    { 
+      name: language === 'pt' ? 'Água' : 'Water', 
+      percentage: Math.round((elementCounts['Água'] / total) * 100), 
+      color: '#8B5CF6',
+      count: elementCounts['Água']
+    },
   ];
+
+  // ElementData para o gráfico (sem count)
+  const elementData = elementDataWithCounts.map(({ count, ...rest }) => rest);
+
+  // Identificar elemento dominante e em falta
+  const dominantElement = elementDataWithCounts.reduce((max, el) => el.percentage > max.percentage ? el : max);
+  const missingElement = elementDataWithCounts.find(el => el.count === 0);
+
 
   useEffect(() => {
     const fetchInterpretation = async () => {
@@ -687,6 +780,107 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
               data={elementData} 
               title="" 
             />
+            
+            {/* Explicação dos Elementos */}
+            <div className="overview-elements-explanation" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid hsl(var(--border))' }}>
+              <h4 className="overview-elements-explanation-title" style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem', color: 'hsl(var(--foreground))' }}>
+                {language === 'pt' ? 'O que significam os elementos no seu mapa?' : 'What do the elements mean in your chart?'}
+              </h4>
+              
+              <div className="overview-elements-meanings" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="overview-element-meaning" style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'hsl(var(--muted) / 0.5)' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: '1.5' }}>
+                    <strong style={{ color: '#F97316' }}>{language === 'pt' ? '🔥 Fogo' : '🔥 Fire'}</strong>: {language === 'pt' ? 'Energia, ação, entusiasmo e liderança. Você é alguém que age, toma iniciativa e busca expressar sua criatividade no mundo.' : 'Energy, action, enthusiasm and leadership. You are someone who acts, takes initiative and seeks to express your creativity in the world.'}
+                  </p>
+                </div>
+                <div className="overview-element-meaning" style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'hsl(var(--muted) / 0.5)' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: '1.5' }}>
+                    <strong style={{ color: '#22C55E' }}>{language === 'pt' ? '🌍 Terra' : '🌍 Earth'}</strong>: {language === 'pt' ? 'Praticidade, estabilidade e realização material. Você valoriza segurança, estrutura e construir coisas concretas na vida.' : 'Practicality, stability and material realization. You value security, structure and building concrete things in life.'}
+                  </p>
+                </div>
+                <div className="overview-element-meaning" style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'hsl(var(--muted) / 0.5)' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: '1.5' }}>
+                    <strong style={{ color: '#3B82F6' }}>{language === 'pt' ? '💨 Ar' : '💨 Air'}</strong>: {language === 'pt' ? 'Comunicação, intelecto e conexões sociais. Você precisa de troca de ideias, aprendizado constante e relacionar-se com pessoas.' : 'Communication, intellect and social connections. You need exchange of ideas, constant learning and relating to people.'}
+                  </p>
+                </div>
+                <div className="overview-element-meaning" style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'hsl(var(--muted) / 0.5)' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: '1.5' }}>
+                    <strong style={{ color: '#8B5CF6' }}>{language === 'pt' ? '💧 Água' : '💧 Water'}</strong>: {language === 'pt' ? 'Emoções, intuição e profundidade emocional. Você sente tudo intensamente e busca conexões profundas e autênticas.' : 'Emotions, intuition and emotional depth. You feel everything intensely and seek deep and authentic connections.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Explicação do desequilíbrio */}
+              <div className="overview-elements-balance" style={{ marginBottom: '1.5rem' }}>
+                <h5 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: 'hsl(var(--foreground))' }}>
+                  {language === 'pt' ? 'Por que você tem mais de alguns elementos?' : 'Why do you have more of some elements?'}
+                </h5>
+                <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))', marginBottom: '0.5rem' }}>
+                  {language === 'pt' 
+                    ? `Ter mais ${dominantElement.name.toLowerCase()} no seu mapa (${dominantElement.percentage}%) mostra que essa energia é muito presente na sua personalidade. Isso não é bom nem ruim - é simplesmente quem você é. Os elementos aparecem de forma desigual porque seus planetas estão distribuídos entre signos diferentes, cada um com seu próprio elemento.`
+                    : `Having more ${dominantElement.name.toLowerCase()} in your chart (${dominantElement.percentage}%) shows that this energy is very present in your personality. This is neither good nor bad - it's simply who you are. Elements appear unevenly because your planets are distributed among different signs, each with its own element.`}
+                </p>
+              </div>
+
+              {/* Como isso influencia */}
+              <div className="overview-elements-influence" style={{ marginBottom: '1.5rem' }}>
+                <h5 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: 'hsl(var(--foreground))' }}>
+                  {language === 'pt' ? 'Como isso influencia sua vida?' : 'How does this influence your life?'}
+                </h5>
+                <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))', marginBottom: '0.75rem' }}>
+                  {language === 'pt'
+                    ? `Com mais ${dominantElement.name.toLowerCase()}, você tem essa energia como sua força natural. Mas elementos em falta ou pouco presentes mostram áreas que você pode precisar desenvolver mais conscientemente.`
+                    : `With more ${dominantElement.name.toLowerCase()}, you have this energy as your natural strength. But missing or low elements show areas you may need to develop more consciously.`}
+                </p>
+                {missingElement && (
+                  <div style={{ padding: '0.75rem', borderRadius: '0.5rem', backgroundColor: 'hsl(var(--primary) / 0.1)', border: '1px solid hsl(var(--primary) / 0.2)' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem', lineHeight: '1.6' }}>
+                      {language === 'pt'
+                        ? `💡 Você não tem planetas em signos de ${missingElement.name}, o que significa que essa energia pode ser menos natural para você. Isso não é um problema - apenas indica uma área para desenvolver ao longo da vida.`
+                        : `💡 You don't have planets in ${missingElement.name} signs, which means this energy may be less natural for you. This is not a problem - it just indicates an area to develop throughout life.`}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Dicas práticas para evoluir */}
+              <div className="overview-elements-tips">
+                <h5 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', color: 'hsl(var(--foreground))' }}>
+                  {language === 'pt' ? '💫 Como você pode evoluir?' : '💫 How can you evolve?'}
+                </h5>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {language === 'pt' ? (
+                    <>
+                      <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))' }}>
+                        <strong>• Use sua força natural:</strong> O elemento que você tem mais ({dominantElement.name.toLowerCase()}) é sua energia dominante. Use isso a seu favor - é onde você brilha naturalmente.
+                      </p>
+                      <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))' }}>
+                        <strong>• Desenvolva o que falta:</strong> {missingElement 
+                          ? `O elemento ${missingElement.name.toLowerCase()} está ausente no seu mapa. Pratique atividades que desenvolvam essa energia: ${missingElement.name === 'Fogo' ? 'exercícios físicos, esportes, atividades criativas e liderança' : missingElement.name === 'Terra' ? 'organização, planejamento, atividades práticas e conexão com a natureza' : missingElement.name === 'Ar' ? 'leitura, estudos, conversas profundas e networking' : 'meditação, arte, terapia e conexão emocional profunda'}.`
+                          : 'Procure equilibrar todos os elementos na sua vida para uma experiência mais completa.'}
+                      </p>
+                      <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))' }}>
+                        <strong>• Equilibre os extremos:</strong> Se você tem muito de um elemento (acima de 40%), pode estar exagerando nessa energia. Pratique o oposto: se tem muito Fogo, desacelere e reflita mais; se tem muita Terra, experimente mais; se tem muito Ar, conecte-se com suas emoções; se tem muita Água, aterre-se e seja mais prático.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))' }}>
+                        <strong>• Use your natural strength:</strong> The element you have most ({dominantElement.name.toLowerCase()}) is your dominant energy. Use this to your advantage - it's where you naturally shine.
+                      </p>
+                      <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))' }}>
+                        <strong>• Develop what's missing:</strong> {missingElement
+                          ? `The ${missingElement.name.toLowerCase()} element is missing in your chart. Practice activities that develop this energy.`
+                          : 'Seek to balance all elements in your life for a more complete experience.'}
+                      </p>
+                      <p style={{ fontSize: '0.875rem', lineHeight: '1.6', color: 'hsl(var(--muted-foreground))' }}>
+                        <strong>• Balance extremes:</strong> If you have too much of one element (above 40%), you may be overdoing this energy. Practice the opposite.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -747,30 +941,7 @@ const FormattedPlanetInterpretation = ({
     : planetInfo.en[planetName as keyof typeof planetInfo.en];
 
   // Cores por tipo de planeta
-  const planetColors: Record<string, { bg: string; border: string; text: string }> = {
-    Sol: { bg: 'from-orange-500/20 to-yellow-500/10', border: 'border-orange-500/30', text: 'text-orange-500' },
-    Sun: { bg: 'from-orange-500/20 to-yellow-500/10', border: 'border-orange-500/30', text: 'text-orange-500' },
-    Lua: { bg: 'from-purple-500/20 to-indigo-500/10', border: 'border-purple-500/30', text: 'text-purple-500' },
-    Moon: { bg: 'from-purple-500/20 to-indigo-500/10', border: 'border-purple-500/30', text: 'text-purple-500' },
-    Mercúrio: { bg: 'from-cyan-500/20 to-blue-500/10', border: 'border-cyan-500/30', text: 'text-cyan-500' },
-    Mercury: { bg: 'from-cyan-500/20 to-blue-500/10', border: 'border-cyan-500/30', text: 'text-cyan-500' },
-    Vênus: { bg: 'from-pink-500/20 to-rose-500/10', border: 'border-pink-500/30', text: 'text-pink-500' },
-    Venus: { bg: 'from-pink-500/20 to-rose-500/10', border: 'border-pink-500/30', text: 'text-pink-500' },
-    Marte: { bg: 'from-red-500/20 to-orange-500/10', border: 'border-red-500/30', text: 'text-red-500' },
-    Mars: { bg: 'from-red-500/20 to-orange-500/10', border: 'border-red-500/30', text: 'text-red-500' },
-    Júpiter: { bg: 'from-amber-500/20 to-yellow-500/10', border: 'border-amber-500/30', text: 'text-amber-500' },
-    Jupiter: { bg: 'from-amber-500/20 to-yellow-500/10', border: 'border-amber-500/30', text: 'text-amber-500' },
-    Saturno: { bg: 'from-gray-500/20 to-slate-500/10', border: 'border-gray-500/30', text: 'text-muted-foreground' },
-    Saturn: { bg: 'from-gray-500/20 to-slate-500/10', border: 'border-gray-500/30', text: 'text-muted-foreground' },
-    Urano: { bg: 'from-teal-500/20 to-cyan-500/10', border: 'border-teal-500/30', text: 'text-teal-500' },
-    Uranus: { bg: 'from-teal-500/20 to-cyan-500/10', border: 'border-teal-500/30', text: 'text-teal-500' },
-    Netuno: { bg: 'from-blue-500/20 to-indigo-500/10', border: 'border-blue-500/30', text: 'text-blue-500' },
-    Neptune: { bg: 'from-blue-500/20 to-indigo-500/10', border: 'border-blue-500/30', text: 'text-blue-500' },
-    Plutão: { bg: 'from-rose-500/20 to-red-500/10', border: 'border-rose-500/30', text: 'text-rose-500' },
-    Pluto: { bg: 'from-rose-500/20 to-red-500/10', border: 'border-rose-500/30', text: 'text-rose-500' },
-  };
-
-  const colors = planetColors[planetName] || { bg: 'from-primary/20 to-primary/5', border: 'border-primary/30', text: 'text-primary' };
+  // Cores agora são aplicadas via CSS classes, não mais via Tailwind
 
   // Dividir o texto em parágrafos
   const paragraphs = text.split(/\n\n+/).filter(p => p.trim());
@@ -847,20 +1018,20 @@ const FormattedPlanetInterpretation = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="planet-interpretation-container">
       {/* Header do Planeta */}
-      <div className={`bg-gradient-to-br ${colors.bg} rounded-xl p-5 border ${colors.border}`}>
-        <div className="flex items-center gap-4 mb-4">
-          <div className={`w-16 h-16 rounded-full bg-white/20 dark:bg-black/20 flex items-center justify-center`}>
-            <span className={`text-4xl ${colors.text}`}>
+      <div className={`planet-interpretation-header planet-interpretation-header-${planetName.toLowerCase()}`}>
+        <div className="planet-interpretation-header-content">
+          <div className="planet-interpretation-icon-container">
+            <span className={`planet-interpretation-icon planet-interpretation-icon-${planetName.toLowerCase()}`}>
               {planetData?.symbol || '★'}
             </span>
           </div>
           <div>
-            <h3 className="font-serif text-xl font-bold text-foreground">
+            <h3 className="planet-interpretation-title">
               {planetName} {language === 'pt' ? 'em' : 'in'} {sign}
             </h3>
-            <p className={`text-sm font-medium ${colors.text}`}>
+            <p className={`planet-interpretation-meta planet-interpretation-meta-${planetName.toLowerCase()}`}>
               Casa {house} • {planetData?.domain}
             </p>
           </div>
@@ -868,11 +1039,11 @@ const FormattedPlanetInterpretation = ({
         
         {/* Palavras-chave */}
         {planetData?.keywords && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="planet-interpretation-keywords">
             {planetData.keywords.map((keyword, idx) => (
               <span 
                 key={idx}
-                className={`px-3 py-1 rounded-full text-xs font-medium bg-white/30 dark:bg-black/20 ${colors.text}`}
+                className={`planet-interpretation-keyword planet-interpretation-keyword-${planetName.toLowerCase()}`}
               >
                 {keyword}
               </span>
@@ -881,39 +1052,39 @@ const FormattedPlanetInterpretation = ({
         )}
         
         {/* Elemento */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{language === 'pt' ? 'Elemento:' : 'Element:'}</span>
-          <span className={`text-xs font-medium ${colors.text}`}>{planetData?.element}</span>
+        <div className="planet-interpretation-element">
+          <span className="planet-interpretation-element-label">{language === 'pt' ? 'Elemento:' : 'Element:'}</span>
+          <span className={`planet-interpretation-element-value planet-interpretation-element-value-${planetName.toLowerCase()}`}>{planetData?.element}</span>
         </div>
       </div>
 
       {/* Seções da Interpretação */}
-      {sections.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="font-semibold text-foreground">
+      {sections.length > 0 ? (
+        <div className="planet-interpretation-sections">
+          <h4 className="planet-interpretation-sections-title">
             {language === 'pt' ? 'Interpretação Completa' : 'Complete Interpretation'}
           </h4>
           
           {/* Card único com todos os tópicos */}
-          <div className="bg-muted/30 rounded-lg p-6 border border-border/50 space-y-8">
+          <div className="planet-interpretation-sections-card">
             {sections.map((section, sectionIndex) => (
-              <div key={sectionIndex}>
+              <div key={sectionIndex} className="planet-interpretation-section">
                 {/* Título Principal */}
-                <h5 className="text-lg font-bold text-foreground mb-4">
+                <h5 className="planet-interpretation-section-main-title">
                   {section.mainTitle}
                 </h5>
                 
                 {/* Subseções */}
-                <div className="space-y-6">
+                <div className="planet-interpretation-subsections">
                   {section.subsections.map((subsection, subIndex) => (
-                    <div key={subIndex}>
+                    <div key={subIndex} className="planet-interpretation-subsection">
                       {/* Subtítulo */}
-                      <p className={`text-sm font-medium mb-2 ${subsection.color}`}>
+                      <p className={`planet-interpretation-subsection-title planet-interpretation-subsection-title-${subsection.color.replace('text-', '')}`}>
                         {subsection.subTitle}
                       </p>
                       
                       {/* Conteúdo */}
-                      <p className="text-foreground leading-relaxed">
+                      <p className="planet-interpretation-subsection-content">
                         {subsection.content}
                       </p>
                     </div>
@@ -923,7 +1094,23 @@ const FormattedPlanetInterpretation = ({
             ))}
           </div>
         </div>
-      )}
+      ) : text && text.trim() ? (
+        // Fallback: se não houver seções estruturadas, exibir o texto diretamente
+        <div className="planet-interpretation-sections">
+          <h4 className="planet-interpretation-sections-title">
+            {language === 'pt' ? 'Interpretação' : 'Interpretation'}
+          </h4>
+          <div className="planet-interpretation-sections-card">
+            <div className="planet-interpretation-section">
+              {paragraphs.map((paragraph, index) => (
+                <p key={index} className="planet-interpretation-subsection-content" style={{ marginBottom: '1rem' }}>
+                  {paragraph.trim()}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
@@ -935,18 +1122,18 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
   const [interpretation, setInterpretation] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Lista de planetas com signos (mock data que seria do userData)
+  // Lista de planetas com signos reais do userData
   const planetData = [
-    { name: 'Sol', nameEn: 'Sun', sign: userData.sunSign || 'Áries', house: 1, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
-    { name: 'Lua', nameEn: 'Moon', sign: userData.moonSign || 'Touro', house: 4, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
-    { name: 'Mercúrio', nameEn: 'Mercury', sign: 'Gêmeos', house: 3, color: 'text-cyan-500', bgColor: 'bg-cyan-500/10' },
-    { name: 'Vênus', nameEn: 'Venus', sign: 'Touro', house: 2, color: 'text-pink-500', bgColor: 'bg-pink-500/10' },
-    { name: 'Marte', nameEn: 'Mars', sign: 'Áries', house: 1, color: 'text-red-500', bgColor: 'bg-red-500/10' },
-    { name: 'Júpiter', nameEn: 'Jupiter', sign: 'Sagitário', house: 9, color: 'text-amber-500', bgColor: 'bg-amber-500/10' },
-    { name: 'Saturno', nameEn: 'Saturn', sign: 'Capricórnio', house: 10, color: 'text-muted-foreground', bgColor: 'bg-gray-500/10' },
-    { name: 'Urano', nameEn: 'Uranus', sign: 'Aquário', house: 11, color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
-    { name: 'Netuno', nameEn: 'Neptune', sign: 'Peixes', house: 12, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
-    { name: 'Plutão', nameEn: 'Pluto', sign: 'Escorpião', house: 8, color: 'text-rose-500', bgColor: 'bg-rose-500/10' },
+    { name: 'Sol', nameEn: 'Sun', sign: userData.sunSign || 'Áries', house: userData.sunHouse || 1, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
+    { name: 'Lua', nameEn: 'Moon', sign: userData.moonSign || 'Touro', house: userData.moonHouse || 4, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+    { name: 'Mercúrio', nameEn: 'Mercury', sign: userData.mercurySign || 'Gêmeos', house: userData.mercuryHouse || 3, color: 'text-cyan-500', bgColor: 'bg-cyan-500/10' },
+    { name: 'Vênus', nameEn: 'Venus', sign: userData.venusSign || 'Touro', house: userData.venusHouse || 2, color: 'text-pink-500', bgColor: 'bg-pink-500/10' },
+    { name: 'Marte', nameEn: 'Mars', sign: userData.marsSign || 'Áries', house: userData.marsHouse || 1, color: 'text-red-500', bgColor: 'bg-red-500/10' },
+    { name: 'Júpiter', nameEn: 'Jupiter', sign: userData.jupiterSign || 'Sagitário', house: userData.jupiterHouse || 9, color: 'text-amber-500', bgColor: 'bg-amber-500/10' },
+    { name: 'Saturno', nameEn: 'Saturn', sign: userData.saturnSign || 'Capricórnio', house: userData.saturnHouse || 10, color: 'text-muted-foreground', bgColor: 'bg-gray-500/10' },
+    { name: 'Urano', nameEn: 'Uranus', sign: userData.uranusSign || 'Aquário', house: userData.uranusHouse || 11, color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
+    { name: 'Netuno', nameEn: 'Neptune', sign: userData.neptuneSign || 'Peixes', house: userData.neptuneHouse || 12, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
+    { name: 'Plutão', nameEn: 'Pluto', sign: userData.plutoSign || 'Escorpião', house: userData.plutoHouse || 8, color: 'text-rose-500', bgColor: 'bg-rose-500/10' },
   ];
 
   // Categorias de planetas
@@ -970,18 +1157,42 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
       setIsLoading(true);
       setSelectedPlanet(planetName);
       setSelectedPlanetData({ sign, house });
+      
+      // Validar dados antes de fazer a chamada
+      if (!planetName) {
+        throw new Error('Nome do planeta é obrigatório');
+      }
+      
+      if (!sign) {
+        throw new Error('Signo do planeta é obrigatório');
+      }
+      
+      console.log('Buscando interpretação para:', { planet: planetName, sign, house });
+      
       const result = await apiService.getPlanetInterpretation({
         planet: planetName,
         sign: sign,
-        house: house,
+        house: house && house > 0 ? house : undefined,
+        sunSign: userData.sunSign,
+        moonSign: userData.moonSign,
+        ascendant: userData.ascendant,
+        userName: userData.name,
       });
-      setInterpretation(result.interpretation);
+      
+      console.log('Resultado recebido:', result);
+      
+      if (result && result.interpretation && result.interpretation.trim()) {
+        setInterpretation(result.interpretation);
+      } else {
+        throw new Error('Interpretação não retornada ou está vazia');
+      }
     } catch (error) {
       console.error('Erro ao buscar interpretação:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       setInterpretation(
         language === 'pt'
-          ? `${planetName} em ${sign} na Casa ${house} traz influências importantes para sua vida. Este posicionamento revela aspectos únicos da sua personalidade e jornada. O planeta ${planetName} governa áreas específicas da experiência humana, e sua posição no signo de ${sign} colore a forma como você expressa essas energias.`
-          : `${planetName} in ${sign} in House ${house} brings important influences to your life. This placement reveals unique aspects of your personality and journey. The planet ${planetName} rules specific areas of human experience, and its position in the sign of ${sign} colors how you express these energies.`
+          ? `Erro ao buscar interpretação para ${planetName} em ${sign}${house ? ` na Casa ${house}` : ''}. ${errorMessage}`
+          : `Error fetching interpretation for ${planetName} in ${sign}${house ? ` in House ${house}` : ''}. ${errorMessage}`
       );
     } finally {
       setIsLoading(false);
@@ -1041,12 +1252,23 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
           const PlanetIcon = planets[index]?.icon;
           const SignIcon = zodiacSigns.find(z => z.name === planet.sign)?.icon;
           const isSelected = selectedPlanet === planet.name;
-            const info = planetInfo.pt[planet.name as keyof typeof planetInfo.pt];
+          const info = language === 'pt' 
+            ? planetInfo.pt[planet.name as keyof typeof planetInfo.pt]
+            : planetInfo.en[planet.nameEn as keyof typeof planetInfo.en];
+          
+          // Validar se o planeta tem signo antes de renderizar
+          if (!planet.sign) {
+            console.warn(`Planeta ${planet.name} não tem signo definido`);
+            return null;
+          }
           
           return (
             <button
               key={planet.name}
-              onClick={() => fetchPlanetInterpretation(planet.name, planet.sign, planet.house)}
+              onClick={() => {
+                console.log('Clique no planeta:', planet.name, 'Signo:', planet.sign, 'Casa:', planet.house);
+                fetchPlanetInterpretation(planet.name, planet.sign, planet.house || 0);
+              }}
               className={`p-4 rounded-xl border transition-all hover:scale-105 ${
                 isSelected 
                     ? `${planet.bgColor} border-current shadow-lg` 
@@ -1061,14 +1283,16 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
                     <p className={`font-semibold ${isSelected ? planet.color : 'text-foreground'}`}>
                       {language === 'pt' ? planet.name : planet.nameEn}
                     </p>
-                    <p className="text-lg font-bold text-muted-foreground">{info?.symbol}</p>
+                    <p className="text-lg font-bold text-muted-foreground">{info?.symbol || '?'}</p>
                   <div className="flex items-center justify-center gap-1 mt-1">
                     {SignIcon && <SignIcon size={14} className="text-muted-foreground" />}
                     <p className="text-xs text-muted-foreground">{planet.sign}</p>
                   </div>
-                    <p className="text-xs text-muted-foreground">
-                      {language === 'pt' ? 'Casa' : 'House'} {planet.house}
-                    </p>
+                    {planet.house && planet.house > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {language === 'pt' ? 'Casa' : 'House'} {planet.house}
+                      </p>
+                    )}
                 </div>
               </div>
             </button>
@@ -1080,14 +1304,14 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
       {/* Interpretation Panel */}
       {selectedPlanet && selectedPlanetData && (
         <div className="bg-card rounded-xl p-6 border border-border animate-fadeIn">
-              {isLoading ? (
+          {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <UIIcons.Loader className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-muted-foreground">
+              <p className="text-muted-foreground">
                 {language === 'pt' ? 'Analisando o planeta...' : 'Analyzing the planet...'}
-                  </p>
-                </div>
-              ) : (
+              </p>
+            </div>
+          ) : interpretation ? (
             <FormattedPlanetInterpretation 
               text={interpretation} 
               language={language}
@@ -1095,7 +1319,16 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
               sign={selectedPlanetData.sign}
               house={selectedPlanetData.house}
             />
-              )}
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <UIIcons.AlertCircle className="w-8 h-8 text-muted-foreground" />
+              <p className="text-muted-foreground">
+                {language === 'pt' 
+                  ? 'Não foi possível carregar a interpretação. Tente novamente.' 
+                  : 'Could not load interpretation. Please try again.'}
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1602,29 +1835,7 @@ const FormattedAspectInterpretation = ({
     ? aspectTypeInfo.pt[aspectType as keyof typeof aspectTypeInfo.pt]
     : aspectTypeInfo.en[aspectType as keyof typeof aspectTypeInfo.en];
 
-  const colorMap: Record<string, string> = {
-    blue: 'from-blue-500/20 to-blue-500/5 border-blue-500/30',
-    green: 'from-green-500/20 to-green-500/5 border-green-500/30',
-    cyan: 'from-cyan-500/20 to-cyan-500/5 border-cyan-500/30',
-    red: 'from-red-500/20 to-red-500/5 border-red-500/30',
-    orange: 'from-orange-500/20 to-orange-500/5 border-orange-500/30',
-  };
-
-  const iconColorMap: Record<string, string> = {
-    blue: 'text-blue-500',
-    green: 'text-green-500',
-    cyan: 'text-cyan-500',
-    red: 'text-red-500',
-    orange: 'text-orange-500',
-  };
-
-  const bgColorMap: Record<string, string> = {
-    blue: 'bg-blue-500/20',
-    green: 'bg-green-500/20',
-    cyan: 'bg-cyan-500/20',
-    red: 'bg-red-500/20',
-    orange: 'bg-orange-500/20',
-  };
+  // Cores agora são aplicadas via CSS classes, não mais via Tailwind
 
   // Dividir o texto em seções se houver parágrafos
   const paragraphs = text.split(/\n\n+/).filter(p => p.trim());
@@ -1649,47 +1860,47 @@ const FormattedAspectInterpretation = ({
 
   const sectionIcons: Record<string, { icon: React.ReactNode; title: { pt: string; en: string }; color: string }> = {
     energy: {
-      icon: <UIIcons.Zap className="w-5 h-5" />,
+      icon: <UIIcons.Zap size={20} />,
       title: { pt: '⚡ Energia da Conexão', en: '⚡ Connection Energy' },
-      color: 'text-amber-500',
+      color: 'amber-500',
     },
     challenge: {
-      icon: <UIIcons.AlertCircle className="w-5 h-5" />,
+      icon: <UIIcons.AlertCircle size={20} />,
       title: { pt: '🔥 Desafios e Tensões', en: '🔥 Challenges and Tensions' },
-      color: 'text-red-500',
+      color: 'red-500',
     },
     potential: {
-      icon: <UIIcons.Star className="w-5 h-5" />,
+      icon: <UIIcons.Star size={20} />,
       title: { pt: '✨ Potenciais e Dons', en: '✨ Potentials and Gifts' },
-      color: 'text-emerald-500',
+      color: 'emerald-500',
     },
     advice: {
-      icon: <UIIcons.Compass className="w-5 h-5" />,
+      icon: <UIIcons.Compass size={20} />,
       title: { pt: '🧭 Orientações Práticas', en: '🧭 Practical Guidance' },
-      color: 'text-blue-500',
+      color: 'blue-500',
     },
     general: {
-      icon: <UIIcons.BookOpen className="w-5 h-5" />,
+      icon: <UIIcons.BookOpen size={20} />,
       title: { pt: '📖 Interpretação', en: '📖 Interpretation' },
-      color: 'text-purple-500',
+      color: 'purple-500',
     },
   };
 
   return (
-    <div className="space-y-6">
+    <div className="aspect-interpretation-container">
       {/* Header do Aspecto */}
-      <div className={`bg-gradient-to-br ${colorMap[aspectInfo?.color || 'blue']} rounded-xl p-5 border`}>
-        <div className="flex items-center gap-4 mb-4">
-          <div className={`w-14 h-14 rounded-full ${bgColorMap[aspectInfo?.color || 'blue']} flex items-center justify-center`}>
-            <span className={`text-3xl ${iconColorMap[aspectInfo?.color || 'blue']}`}>
+      <div className={`aspect-interpretation-header aspect-interpretation-header-${aspectInfo?.color || 'blue'}`}>
+        <div className="aspect-interpretation-header-content">
+          <div className={`aspect-interpretation-icon-container aspect-interpretation-icon-container-${aspectInfo?.color || 'blue'}`}>
+            <span className={`aspect-interpretation-icon aspect-interpretation-icon-${aspectInfo?.color || 'blue'}`}>
               {aspectInfo?.symbol || '☌'}
             </span>
           </div>
           <div>
-            <h3 className="font-serif text-xl font-bold text-foreground">
+            <h3 className="aspect-interpretation-title">
               {planet1} {aspectInfo?.symbol} {planet2}
             </h3>
-            <p className={`text-sm font-medium ${iconColorMap[aspectInfo?.color || 'blue']}`}>
+            <p className={`aspect-interpretation-meta aspect-interpretation-meta-${aspectInfo?.color || 'blue'}`}>
               {aspectType} • {aspectInfo?.nature}
             </p>
           </div>
@@ -1697,11 +1908,11 @@ const FormattedAspectInterpretation = ({
         
         {/* Palavras-chave */}
         {aspectInfo?.keywords && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="aspect-interpretation-keywords">
             {aspectInfo.keywords.map((keyword, idx) => (
               <span 
                 key={idx}
-                className={`px-3 py-1 rounded-full text-xs font-medium ${bgColorMap[aspectInfo.color]} ${iconColorMap[aspectInfo.color]}`}
+                className={`aspect-interpretation-keyword aspect-interpretation-keyword-${aspectInfo.color}`}
               >
                 {keyword}
               </span>
@@ -1709,16 +1920,16 @@ const FormattedAspectInterpretation = ({
           </div>
         )}
         
-        <p className="text-sm text-foreground/70">
+        <p className="aspect-interpretation-description">
           {aspectInfo?.description}
         </p>
       </div>
 
       {/* Seções da Interpretação */}
       {paragraphs.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="font-semibold text-foreground flex items-center gap-2">
-            <UIIcons.BookOpen className="w-5 h-5 text-primary" />
+        <div className="aspect-interpretation-sections">
+          <h4 className="aspect-interpretation-sections-title">
+            <UIIcons.BookOpen size={20} className="aspect-interpretation-sections-icon" />
             {language === 'pt' ? 'Análise Detalhada' : 'Detailed Analysis'}
           </h4>
           
@@ -1729,19 +1940,19 @@ const FormattedAspectInterpretation = ({
             return (
               <div 
                 key={index}
-                className="bg-muted/30 rounded-lg p-4 border border-border/50"
+                className="aspect-interpretation-section-card"
               >
-                <div className="flex items-start gap-3">
-                  <div className={`flex-shrink-0 mt-0.5 ${sectionInfo.color}`}>
+                <div className="aspect-interpretation-section-content">
+                  <div className={`aspect-interpretation-section-icon aspect-interpretation-section-icon-${sectionInfo.color.replace('text-', '')}`}>
                     {sectionInfo.icon}
                   </div>
-                  <div className="flex-1">
+                  <div className="aspect-interpretation-section-text">
                     {paragraphs.length > 1 && (
-                      <p className={`text-sm font-medium mb-2 ${sectionInfo.color}`}>
+                      <p className={`aspect-interpretation-section-label aspect-interpretation-section-label-${sectionInfo.color.replace('text-', '')}`}>
                         {language === 'pt' ? sectionInfo.title.pt : sectionInfo.title.en}
                       </p>
                     )}
-                    <p className="text-foreground/80 leading-relaxed">
+                    <p className="aspect-interpretation-section-paragraph">
                       {section.content}
                     </p>
                   </div>
@@ -1987,6 +2198,8 @@ Você é o COSMOS ASTRAL, uma engine astrológica avançada. Sua função é ger
 • QUÍRON: A "ferida que vira dom". Onde a pessoa sente inadequação, mas onde se torna mestre em ajudar outros
 • SATURNO: O mestre kármico que exige maturidade e onde recompensas vêm tarde, mas sólidas
 • Nunca gere contradições sem explicá-las como "tensões internas de amadurecimento"
+• NÃO inclua código Python, blocos de código ou períodos orbitais (29.5, 11.86, etc.) - isso não é relevante para a interpretação
+• NÃO inclua informações sobre Astrologia Védica, Jyotish, zodíaco Sideral, Dasas, Vargas ou diferenças entre Tropical e Sideral
 
 **DADOS DO NATIVO:**
 - Nome: ${userData.name}
@@ -2029,6 +2242,8 @@ You are COSMOS ASTRAL, an advanced astrological engine. Your function is to gene
 • CHIRON: The "wound that becomes gift". Where the person feels inadequacy, but becomes a master at helping others
 • SATURN: The karmic master demanding maturity, where rewards come late but solid
 • Never generate contradictions without explaining them as "internal tensions of maturation"
+• DO NOT include Python code, code blocks, or orbital periods (29.5, 11.86, etc.) - this is not relevant for interpretation
+• DO NOT include information about Vedic Astrology, Jyotish, Sidereal zodiac, Dasas, Vargas or differences between Tropical and Sidereal
 
 **NATIVE'S DATA:**
 - Name: ${userData.name}
@@ -2081,20 +2296,20 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
   const ChironIcon = zodiacSigns.find(z => z.name === chironSign)?.icon;
 
   return (
-    <div className="space-y-8">
+    <div className="lunar-nodes-section-container">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="lunar-nodes-section-header">
         <div>
-          <h2 className="font-serif text-3xl font-bold text-foreground">
+          <h2 className="lunar-nodes-section-title">
             {language === 'pt' ? 'Nodos Lunares e Saturno' : 'Lunar Nodes and Saturn'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="lunar-nodes-section-subtitle">
             {language === 'pt' ? 'Seu propósito de vida, karma e lições a aprender' : 'Your life purpose, karma and lessons to learn'}
           </p>
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+          className="lunar-nodes-section-back-button"
         >
           <UIIcons.ArrowLeft size={18} />
           {language === 'pt' ? 'Voltar' : 'Back'}
@@ -2102,23 +2317,23 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
       </div>
 
       {/* Nodes, Saturn and Chiron Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="lunar-nodes-cards-grid">
         {/* North Node */}
-        <div className="bg-gradient-to-br from-amber-100 to-amber-50 dark:from-amber-500/20 dark:to-amber-500/5 rounded-xl p-6 border border-amber-300 dark:border-amber-500/30">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-amber-200 dark:bg-amber-500/20 flex items-center justify-center">
-              <UIIcons.ArrowUp size={32} className="text-amber-600 dark:text-amber-400" />
+        <div className="lunar-nodes-card lunar-nodes-card-amber">
+          <div className="lunar-nodes-card-header">
+            <div className="lunar-nodes-card-icon-container lunar-nodes-card-icon-container-amber">
+              <UIIcons.ArrowUp size={32} className="lunar-nodes-card-icon lunar-nodes-card-icon-amber" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Nodo Norte' : 'North Node'}</p>
-              <div className="flex items-center gap-2">
-                {NorthIcon && <NorthIcon size={20} className="text-amber-600 dark:text-amber-400" />}
-                <p className="font-bold text-xl text-foreground">{northNode}</p>
+              <p className="lunar-nodes-card-label">{language === 'pt' ? 'Nodo Norte' : 'North Node'}</p>
+              <div className="lunar-nodes-card-sign-container">
+                {NorthIcon && <NorthIcon size={20} className="lunar-nodes-card-sign-icon lunar-nodes-card-sign-icon-amber" />}
+                <p className="lunar-nodes-card-sign-name">{northNode}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{northNodeDegree}°</p>
+              <p className="lunar-nodes-card-degree">{northNodeDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground">
+          <p className="lunar-nodes-card-description">
             {language === 'pt' 
               ? 'O destino e o propósito que você deve buscar nesta vida' 
               : 'The destiny and purpose you should seek in this life'}
@@ -2126,21 +2341,21 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
         </div>
 
         {/* South Node */}
-        <div className="bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-500/20 dark:to-indigo-500/5 rounded-xl p-6 border border-indigo-300 dark:border-indigo-500/30">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-indigo-200 dark:bg-indigo-500/20 flex items-center justify-center">
-              <UIIcons.ArrowDown size={32} className="text-indigo-600 dark:text-indigo-400" />
+        <div className="lunar-nodes-card lunar-nodes-card-indigo">
+          <div className="lunar-nodes-card-header">
+            <div className="lunar-nodes-card-icon-container lunar-nodes-card-icon-container-indigo">
+              <UIIcons.ArrowDown size={32} className="lunar-nodes-card-icon lunar-nodes-card-icon-indigo" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Nodo Sul' : 'South Node'}</p>
-              <div className="flex items-center gap-2">
-                {SouthIcon && <SouthIcon size={20} className="text-indigo-600 dark:text-indigo-400" />}
-                <p className="font-bold text-xl text-foreground">{southNode}</p>
+              <p className="lunar-nodes-card-label">{language === 'pt' ? 'Nodo Sul' : 'South Node'}</p>
+              <div className="lunar-nodes-card-sign-container">
+                {SouthIcon && <SouthIcon size={20} className="lunar-nodes-card-sign-icon lunar-nodes-card-sign-icon-indigo" />}
+                <p className="lunar-nodes-card-sign-name">{southNode}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{southNodeDegree}°</p>
+              <p className="lunar-nodes-card-degree">{southNodeDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground">
+          <p className="lunar-nodes-card-description">
             {language === 'pt' 
               ? 'Padrões do passado que você traz como zona de conforto' 
               : 'Past patterns you bring as a comfort zone'}
@@ -2148,21 +2363,21 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
         </div>
 
         {/* Saturn */}
-        <div className="bg-gradient-to-br from-gray-100 to-gray-50 dark:from-gray-500/20 dark:to-gray-500/5 rounded-xl p-6 border border-gray-300 dark:border-gray-500/30">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-500/20 flex items-center justify-center">
-              <UIIcons.AlertCircle size={32} className="text-gray-600 dark:text-gray-400" />
+        <div className="lunar-nodes-card lunar-nodes-card-gray">
+          <div className="lunar-nodes-card-header">
+            <div className="lunar-nodes-card-icon-container lunar-nodes-card-icon-container-gray">
+              <UIIcons.AlertCircle size={32} className="lunar-nodes-card-icon lunar-nodes-card-icon-gray" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
-              <div className="flex items-center gap-2">
-                {SaturnIcon && <SaturnIcon size={20} className="text-gray-600 dark:text-gray-400" />}
-                <p className="font-bold text-xl text-foreground">{saturnSign}</p>
+              <p className="lunar-nodes-card-label">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
+              <div className="lunar-nodes-card-sign-container">
+                {SaturnIcon && <SaturnIcon size={20} className="lunar-nodes-card-sign-icon lunar-nodes-card-sign-icon-gray" />}
+                <p className="lunar-nodes-card-sign-name">{saturnSign}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{saturnDegree}°</p>
+              <p className="lunar-nodes-card-degree">{saturnDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground">
+          <p className="lunar-nodes-card-description">
             {language === 'pt' 
               ? 'Onde estão seus maiores desafios e lições de vida' 
               : 'Where your greatest challenges and life lessons are'}
@@ -2170,21 +2385,21 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
         </div>
 
         {/* Chiron - A ferida do curador */}
-        <div className="bg-gradient-to-br from-rose-100 to-rose-50 dark:from-rose-500/20 dark:to-rose-500/5 rounded-xl p-6 border border-rose-300 dark:border-rose-500/30">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-rose-200 dark:bg-rose-500/20 flex items-center justify-center">
-              <UIIcons.Heart size={32} className="text-rose-600 dark:text-rose-400" />
+        <div className="lunar-nodes-card lunar-nodes-card-rose">
+          <div className="lunar-nodes-card-header">
+            <div className="lunar-nodes-card-icon-container lunar-nodes-card-icon-container-rose">
+              <UIIcons.Heart size={32} className="lunar-nodes-card-icon lunar-nodes-card-icon-rose" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">{language === 'pt' ? 'Quíron' : 'Chiron'}</p>
-              <div className="flex items-center gap-2">
-                {ChironIcon && <ChironIcon size={20} className="text-rose-600 dark:text-rose-400" />}
-                <p className="font-bold text-xl text-foreground">{chironSign}</p>
+              <p className="lunar-nodes-card-label">{language === 'pt' ? 'Quíron' : 'Chiron'}</p>
+              <div className="lunar-nodes-card-sign-container">
+                {ChironIcon && <ChironIcon size={20} className="lunar-nodes-card-sign-icon lunar-nodes-card-sign-icon-rose" />}
+                <p className="lunar-nodes-card-sign-name">{chironSign}</p>
               </div>
-              <p className="text-sm text-muted-foreground">{chironDegree}°</p>
+              <p className="lunar-nodes-card-degree">{chironDegree}°</p>
             </div>
           </div>
-          <p className="text-foreground">
+          <p className="lunar-nodes-card-description">
             {language === 'pt' 
               ? 'A ferida que pode se tornar seu maior dom de cura' 
               : 'The wound that can become your greatest healing gift'}
@@ -2193,14 +2408,14 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
       </div>
 
       {/* Interpretation */}
-      <div className="bg-card rounded-xl p-6 border border-border">
-        <h3 className="font-serif text-xl font-bold text-foreground mb-6">
+      <div className="lunar-nodes-interpretation-card">
+        <h3 className="lunar-nodes-interpretation-title">
           {language === 'pt' ? 'Interpretação do Eixo Nodal' : 'Nodal Axis Interpretation'}
         </h3>
         {isLoading ? (
-          <div className="flex items-center gap-3 py-4">
-            <UIIcons.Loader className="w-5 h-5 animate-spin text-primary" />
-            <p className="text-muted-foreground">
+          <div className="lunar-nodes-interpretation-loading">
+            <UIIcons.Loader size={20} className="lunar-nodes-interpretation-loader" />
+            <p className="lunar-nodes-interpretation-loading-text">
               {language === 'pt' ? 'Gerando interpretação...' : 'Generating interpretation...'}
             </p>
           </div>
@@ -2216,6 +2431,9 @@ Write the complete analysis for ${userData.name}, with 2-3 paragraphs per sectio
 const FormattedInterpretation = ({ text, language }: { text: string; language: string }) => {
   // Função para identificar e formatar seções
   const formatText = (rawText: string) => {
+    // Limpar o texto de conteúdo técnico e de suporte ANTES de processar
+    let cleanedText = removeSupportAndTechnicalContent(rawText);
+    
     // Detectar seções comuns
     const sections: Array<{ title: string; icon: React.ReactNode; content: string; color: string }> = [];
     
@@ -2227,7 +2445,7 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
     };
 
     // Dividir o texto em parágrafos
-    const paragraphs: string[] = rawText.split(/\n\n+/);
+    const paragraphs: string[] = cleanedText.split(/\n\n+/);
     let currentSection: { title: string; icon: React.ReactNode; content: string[]; color: string } | null = null;
     const result: Array<{ title: string; icon: React.ReactNode; content: string; color: string }> = [];
 
@@ -2249,9 +2467,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         }
         currentSection = {
           title: language === 'pt' ? '🌙 Passado / Karma' : '🌙 Past / Karma',
-          icon: <UIIcons.Moon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />,
+            icon: <UIIcons.Moon size={24} className="formatted-interpretation-icon-indigo" />,
           content: [],
-          color: 'from-indigo-100 to-indigo-50 dark:from-indigo-500/20 dark:to-indigo-500/5 border-indigo-300 dark:border-indigo-500/30'
+          color: 'indigo'
         };
         // Remover o título do parágrafo
         const cleaned = trimmed.replace(patterns.passado, '').replace(/^\*+|\*+$/g, '').trim();
@@ -2268,9 +2486,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         }
         currentSection = {
           title: language === 'pt' ? '☀️ Presente / Essência' : '☀️ Present / Essence',
-          icon: <UIIcons.Sun className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
+            icon: <UIIcons.Sun size={24} className="formatted-interpretation-icon-amber" />,
           content: [],
-          color: 'from-amber-100 to-amber-50 dark:from-amber-500/20 dark:to-amber-500/5 border-amber-300 dark:border-amber-500/30'
+          color: 'amber'
         };
         const cleaned = trimmed.replace(patterns.presente, '').replace(/^\*+|\*+$/g, '').trim();
         if (cleaned) currentSection.content.push(cleaned);
@@ -2286,9 +2504,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         }
         currentSection = {
           title: language === 'pt' ? '⭐ Futuro / Evolução' : '⭐ Future / Evolution',
-          icon: <UIIcons.Star className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
+            icon: <UIIcons.Star size={24} className="formatted-interpretation-icon-emerald" />,
           content: [],
-          color: 'from-emerald-100 to-emerald-50 dark:from-emerald-500/20 dark:to-emerald-500/5 border-emerald-300 dark:border-emerald-500/30'
+          color: 'emerald'
         };
         const cleaned = trimmed.replace(patterns.futuro, '').replace(/^\*+|\*+$/g, '').trim();
         if (cleaned) currentSection.content.push(cleaned);
@@ -2305,9 +2523,9 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         if (!existingSummary) {
           currentSection = {
             title: language === 'pt' ? '📋 Resumo' : '📋 Summary',
-            icon: <UIIcons.BookOpen className="w-6 h-6 text-gray-600 dark:text-gray-400" />,
+            icon: <UIIcons.BookOpen size={24} className="formatted-interpretation-icon-gray" />,
             content: [trimmed],
-            color: 'from-gray-100 to-gray-50 dark:from-gray-500/20 dark:to-gray-500/5 border-gray-300 dark:border-gray-500/30'
+            color: 'gray'
           };
         }
       }
@@ -2331,48 +2549,125 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
   // Se não conseguiu dividir em seções, mostrar texto original formatado
   if (sections.length === 0) {
     return (
-      <div className="space-y-4 text-foreground/80 leading-relaxed">
+      <div className="formatted-interpretation-fallback">
         {text.split('\n\n').map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
+          <p key={index} className="formatted-interpretation-paragraph">{paragraph}</p>
         ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="formatted-interpretation-container">
       {sections.map((section, index) => (
         <div 
           key={index} 
-          className={`bg-gradient-to-br ${section.color} rounded-xl p-5 border`}
+          className={`formatted-interpretation-section formatted-interpretation-section-${section.color}`}
         >
           {/* Título acima */}
-          <h4 className="font-semibold text-lg text-foreground mb-3">{section.title}</h4>
+          <h4 className="formatted-interpretation-section-title">{section.title}</h4>
           
           {/* Ícone e nome da análise */}
-          <div className="flex items-center gap-3 mb-4 pl-1">
+          <div className="formatted-interpretation-section-icon-container">
             {section.icon}
           </div>
           
           {/* Conteúdo da análise */}
-          <div className="text-foreground/80 leading-relaxed space-y-3">
-            {section.content.split('\n\n').map((paragraph, pIndex) => {
-              // Destacar termos importantes
-              const formatted = paragraph
-                .replace(/O Nodo Norte/g, '**O Nodo Norte**')
-                .replace(/O Nodo Sul/g, '**O Nodo Sul**')
-                .replace(/Saturno/g, '**Saturno**')
-                .replace(/Sol em/g, '**Sol** em')
-                .replace(/Lua em/g, '**Lua** em')
-                .replace(/Ascendente/g, '**Ascendente**');
+          <div className="formatted-interpretation-section-content">
+            {section.content.split('\n\n').filter(p => p.trim()).map((paragraph, pIndex) => {
+              // Limpar o parágrafo de markdown não processado
+              let cleaned = paragraph.trim();
+              
+              // Remover trechos técnicos específicos que não devem aparecer
+              // Remover "Estrutura de Chunking Sugerida" e todo o conteúdo relacionado
+              cleaned = cleaned.replace(/Estrutura de Chunking Sugerida[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/Tópico:\s*\[.*?\]/gi, '');
+              cleaned = cleaned.replace(/Categoria:\s*\[.*?\]/gi, '');
+              cleaned = cleaned.replace(/Tags:\s*\[.*?\]/gi, '');
+              cleaned = cleaned.replace(/Conteúdo Teórico:\s*\[.*?\]/gi, '');
+              cleaned = cleaned.replace(/Conteúdo Prático:\s*\[.*?\]/gi, '');
+              
+              // Remover seção "Arquitetura:" e blocos de código
+              cleaned = cleaned.replace(/Arquitetura:[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/analise_ciclos\.py[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/AnalisadorCiclos[\s\S]*?(?=\n\n|$)/gi, '');
+              
+              // Remover caracteres de estrutura de árvore
+              cleaned = cleaned.replace(/├──[^\n]*/g, '');
+              cleaned = cleaned.replace(/│\s+[^\n]*/g, '');
+              cleaned = cleaned.replace(/└──[^\n]*/g, '');
+              
+              // Aplicar limpeza de suporte e conteúdo técnico
+              cleaned = removeSupportAndTechnicalContent(cleaned);
+              
+              // Remover blocos de código Python com PERIODOS_ORBITAIS especificamente
+              cleaned = cleaned.replace(/PERIODOS_ORBITAIS\s*=\s*\{[\s\S]*?\}/g, '');
+              cleaned = cleaned.replace(/`python\s*PERIODOS_ORBITAIS[\s\S]*?`/g, '');
+              cleaned = cleaned.replace(/python\s*PERIODOS_ORBITAIS[\s\S]*?(?=\n\n|$)/gi, '');
+              
+              // Remover informações sobre Astrologia Védica/Jyotish
+              cleaned = cleaned.replace(/###\s*Astrologia Védica[\s\S]*?(?=###|$)/gi, '');
+              cleaned = cleaned.replace(/Astrologia Védica \(Jyotish\)[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/Jyotish[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/zodíaco Sideral[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/Diferença Tropical vs Sideral[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/Dasas[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/Vargas[\s\S]*?(?=\n\n|$)/gi, '');
+              cleaned = cleaned.replace(/~24 graus[\s\S]*?(?=\n\n|$)/gi, '');
+              
+              // Remover asteriscos soltos e códigos markdown não processados
+              cleaned = cleaned.replace(/^\*+\s*|\s*\*+$/g, ''); // Remove asteriscos no início/fim
+              cleaned = cleaned.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove markdown **texto**
+              cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1'); // Remove markdown *texto*
+              cleaned = cleaned.replace(/`([^`]+)`/g, '$1'); // Remove código inline
+              cleaned = cleaned.replace(/```[\s\S]*?```/g, ''); // Remove blocos de código
+              cleaned = cleaned.replace(/^#{1,6}\s+/gm, ''); // Remove headers markdown
+              cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1'); // Remove links markdown
+              
+              // Remover linhas que contêm apenas caracteres técnicos ou estruturais
+              cleaned = cleaned.split('\n').filter(line => {
+                const trimmed = line.trim();
+                // Remover linhas que são apenas estrutura técnica
+                if (/^[├│└─\s]+$/.test(trimmed)) return false;
+                if (/^Tópico:|^Categoria:|^Tags:|^Conteúdo Teórico:|^Conteúdo Prático:/i.test(trimmed)) return false;
+                if (/^Arquitetura:/i.test(trimmed)) return false;
+                if (/analise_ciclos|AnalisadorCiclos/i.test(trimmed)) return false;
+                // Remover linhas com código Python de PERIODOS_ORBITAIS
+                if (/PERIODOS_ORBITAIS\s*=\s*\{/i.test(trimmed)) return false;
+                if (/Saturno.*29\.5|Júpiter.*11\.86|Urano.*84\.0|Netuno.*164\.8|Plutão.*248\.0/.test(trimmed)) return false;
+                // Remover linhas sobre Astrologia Védica/Jyotish
+                if (/Astrologia Védica|Jyotish|zodíaco Sideral|Tropical vs Sideral|Dasas|Vargas|~24 graus/i.test(trimmed)) return false;
+                // Remover linhas relacionadas a Suporte
+                if (/^Suporte$/i.test(trimmed)) return false;
+                if (/Para dúvidas sobre interpretação/i.test(trimmed)) return false;
+                if (/Livros de astrologia na pasta/i.test(trimmed)) return false;
+                if (/Análise com IA.*botão/i.test(trimmed)) return false;
+                if (/Consulta com astrólogo profissional/i.test(trimmed)) return false;
+                if (/Desenvolvido com.*autoconhecimento/i.test(trimmed)) return false;
+                if (/^[-]{3,}$/.test(trimmed)) return false; // Remove separadores ---
+                return true;
+              }).join('\n');
+              
+              // Destacar termos importantes APÓS limpar
+              const formatted = cleaned
+                .replace(/\bO Nodo Norte\b/g, '**O Nodo Norte**')
+                .replace(/\bO Nodo Sul\b/g, '**O Nodo Sul**')
+                .replace(/\bSaturno\b/g, '**Saturno**')
+                .replace(/\bSol\b(?=\s+em)/g, '**Sol**')
+                .replace(/\bLua\b(?=\s+em)/g, '**Lua**')
+                .replace(/\bAscendente\b/g, '**Ascendente**')
+                .replace(/\bQuíron\b/g, '**Quíron**')
+                .replace(/\bChiron\b/g, '**Chiron**');
+              
+              if (!formatted.trim()) return null;
               
               // Renderizar com negrito
               const parts = formatted.split(/\*\*(.*?)\*\*/g);
               return (
-                <p key={pIndex}>
+                <p key={pIndex} className="formatted-interpretation-paragraph">
                   {parts.map((part, partIndex) => 
                     partIndex % 2 === 1 ? (
-                      <strong key={partIndex} className="text-foreground font-semibold">{part}</strong>
+                      <strong key={partIndex} className="formatted-interpretation-strong">{part}</strong>
                     ) : (
                       <span key={partIndex}>{part}</span>
                     )
@@ -2646,8 +2941,25 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
       return null;
     }
 
+    // Remover conteúdo indesejado: tudo a partir de "### Astrologia Moderna" ou "## 📞 Suporte"
+    let cleanedText = removeSupportAndTechnicalContent(text);
+    const unwantedPatterns = [
+      /###\s*Astrologia Moderna.*$/s,
+      /##\s*📞\s*Suporte.*$/s,
+      /###\s*Astrologia Moderna \(Psicológica\).*$/s,
+      /##\s*Suporte.*$/s
+    ];
+    
+    for (const pattern of unwantedPatterns) {
+      const match = cleanedText.match(pattern);
+      if (match) {
+        cleanedText = cleanedText.substring(0, match.index).trim();
+        break;
+      }
+    }
+
     // Dividir o texto em parágrafos (por quebras de linha duplas ou simples)
-    const paragraphs = text.split(/\n\n|\n/).filter(p => p.trim());
+    const paragraphs = cleanedText.split(/\n\n|\n/).filter(p => p.trim());
     
     if (paragraphs.length === 0) {
       console.warn('[Sinastria] Nenhum parágrafo encontrado');
@@ -2657,9 +2969,42 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
     // Identificar tópicos (números, bullets, títulos em negrito, etc.)
     const formattedParagraphs: React.ReactNode[] = [];
     
+    // Detectar se estamos em uma seção de exemplos práticos
+    let isExamplesSection = false;
+    
     paragraphs.forEach((paragraph, index) => {
       const trimmed = paragraph.trim();
       if (!trimmed) return;
+
+      // Verificar se é uma seção de exemplos práticos
+      const isExamplesTitle = trimmed.toLowerCase().includes('exemplo') && 
+                              (trimmed.toLowerCase().includes('prático') || trimmed.toLowerCase().includes('prática'));
+      
+      if (isExamplesTitle) {
+        isExamplesSection = true;
+        // Título da seção de exemplos
+        const titleText = trimmed.replace(/\*\*/g, '').replace(/:/g, '');
+        formattedParagraphs.push(
+          <h4 key={index} className="synastry-examples-title">
+            {titleText}
+          </h4>
+        );
+        return;
+      }
+
+      // Se estamos na seção de exemplos, formatar como exemplo
+      if (isExamplesSection) {
+        // Remover bullet points se existirem
+        const cleanLine = trimmed.replace(/^[•\-]\s*/, '');
+        formattedParagraphs.push(
+          <div key={index} className="synastry-example-item">
+            <div className="synastry-example-box">
+              <p className="synastry-example-text">{cleanLine}</p>
+            </div>
+          </div>
+        );
+        return;
+      }
 
       // Verificar se é um tópico numerado (1., 2., etc.)
       const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s*(.+)$/);

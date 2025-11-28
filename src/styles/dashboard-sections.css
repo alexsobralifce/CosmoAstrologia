@@ -1174,10 +1174,1045 @@
   }
 }
 
+/* Exemplos Práticos na Sinastria */
+.synastry-examples-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 1.5rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid hsl(var(--accent) / 0.3);
+}
+
+.synastry-example-item {
+  margin-bottom: 1rem;
+}
+
+.synastry-example-box {
+  background-color: hsl(var(--muted) / 0.4);
+  border-left: 3px solid hsl(var(--accent));
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  margin-left: 0;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.synastry-example-box:hover {
+  background-color: hsl(var(--muted) / 0.5);
+  border-left-color: hsl(var(--accent));
+  transform: translateX(4px);
+}
+
+.synastry-example-box::before {
+  content: '"';
+  position: absolute;
+  left: 0.5rem;
+  top: 0.25rem;
+  font-size: 2rem;
+  color: hsl(var(--accent) / 0.5);
+  font-family: serif;
+  line-height: 1;
+}
+
+.synastry-example-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.9);
+  margin: 0;
+  padding-left: 1.5rem;
+  font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .synastry-signs-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* ============================================================================
+ * PLANET INTERPRETATION
+ * ============================================================================ */
+.planet-interpretation-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.planet-interpretation-header {
+  background: linear-gradient(to bottom right, hsl(var(--muted) / 0.3), hsl(var(--muted) / 0.1));
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.planet-interpretation-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.planet-interpretation-icon-container {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background-color: hsl(var(--muted) / 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dark .planet-interpretation-icon-container {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.light .planet-interpretation-icon-container {
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+.planet-interpretation-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.planet-interpretation-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.25rem 0;
+}
+
+.planet-interpretation-meta {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.planet-interpretation-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.planet-interpretation-keyword {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.dark .planet-interpretation-keyword {
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+.light .planet-interpretation-keyword {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.planet-interpretation-element {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.planet-interpretation-element-label {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.planet-interpretation-element-value {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.planet-interpretation-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.planet-interpretation-sections-title {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.planet-interpretation-sections-card {
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--border) / 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.planet-interpretation-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.planet-interpretation-section-main-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.planet-interpretation-subsections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.planet-interpretation-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.planet-interpretation-subsection-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.planet-interpretation-subsection-content {
+  color: hsl(var(--foreground));
+  line-height: 1.75;
+  margin: 0;
+}
+
+/* Cores específicas por planeta */
+.planet-interpretation-header-sol,
+.planet-interpretation-header-sun {
+  background: linear-gradient(to bottom right, hsl(25, 95%, 53% / 0.2), hsl(48, 96%, 53% / 0.1));
+  border-color: hsl(25, 95%, 53% / 0.3);
+}
+
+.planet-interpretation-icon-sol,
+.planet-interpretation-icon-sun,
+.planet-interpretation-meta-sol,
+.planet-interpretation-meta-sun,
+.planet-interpretation-keyword-sol,
+.planet-interpretation-keyword-sun,
+.planet-interpretation-element-value-sol,
+.planet-interpretation-element-value-sun {
+  color: hsl(25, 95%, 53%);
+}
+
+.planet-interpretation-header-lua,
+.planet-interpretation-header-moon {
+  background: linear-gradient(to bottom right, hsl(262, 83%, 58% / 0.2), hsl(231, 48%, 48% / 0.1));
+  border-color: hsl(262, 83%, 58% / 0.3);
+}
+
+.planet-interpretation-icon-lua,
+.planet-interpretation-icon-moon,
+.planet-interpretation-meta-lua,
+.planet-interpretation-meta-moon,
+.planet-interpretation-keyword-lua,
+.planet-interpretation-keyword-moon,
+.planet-interpretation-element-value-lua,
+.planet-interpretation-element-value-moon {
+  color: hsl(262, 83%, 58%);
+}
+
+.planet-interpretation-header-mercúrio,
+.planet-interpretation-header-mercury {
+  background: linear-gradient(to bottom right, hsl(188, 94%, 43% / 0.2), hsl(217, 91%, 60% / 0.1));
+  border-color: hsl(188, 94%, 43% / 0.3);
+}
+
+.planet-interpretation-icon-mercúrio,
+.planet-interpretation-icon-mercury,
+.planet-interpretation-meta-mercúrio,
+.planet-interpretation-meta-mercury,
+.planet-interpretation-keyword-mercúrio,
+.planet-interpretation-keyword-mercury,
+.planet-interpretation-element-value-mercúrio,
+.planet-interpretation-element-value-mercury {
+  color: hsl(188, 94%, 43%);
+}
+
+.planet-interpretation-header-vênus,
+.planet-interpretation-header-venus {
+  background: linear-gradient(to bottom right, hsl(330, 81%, 60% / 0.2), hsl(350, 89%, 60% / 0.1));
+  border-color: hsl(330, 81%, 60% / 0.3);
+}
+
+.planet-interpretation-icon-vênus,
+.planet-interpretation-icon-venus,
+.planet-interpretation-meta-vênus,
+.planet-interpretation-meta-venus,
+.planet-interpretation-keyword-vênus,
+.planet-interpretation-keyword-venus,
+.planet-interpretation-element-value-vênus,
+.planet-interpretation-element-value-venus {
+  color: hsl(330, 81%, 60%);
+}
+
+.planet-interpretation-header-marte,
+.planet-interpretation-header-mars {
+  background: linear-gradient(to bottom right, hsl(0, 84%, 60% / 0.2), hsl(25, 95%, 53% / 0.1));
+  border-color: hsl(0, 84%, 60% / 0.3);
+}
+
+.planet-interpretation-icon-marte,
+.planet-interpretation-icon-mars,
+.planet-interpretation-meta-marte,
+.planet-interpretation-meta-mars,
+.planet-interpretation-keyword-marte,
+.planet-interpretation-keyword-mars,
+.planet-interpretation-element-value-marte,
+.planet-interpretation-element-value-mars {
+  color: hsl(0, 84%, 60%);
+}
+
+.planet-interpretation-header-júpiter,
+.planet-interpretation-header-jupiter {
+  background: linear-gradient(to bottom right, hsl(45, 93%, 47% / 0.2), hsl(48, 96%, 53% / 0.1));
+  border-color: hsl(45, 93%, 47% / 0.3);
+}
+
+.planet-interpretation-icon-júpiter,
+.planet-interpretation-icon-jupiter,
+.planet-interpretation-meta-júpiter,
+.planet-interpretation-meta-jupiter,
+.planet-interpretation-keyword-júpiter,
+.planet-interpretation-keyword-jupiter,
+.planet-interpretation-element-value-júpiter,
+.planet-interpretation-element-value-jupiter {
+  color: hsl(45, 93%, 47%);
+}
+
+.planet-interpretation-header-saturno,
+.planet-interpretation-header-saturn {
+  background: linear-gradient(to bottom right, hsl(215, 16%, 47% / 0.2), hsl(215, 28%, 17% / 0.1));
+  border-color: hsl(215, 16%, 47% / 0.3);
+}
+
+.planet-interpretation-icon-saturno,
+.planet-interpretation-icon-saturn,
+.planet-interpretation-meta-saturno,
+.planet-interpretation-meta-saturn,
+.planet-interpretation-keyword-saturno,
+.planet-interpretation-keyword-saturn,
+.planet-interpretation-element-value-saturno,
+.planet-interpretation-element-value-saturn {
+  color: hsl(var(--muted-foreground));
+}
+
+.planet-interpretation-header-urano,
+.planet-interpretation-header-uranus {
+  background: linear-gradient(to bottom right, hsl(173, 80%, 40% / 0.2), hsl(188, 94%, 43% / 0.1));
+  border-color: hsl(173, 80%, 40% / 0.3);
+}
+
+.planet-interpretation-icon-urano,
+.planet-interpretation-icon-uranus,
+.planet-interpretation-meta-urano,
+.planet-interpretation-meta-uranus,
+.planet-interpretation-keyword-urano,
+.planet-interpretation-keyword-uranus,
+.planet-interpretation-element-value-urano,
+.planet-interpretation-element-value-uranus {
+  color: hsl(173, 80%, 40%);
+}
+
+.planet-interpretation-header-netuno,
+.planet-interpretation-header-neptune {
+  background: linear-gradient(to bottom right, hsl(217, 91%, 60% / 0.2), hsl(231, 48%, 48% / 0.1));
+  border-color: hsl(217, 91%, 60% / 0.3);
+}
+
+.planet-interpretation-icon-netuno,
+.planet-interpretation-icon-neptune,
+.planet-interpretation-meta-netuno,
+.planet-interpretation-meta-neptune,
+.planet-interpretation-keyword-netuno,
+.planet-interpretation-keyword-neptune,
+.planet-interpretation-element-value-netuno,
+.planet-interpretation-element-value-neptune {
+  color: hsl(217, 91%, 60%);
+}
+
+.planet-interpretation-header-plutão,
+.planet-interpretation-header-pluto {
+  background: linear-gradient(to bottom right, hsl(350, 89%, 60% / 0.2), hsl(0, 84%, 60% / 0.1));
+  border-color: hsl(350, 89%, 60% / 0.3);
+}
+
+.planet-interpretation-icon-plutão,
+.planet-interpretation-icon-pluto,
+.planet-interpretation-meta-plutão,
+.planet-interpretation-meta-pluto,
+.planet-interpretation-keyword-plutão,
+.planet-interpretation-keyword-pluto,
+.planet-interpretation-element-value-plutão,
+.planet-interpretation-element-value-pluto {
+  color: hsl(350, 89%, 60%);
+}
+
+/* Cores para subtítulos */
+.planet-interpretation-subsection-title-blue-500 {
+  color: hsl(217, 91%, 60%);
+}
+
+.planet-interpretation-subsection-title-red-500 {
+  color: hsl(0, 84%, 60%);
+}
+
+.planet-interpretation-subsection-title-emerald-500 {
+  color: hsl(142, 76%, 36%);
+}
+
+.planet-interpretation-subsection-title-amber-500 {
+  color: hsl(45, 93%, 47%);
+}
+
+.planet-interpretation-subsection-title-pink-500 {
+  color: hsl(330, 81%, 60%);
+}
+
+.planet-interpretation-subsection-title-indigo-500 {
+  color: hsl(231, 48%, 48%);
+}
+
+.planet-interpretation-subsection-title-purple-500 {
+  color: hsl(262, 83%, 58%);
+}
+
+/* ============================================================================
+ * ASPECT INTERPRETATION
+ * ============================================================================ */
+.aspect-interpretation-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.aspect-interpretation-header {
+  background: linear-gradient(to bottom right, hsl(var(--muted) / 0.3), hsl(var(--muted) / 0.1));
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.aspect-interpretation-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.aspect-interpretation-icon-container {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aspect-interpretation-icon {
+  font-size: 1.875rem;
+  line-height: 1;
+}
+
+.aspect-interpretation-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.25rem 0;
+}
+
+.aspect-interpretation-meta {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.aspect-interpretation-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.aspect-interpretation-keyword {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.aspect-interpretation-description {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground) / 0.7);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.aspect-interpretation-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.aspect-interpretation-sections-title {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.aspect-interpretation-sections-icon {
+  color: hsl(var(--primary));
+}
+
+.aspect-interpretation-section-card {
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.aspect-interpretation-section-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.aspect-interpretation-section-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.aspect-interpretation-section-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.aspect-interpretation-section-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.aspect-interpretation-section-paragraph {
+  color: hsl(var(--foreground) / 0.8);
+  line-height: 1.75;
+  margin: 0;
+}
+
+/* Cores para aspectos */
+.aspect-interpretation-header-blue,
+.aspect-interpretation-icon-container-blue {
+  background: linear-gradient(to bottom right, hsl(217, 91%, 60% / 0.2), hsl(217, 91%, 60% / 0.1));
+  border-color: hsl(217, 91%, 60% / 0.3);
+}
+
+.aspect-interpretation-icon-blue,
+.aspect-interpretation-meta-blue,
+.aspect-interpretation-keyword-blue {
+  color: hsl(217, 91%, 60%);
+}
+
+.aspect-interpretation-header-green,
+.aspect-interpretation-icon-container-green {
+  background: linear-gradient(to bottom right, hsl(142, 76%, 36% / 0.2), hsl(142, 76%, 36% / 0.1));
+  border-color: hsl(142, 76%, 36% / 0.3);
+}
+
+.aspect-interpretation-icon-green,
+.aspect-interpretation-meta-green,
+.aspect-interpretation-keyword-green {
+  color: hsl(142, 76%, 36%);
+}
+
+.aspect-interpretation-header-red,
+.aspect-interpretation-icon-container-red {
+  background: linear-gradient(to bottom right, hsl(0, 84%, 60% / 0.2), hsl(0, 84%, 60% / 0.1));
+  border-color: hsl(0, 84%, 60% / 0.3);
+}
+
+.aspect-interpretation-icon-red,
+.aspect-interpretation-meta-red,
+.aspect-interpretation-keyword-red {
+  color: hsl(0, 84%, 60%);
+}
+
+.aspect-interpretation-header-orange,
+.aspect-interpretation-icon-container-orange {
+  background: linear-gradient(to bottom right, hsl(25, 95%, 53% / 0.2), hsl(25, 95%, 53% / 0.1));
+  border-color: hsl(25, 95%, 53% / 0.3);
+}
+
+.aspect-interpretation-icon-orange,
+.aspect-interpretation-meta-orange,
+.aspect-interpretation-keyword-orange {
+  color: hsl(25, 95%, 53%);
+}
+
+.aspect-interpretation-header-cyan,
+.aspect-interpretation-icon-container-cyan {
+  background: linear-gradient(to bottom right, hsl(188, 94%, 43% / 0.2), hsl(188, 94%, 43% / 0.1));
+  border-color: hsl(188, 94%, 43% / 0.3);
+}
+
+.aspect-interpretation-icon-cyan,
+.aspect-interpretation-meta-cyan,
+.aspect-interpretation-keyword-cyan {
+  color: hsl(188, 94%, 43%);
+}
+
+/* Cores para seções de aspectos */
+.aspect-interpretation-section-icon-amber-500,
+.aspect-interpretation-section-label-amber-500 {
+  color: hsl(45, 93%, 47%);
+}
+
+.aspect-interpretation-section-icon-red-500,
+.aspect-interpretation-section-label-red-500 {
+  color: hsl(0, 84%, 60%);
+}
+
+.aspect-interpretation-section-icon-emerald-500,
+.aspect-interpretation-section-label-emerald-500 {
+  color: hsl(142, 76%, 36%);
+}
+
+.aspect-interpretation-section-icon-blue-500,
+.aspect-interpretation-section-label-blue-500 {
+  color: hsl(217, 91%, 60%);
+}
+
+.aspect-interpretation-section-icon-purple-500,
+.aspect-interpretation-section-label-purple-500 {
+  color: hsl(262, 83%, 58%);
+}
+
+/* ============================================================================
+ * LUNAR NODES SECTION
+ * ============================================================================ */
+.lunar-nodes-section-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.lunar-nodes-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.lunar-nodes-section-title {
+  font-family: var(--font-serif);
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.lunar-nodes-section-subtitle {
+  color: hsl(var(--muted-foreground));
+  margin: 0.5rem 0 0 0;
+}
+
+.lunar-nodes-section-back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 0.875rem;
+}
+
+.lunar-nodes-section-back-button:hover {
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+.lunar-nodes-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .lunar-nodes-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .lunar-nodes-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.lunar-nodes-card {
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid;
+}
+
+.lunar-nodes-card-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.lunar-nodes-card-icon-container {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lunar-nodes-card-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.lunar-nodes-card-label {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 0.25rem 0;
+}
+
+.lunar-nodes-card-sign-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lunar-nodes-card-sign-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.lunar-nodes-card-sign-name {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.lunar-nodes-card-degree {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0.25rem 0 0 0;
+}
+
+.lunar-nodes-card-description {
+  color: hsl(var(--foreground));
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Cores para cards */
+.lunar-nodes-card-amber {
+  background: linear-gradient(to bottom right, hsl(45, 93%, 47% / 0.2), hsl(45, 93%, 47% / 0.1));
+  border-color: hsl(45, 93%, 47% / 0.3);
+}
+
+.dark .lunar-nodes-card-amber {
+  background: linear-gradient(to bottom right, hsl(45, 93%, 47% / 0.2), hsl(45, 93%, 47% / 0.05));
+  border-color: hsl(45, 93%, 47% / 0.3);
+}
+
+.lunar-nodes-card-icon-container-amber {
+  background-color: hsl(45, 93%, 47% / 0.2);
+}
+
+.dark .lunar-nodes-card-icon-container-amber {
+  background-color: hsl(45, 93%, 47% / 0.2);
+}
+
+.lunar-nodes-card-icon-amber,
+.lunar-nodes-card-sign-icon-amber {
+  color: hsl(45, 93%, 47%);
+}
+
+.dark .lunar-nodes-card-icon-amber,
+.dark .lunar-nodes-card-sign-icon-amber {
+  color: hsl(45, 93%, 60%);
+}
+
+.lunar-nodes-card-indigo {
+  background: linear-gradient(to bottom right, hsl(231, 48%, 48% / 0.2), hsl(231, 48%, 48% / 0.1));
+  border-color: hsl(231, 48%, 48% / 0.3);
+}
+
+.dark .lunar-nodes-card-indigo {
+  background: linear-gradient(to bottom right, hsl(231, 48%, 48% / 0.2), hsl(231, 48%, 48% / 0.05));
+  border-color: hsl(231, 48%, 48% / 0.3);
+}
+
+.lunar-nodes-card-icon-container-indigo {
+  background-color: hsl(231, 48%, 48% / 0.2);
+}
+
+.dark .lunar-nodes-card-icon-container-indigo {
+  background-color: hsl(231, 48%, 48% / 0.2);
+}
+
+.lunar-nodes-card-icon-indigo,
+.lunar-nodes-card-sign-icon-indigo {
+  color: hsl(231, 48%, 48%);
+}
+
+.dark .lunar-nodes-card-icon-indigo,
+.dark .lunar-nodes-card-sign-icon-indigo {
+  color: hsl(231, 48%, 60%);
+}
+
+.lunar-nodes-card-gray {
+  background: linear-gradient(to bottom right, hsl(215, 16%, 47% / 0.2), hsl(215, 16%, 47% / 0.1));
+  border-color: hsl(215, 16%, 47% / 0.3);
+}
+
+.dark .lunar-nodes-card-gray {
+  background: linear-gradient(to bottom right, hsl(215, 16%, 47% / 0.2), hsl(215, 16%, 47% / 0.05));
+  border-color: hsl(215, 16%, 47% / 0.3);
+}
+
+.lunar-nodes-card-icon-container-gray {
+  background-color: hsl(215, 16%, 47% / 0.2);
+}
+
+.dark .lunar-nodes-card-icon-container-gray {
+  background-color: hsl(215, 16%, 47% / 0.2);
+}
+
+.lunar-nodes-card-icon-gray,
+.lunar-nodes-card-sign-icon-gray {
+  color: hsl(215, 16%, 47%);
+}
+
+.dark .lunar-nodes-card-icon-gray,
+.dark .lunar-nodes-card-sign-icon-gray {
+  color: hsl(215, 16%, 60%);
+}
+
+.lunar-nodes-card-rose {
+  background: linear-gradient(to bottom right, hsl(350, 89%, 60% / 0.2), hsl(350, 89%, 60% / 0.1));
+  border-color: hsl(350, 89%, 60% / 0.3);
+}
+
+.dark .lunar-nodes-card-rose {
+  background: linear-gradient(to bottom right, hsl(350, 89%, 60% / 0.2), hsl(350, 89%, 60% / 0.05));
+  border-color: hsl(350, 89%, 60% / 0.3);
+}
+
+.lunar-nodes-card-icon-container-rose {
+  background-color: hsl(350, 89%, 60% / 0.2);
+}
+
+.dark .lunar-nodes-card-icon-container-rose {
+  background-color: hsl(350, 89%, 60% / 0.2);
+}
+
+.lunar-nodes-card-icon-rose,
+.lunar-nodes-card-sign-icon-rose {
+  color: hsl(350, 89%, 60%);
+}
+
+.dark .lunar-nodes-card-icon-rose,
+.dark .lunar-nodes-card-sign-icon-rose {
+  color: hsl(350, 89%, 70%);
+}
+
+.lunar-nodes-interpretation-card {
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.lunar-nodes-interpretation-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1.5rem 0;
+}
+
+.lunar-nodes-interpretation-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.lunar-nodes-interpretation-loader {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: spin 1s linear infinite;
+  color: hsl(var(--primary));
+}
+
+.lunar-nodes-interpretation-loading-text {
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* ============================================================================
+ * FORMATTED INTERPRETATION
+ * ============================================================================ */
+.formatted-interpretation-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formatted-interpretation-section {
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.formatted-interpretation-section-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.75rem 0;
+}
+
+.formatted-interpretation-section-icon-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-left: 0.25rem;
+}
+
+.formatted-interpretation-section-content {
+  color: hsl(var(--foreground) / 0.9);
+  line-height: 1.75;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.formatted-interpretation-paragraph {
+  margin: 0;
+  line-height: 1.75;
+  color: hsl(var(--foreground) / 0.9);
+  text-align: left;
+}
+
+.formatted-interpretation-strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.formatted-interpretation-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: hsl(var(--foreground) / 0.8);
+  line-height: 1.75;
+}
+
+/* Cores para seções formatadas */
+.formatted-interpretation-section-gray {
+  background: linear-gradient(to bottom right, hsl(215, 16%, 47% / 0.2), hsl(215, 16%, 47% / 0.1));
+  border-color: hsl(215, 16%, 47% / 0.3);
+}
+
+.dark .formatted-interpretation-section-gray {
+  background: linear-gradient(to bottom right, hsl(215, 16%, 47% / 0.2), hsl(215, 16%, 47% / 0.05));
+  border-color: hsl(215, 16%, 47% / 0.3);
+}
+
+.formatted-interpretation-icon-gray {
+  color: hsl(215, 16%, 47%);
+}
+
+.dark .formatted-interpretation-icon-gray {
+  color: hsl(215, 16%, 60%);
+}
+
+.formatted-interpretation-icon-indigo {
+  color: hsl(231, 48%, 48%);
+}
+
+.dark .formatted-interpretation-icon-indigo {
+  color: hsl(231, 48%, 60%);
+}
+
+.formatted-interpretation-icon-amber {
+  color: hsl(45, 93%, 47%);
+}
+
+.dark .formatted-interpretation-icon-amber {
+  color: hsl(45, 93%, 60%);
+}
+
+.formatted-interpretation-icon-emerald {
+  color: hsl(142, 76%, 36%);
+}
+
+.dark .formatted-interpretation-icon-emerald {
+  color: hsl(142, 76%, 50%);
+}
+
+/* Cores adicionais para seções formatadas */
+.formatted-interpretation-section-indigo {
+  background: linear-gradient(to bottom right, hsl(231, 48%, 48% / 0.2), hsl(231, 48%, 48% / 0.1));
+  border-color: hsl(231, 48%, 48% / 0.3);
+}
+
+.dark .formatted-interpretation-section-indigo {
+  background: linear-gradient(to bottom right, hsl(231, 48%, 48% / 0.2), hsl(231, 48%, 48% / 0.05));
+  border-color: hsl(231, 48%, 48% / 0.3);
+}
+
+.formatted-interpretation-section-amber {
+  background: linear-gradient(to bottom right, hsl(45, 93%, 47% / 0.2), hsl(45, 93%, 47% / 0.1));
+  border-color: hsl(45, 93%, 47% / 0.3);
+}
+
+.dark .formatted-interpretation-section-amber {
+  background: linear-gradient(to bottom right, hsl(45, 93%, 47% / 0.2), hsl(45, 93%, 47% / 0.05));
+  border-color: hsl(45, 93%, 47% / 0.3);
+}
+
+.formatted-interpretation-section-emerald {
+  background: linear-gradient(to bottom right, hsl(142, 76%, 36% / 0.2), hsl(142, 76%, 36% / 0.1));
+  border-color: hsl(142, 76%, 36% / 0.3);
+}
+
+.dark .formatted-interpretation-section-emerald {
+  background: linear-gradient(to bottom right, hsl(142, 76%, 36% / 0.2), hsl(142, 76%, 36% / 0.05));
+  border-color: hsl(142, 76%, 36% / 0.3);
 }
 

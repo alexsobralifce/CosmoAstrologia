@@ -19,6 +19,143 @@ interface FullBirthChartProps {
   onBack: () => void;
 }
 
+// ===== FUNÇÃO DE FORMATAÇÃO PARA TRÍADE FUNDAMENTAL =====
+const formatTriadContent = (content: string): string => {
+  // Dividir em parágrafos
+  const paragraphs = content.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
+  
+  // Remover informações de suporte primeiro
+  let cleanedParagraphs = paragraphs.map(p => {
+    let cleaned = p;
+    cleaned = cleaned.replace(/##?\s*📞\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
+    cleaned = cleaned.replace(/##?\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
+    cleaned = cleaned.replace(/Para dúvidas sobre interpretação astrológica[\s\S]*?Consulta com astrólogo profissional[\s\S]*?(?=\n\n|$)/gi, '');
+    cleaned = cleaned.replace(/Livros de astrologia na pasta.*?/gi, '');
+    cleaned = cleaned.replace(/Análise com IA.*?/gi, '');
+    cleaned = cleaned.replace(/Consulta com astrólogo profissional.*?/gi, '');
+    cleaned = cleaned.replace(/Desenvolvido com.*?autoconhecimento profundo[\s\S]*?(?=\n\n|$)/gi, '');
+    cleaned = cleaned.replace(/^[-]{3,}$/gm, '');
+    return cleaned.trim();
+  }).filter(p => p.length > 0);
+  
+  // Detectar repetições e remover
+  const uniqueParagraphs: string[] = [];
+  const seenConcepts = new Set<string>();
+  
+  // Padrões de repetição comuns
+  const repetitionPatterns = [
+    /(sol|sun).*(essência|essence|identidade|identity|ego)/gi,
+    /(lua|moon).*(emoção|emotion|necessidade|need|sentimento|feeling)/gi,
+    /(ascendente|ascendant).*(máscara|mask|persona|aparência|appearance)/gi,
+  ];
+  
+  for (const paragraph of cleanedParagraphs) {
+    // Extrair conceitos principais do parágrafo
+    const concepts = paragraph.toLowerCase().match(/\b(sol|lua|ascendente|sun|moon|ascendant|essência|essence|emoção|emotion|máscara|mask|identidade|identity|necessidade|need)\b/gi) || [];
+    
+    // Verificar se este parágrafo já foi visto (conteúdo similar)
+    let isDuplicate = false;
+    const paragraphKey = concepts.join('|').toLowerCase();
+    
+    // Verificar similaridade de conteúdo (palavras-chave repetidas)
+    if (seenConcepts.has(paragraphKey)) {
+      // Verificar se é uma variação do mesmo conceito
+      const paragraphWords = paragraph.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+      for (const seenPara of uniqueParagraphs) {
+        const seenWords = seenPara.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+        const commonWords = paragraphWords.filter(w => seenWords.includes(w));
+        // Se mais de 40% das palavras são comuns e falam da mesma coisa, é duplicata
+        if (commonWords.length > Math.max(paragraphWords.length, seenWords.length) * 0.4) {
+          // Verificar se falam dos mesmos conceitos
+          const commonConcepts = concepts.filter(c => 
+            seenPara.toLowerCase().includes(c.toLowerCase())
+          );
+          if (commonConcepts.length >= 2) {
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Se não é duplicata, adicionar
+    if (!isDuplicate) {
+      uniqueParagraphs.push(paragraph);
+      seenConcepts.add(paragraphKey);
+    }
+  }
+  
+  // Remover parágrafos muito genéricos que não agregam valor
+  const meaningfulParagraphs = uniqueParagraphs.filter(p => {
+    // Remover parágrafos muito curtos ou genéricos
+    if (p.length < 50) return false;
+    
+    // Remover parágrafos que são apenas definições genéricas
+    const genericPhrases = [
+      /^o sol é/i,
+      /^a lua é/i,
+      /^o ascendente é/i,
+      /^o sol representa/i,
+      /^a lua representa/i,
+      /^o ascendente representa/i,
+      /^quando o sol/i,
+      /^quando a lua/i,
+      /^quando o ascendente/i,
+    ];
+    
+    return !genericPhrases.some(pattern => pattern.test(p));
+  });
+  
+  // Reorganizar para garantir complementaridade
+  // Agrupar por tema (Sol, Lua, Ascendente, Interação)
+  const solParagraphs: string[] = [];
+  const luaParagraphs: string[] = [];
+  const ascParagraphs: string[] = [];
+  const interactionParagraphs: string[] = [];
+  
+  meaningfulParagraphs.forEach(p => {
+    const lower = p.toLowerCase();
+    const hasSol = /\b(sol|sun)\b/i.test(p);
+    const hasLua = /\b(lua|moon)\b/i.test(p);
+    const hasAsc = /\b(ascendente|ascendant)\b/i.test(p);
+    
+    // Se menciona interação entre os três, priorizar
+    if (hasSol && hasLua && hasAsc) {
+      interactionParagraphs.push(p);
+    } else if (hasSol && hasLua) {
+      interactionParagraphs.push(p);
+    } else if (hasSol && hasAsc) {
+      interactionParagraphs.push(p);
+    } else if (hasLua && hasAsc) {
+      interactionParagraphs.push(p);
+    } else if (hasSol && !hasLua && !hasAsc) {
+      solParagraphs.push(p);
+    } else if (hasLua && !hasSol && !hasAsc) {
+      luaParagraphs.push(p);
+    } else if (hasAsc && !hasSol && !hasLua) {
+      ascParagraphs.push(p);
+    } else {
+      // Parágrafos gerais ou de síntese
+      interactionParagraphs.push(p);
+    }
+  });
+  
+  // Combinar de forma complementar: interações primeiro, depois individuais
+  const finalParagraphs = [
+    ...interactionParagraphs,
+    ...solParagraphs.slice(0, 1), // Limitar a 1 parágrafo por planeta individual
+    ...luaParagraphs.slice(0, 1),
+    ...ascParagraphs.slice(0, 1),
+  ];
+  
+  // Garantir que temos pelo menos 2 parágrafos
+  if (finalParagraphs.length < 2 && meaningfulParagraphs.length >= 2) {
+    return meaningfulParagraphs.join('\n\n');
+  }
+  
+  return finalParagraphs.join('\n\n');
+};
+
 // ===== COMPONENTE DE SEÇÃO INDIVIDUAL =====
 const ChartSection = ({ 
   section, 
@@ -38,6 +175,13 @@ const ChartSection = ({
   const { language } = useLanguage();
   
   if (!section && !isLoading) return null;
+  
+  // Formatar conteúdo especificamente para a tríade fundamental e power
+  const formattedContent = (section?.section === 'triad' || section?.section === 'power') && section?.content
+    ? section.section === 'triad' 
+      ? formatTriadContent(section.content)
+      : formatTriadContent(section.content) // Usar mesma formatação para power
+    : section?.content || '';
   
   return (
     <div className={`birth-chart-section-card ${isExpanded ? 'expanded' : ''}`}>
@@ -83,9 +227,9 @@ const ChartSection = ({
             </div>
           ) : (
             <div className="birth-chart-section-text">
-              {section?.content.split('\n\n').map((paragraph, idx) => {
-                // Remover informações de suporte
-                let cleaned = paragraph;
+              {formattedContent.split('\n\n').map((paragraph, idx) => {
+                // Limpeza adicional (caso ainda haja algo)
+                let cleaned = paragraph.trim();
                 cleaned = cleaned.replace(/##?\s*📞\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
                 cleaned = cleaned.replace(/##?\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
                 cleaned = cleaned.replace(/Para dúvidas sobre interpretação astrológica[\s\S]*?Consulta com astrólogo profissional[\s\S]*?(?=\n\n|$)/gi, '');
@@ -122,27 +266,27 @@ const ChartSection = ({
 export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps) => {
   const { t, language } = useLanguage();
   const [sections, setSections] = useState<Record<string, BirthChartSection | null>>({
+    power: null,
     triad: null,
-    roots: null,
+    personal: null,
+    houses: null,
     karma: null,
-    career: null,
-    love: null,
     synthesis: null,
   });
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({
+    power: false,
     triad: false,
-    roots: false,
+    personal: false,
+    houses: false,
     karma: false,
-    career: false,
-    love: false,
     synthesis: false,
   });
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    triad: true,
-    roots: false,
+    power: false,
+    triad: false,
+    personal: false,
+    houses: false,
     karma: false,
-    career: false,
-    love: false,
     synthesis: false,
   });
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
@@ -180,21 +324,33 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
         language,
         // ===== PLANETAS PESSOAIS (Nível 2) =====
         mercurySign: userData.mercurySign,
+        mercuryHouse: userData.mercuryHouse,
         venusSign: userData.venusSign,
+        venusHouse: userData.venusHouse,
         marsSign: userData.marsSign,
+        marsHouse: userData.marsHouse,
         // ===== PLANETAS SOCIAIS (Nível 3) =====
         jupiterSign: userData.jupiterSign,
+        jupiterHouse: userData.jupiterHouse,
         saturnSign: userData.saturnSign,
+        saturnHouse: userData.saturnHouse,
         // ===== PLANETAS TRANSPESSOAIS (Nível 4) =====
         uranusSign: userData.uranusSign,
+        uranusHouse: userData.uranusHouse,
         neptuneSign: userData.neptuneSign,
+        neptuneHouse: userData.neptuneHouse,
         plutoSign: userData.plutoSign,
+        plutoHouse: userData.plutoHouse,
         // ===== PONTOS KÁRMICOS (Nível 3-4) =====
         northNodeSign: userData.northNodeSign,
+        northNodeHouse: userData.northNodeHouse,
         southNodeSign: userData.southNodeSign,
+        southNodeHouse: userData.southNodeHouse,
         chironSign: userData.chironSign,
+        chironHouse: userData.chironHouse,
         // ===== ÂNGULOS DO MAPA =====
         midheavenSign: userData.midheavenSign,
+        icSign: userData.icSign,
       });
       
       setSections(prev => ({ ...prev, [sectionKey]: response }));
@@ -219,7 +375,7 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
   // Função para gerar todas as seções
   const generateAllSections = async () => {
     setIsGeneratingAll(true);
-    const sectionKeys = ['triad', 'roots', 'karma', 'career', 'love', 'synthesis'];
+    const sectionKeys = ['power', 'triad', 'personal', 'houses', 'karma', 'synthesis'];
     
     for (const key of sectionKeys) {
       if (!sections[key]) {
@@ -240,75 +396,74 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
     }));
     
     // Se expandindo e não tem conteúdo, gerar
-    if (!expandedSections[sectionKey] && !sections[sectionKey]) {
+    // EXCETO para 'power' que só deve ser gerada com "Gerar Análise Completa"
+    if (!expandedSections[sectionKey] && !sections[sectionKey] && sectionKey !== 'power') {
       generateSection(sectionKey);
     }
+    // Para 'power', apenas expandir mas não gerar automaticamente
+    // O usuário deve clicar em "Gerar Análise Completa" para gerar 'power'
   };
 
-  // Gerar primeira seção ao montar (com dependências corretas)
-  useEffect(() => {
-    // Só gerar se ainda não tiver conteúdo
-    if (!sections.triad && !loadingStates.triad) {
-      generateSection('triad');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Não gerar nenhuma seção automaticamente - apenas quando solicitado
+  // useEffect removido - seções só são geradas quando:
+  // 1. Usuário expande manualmente uma seção
+  // 2. Usuário clica em "Gerar Análise Completa"
 
   // Configuração das seções
   const sectionConfig = [
     {
+      key: 'power',
+      icon: UIIcons.Zap,
+      accentColor: 'bg-gradient-to-br from-yellow-500 to-orange-500',
+      titlePt: 'A Estrutura de Poder',
+      titleEn: 'The Power Structure',
+      descPt: 'Temperamento, motivação e regente do mapa',
+      descEn: 'Temperament, motivation and chart ruler',
+    },
+    {
       key: 'triad',
       icon: UIIcons.Sun,
       accentColor: 'bg-gradient-to-br from-orange-500 to-amber-500',
-      titlePt: 'A Tríade da Personalidade',
-      titleEn: 'The Personality Triad',
-      descPt: 'Sol, Lua e Ascendente - O núcleo do seu ser',
-      descEn: 'Sun, Moon and Ascendant - The core of your being',
+      titlePt: 'A Tríade Fundamental',
+      titleEn: 'The Fundamental Triad',
+      descPt: 'Sol, Lua e Ascendente - O núcleo da personalidade',
+      descEn: 'Sun, Moon and Ascendant - The core of personality',
     },
     {
-      key: 'roots',
+      key: 'personal',
+      icon: UIIcons.Star,
+      accentColor: 'bg-gradient-to-br from-purple-500 to-pink-500',
+      titlePt: 'Dinâmica Pessoal e Ferramentas',
+      titleEn: 'Personal Dynamics and Tools',
+      descPt: 'Mercúrio, Vênus e Marte como ferramentas',
+      descEn: 'Mercury, Venus and Mars as tools',
+    },
+    {
+      key: 'houses',
       icon: UIIcons.Home,
-      accentColor: 'bg-gradient-to-br from-emerald-500 to-teal-500',
-      titlePt: 'Raízes e Vida Privada',
-      titleEn: 'Roots and Private Life',
-      descPt: 'Sua história familiar e necessidades emocionais',
-      descEn: 'Your family history and emotional needs',
+      accentColor: 'bg-gradient-to-br from-blue-500 to-indigo-500',
+      titlePt: 'Análise Setorial Avançada',
+      titleEn: 'Advanced Sectorial Analysis',
+      descPt: 'Casas, regentes e áreas da vida prática',
+      descEn: 'Houses, rulers and practical life areas',
     },
     {
       key: 'karma',
       icon: UIIcons.Compass,
       accentColor: 'bg-gradient-to-br from-purple-500 to-violet-500',
-      titlePt: 'Carma, Desafios e Evolução',
-      titleEn: 'Karma, Challenges and Evolution',
-      descPt: 'Sua missão de alma e propósito de vida',
-      descEn: 'Your soul mission and life purpose',
-    },
-    {
-      key: 'career',
-      icon: UIIcons.Briefcase,
-      accentColor: 'bg-gradient-to-br from-blue-500 to-indigo-500',
-      titlePt: 'Carreira, Vocação e Dinheiro',
-      titleEn: 'Career, Vocation and Money',
-      descPt: 'Seu caminho profissional e realização material',
-      descEn: 'Your professional path and material fulfillment',
-    },
-    {
-      key: 'love',
-      icon: UIIcons.Heart,
-      accentColor: 'bg-gradient-to-br from-pink-500 to-rose-500',
-      titlePt: 'O Jeito de Amar e Relacionar',
-      titleEn: 'The Way of Loving and Relating',
-      descPt: 'Como você ama e o que busca nos relacionamentos',
-      descEn: 'How you love and what you seek in relationships',
+      titlePt: 'Expansão, Estrutura e Karma',
+      titleEn: 'Expansion, Structure and Karma',
+      descPt: 'Júpiter, Saturno, Nodos, Quíron e Lilith',
+      descEn: 'Jupiter, Saturn, Nodes, Chiron and Lilith',
     },
     {
       key: 'synthesis',
       icon: UIIcons.Sparkles,
       accentColor: 'bg-gradient-to-br from-amber-500 to-orange-500',
-      titlePt: 'Síntese Final e Orientações',
-      titleEn: 'Final Synthesis and Guidance',
-      descPt: 'Integração de todo o mapa e conselhos práticos',
-      descEn: 'Integration of the entire chart and practical advice',
+      titlePt: 'Síntese e Orientação Estratégica',
+      titleEn: 'Strategic Synthesis and Guidance',
+      descPt: 'Pontos fortes, desafios e conselho final',
+      descEn: 'Strengths, challenges and final counsel',
     },
   ];
 

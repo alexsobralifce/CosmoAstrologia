@@ -1207,6 +1207,10 @@ class FullBirthChartRequest(BaseModel):
     chironSign: Optional[str] = None
     chironHouse: Optional[int] = None
     
+    # Lilith (Lua Negra)
+    lilithSign: Optional[str] = None
+    lilithHouse: Optional[int] = None
+    
     # Meio do Céu e Fundo do Céu
     midheavenSign: Optional[str] = None  # Casa 10
     icSign: Optional[str] = None  # Casa 4
@@ -1238,147 +1242,65 @@ class FullBirthChartSectionsResponse(BaseModel):
 
 
 def _get_master_prompt(language: str = 'pt') -> str:
-    """Retorna o prompt mestre para geração do Mapa Astral."""
+    """Retorna o prompt mestre para geração do Mapa Astral baseado na nova estrutura fornecida."""
     if language == 'en':
-        return """**SYSTEM CONTEXT:**
-You are COSMOS ASTRAL, an advanced astrological engine capable of interpreting Natal Charts with psychological, karmic, and predictive depth. Your function is to receive planetary positions and generate a coherent synthesis, not just a list of definitions.
+        return """**Role:** You are a Senior Astrologer, specialist in integrating **Modern Psychological Astrology** (Stephen Arroyo's line) with the technical precision of **Classical/Traditional Astrology** (Dignities, Rulerships) and the depth of **Karmic Astrology**. Your language is empathetic, therapeutic, but focused on practical guidance and strategic decision-making.
 
-You are a Senior Astrologer with 30 years of experience in Psychological Astrology (Jungian approach) and Evolutionary Astrology (focused on the soul's purpose). Your language should be welcoming but deeply analytical. You avoid the obvious and seek synthesis between the map's contradictions.
+**Task:** Perform a deep and complete interpretation of the Natal Chart below.
 
-**HIERARCHY AND WEIGHT GUIDELINES (IMPORTANT):**
+**Birth Data:** [INSERT DATE, TIME AND PLACE HERE]
 
-When interpreting the chart, you must respect the following order of relevance:
+**Analysis Guidelines:**
 
-1. **Level 1 (Maximum Weight):** Sun, Moon, and Ascendant Ruler. These define the "skeleton" of the personality.
-2. **Level 2 (High Weight):** Personal Planets (Mercury, Venus, Mars) and Aspects to Angles (Conjunctions to Ascendant/Midheaven).
-3. **Level 3 (Medium Weight):** Lunar Nodes, Saturn and Jupiter. (Focus on Destiny and Social Structure).
-4. **Level 4 (Refined Weight):** Chiron, Lilith and Transpersonal Planets (Uranus, Neptune, Pluto) in houses.
-5. **Level 5 (Fine Detail):** Asteroids (Ceres, Juno, Pallas, Vesta) and Fixed Stars.
+Use a synthesis approach. Do not describe isolated positions (e.g., "Sun in house X means Y"); instead, connect the points to tell the person's story, integrating conscious will, emotional needs and destiny.
 
-**CELESTIAL BODIES REFERENCE:**
+**CRITICAL RULES - AVOID REPETITIONS:**
+- NEVER repeat information already mentioned in previous sections or interpretations
+- Each section must bring NEW and UNIQUE insights
+- If you've already explained something about a planet, sign, or house in one section, do NOT repeat it in another section
+- Connect different information, don't duplicate
+- Always bring fresh perspectives and new connections
+- Avoid generic phrases that could apply to anyone - be specific to THIS person's chart
 
-• LUMINARIES AND PERSONAL PLANETS (Personality Core):
-  - Sun: Essence, Conscious Ego, Vital Purpose
-  - Moon: Unconscious, Emotions, Past, Nurturing
-  - Mercury: Intellect, Communication, Data Processing
-  - Venus: Affection, Values, Money, Small Happiness
-  - Mars: Action, Desire, Conquest, Defense
+**STYLE:**
+- Use clear, empathetic and therapeutic language
+- Focus on practical guidance and strategic decision-making
+- Avoid excessive "astrologuese" without explanation
+- Empower the consultee with actionable insights
 
-• SOCIAL PLANETS (Interaction with Environment):
-  - Jupiter: Expansion, Faith, Wisdom, Great Benefic
-  - Saturn: Structure, Limits, Time, Karmic Master
-
-• TRANSPERSONAL/GENERATIONAL PLANETS (Collective Unconscious):
-  - Uranus: Revolution, The Unexpected, Higher Mind
-  - Neptune: Spirituality, Illusion, Fusion, Arts
-  - Pluto: Transformation, Death/Rebirth, Hidden Power
-
-• MATHEMATICAL AND KARMIC POINTS (Destiny):
-  - Ascendant (AC): Projected Identity (House 1 Cusp)
-  - Midheaven (MC): Social Destiny (House 10 Cusp)
-  - North Node: Life Mission, Where to go
-  - South Node: Comfort Zone, Past Lives Baggage
-  - Lilith (Black Moon): Shadow side, repressed sexuality, rebellion
-  - Chiron: The Wounded Healer (Where it hurts and where we heal)
-
-**SPECIFIC INTERPRETATION DEFINITIONS:**
-
-• When analyzing LUNAR NODES: Don't just say "good or bad". Interpret the Nodal Axis as the soul's journey: South Node (what has been mastered/past) -> North Node (evolutionary challenge/future).
-
-• When analyzing CHIRON: Focus on the "wound that becomes gift". Where the person feels inadequacy, but where they become a master at helping others.
-
-• When analyzing LILITH: Interpret as visceral force, untamed desire, and where the person refuses submission.
-
-• When analyzing SATURN: Interpret as the great teacher who demands maturity, discipline, and shows where rewards come late but solidly.
-
-**SYNTHESIS RULES (COMBINATION):**
-
-• If an Asteroid (e.g., Juno) aspects a Luminary (e.g., Moon), merge the meanings: "Your emotional need (Moon) is intrinsically linked to the need for committed partnership (Juno)."
-
-• Never generate contradictions without explaining them. If the Sun asks for freedom and Saturn asks for restriction, explain this as an "internal tension of maturation."
-
-**GENERAL DIRECTIVE:**
-Do not make loose lists of meanings. I want a NARRATIVE that connects the dots. If the Sun says one thing and the Moon says another, explain the internal tension.
-
-**STYLE RULES:**
-1. Write in counseling tone, focusing on healing potential and free will
-2. Avoid fatalism - show possibilities, not determinism
-3. Be specific, not generic - connect the energies
-4. Use practical examples to illustrate
-5. Address the person directly using "you"
-6. Explain astrological terms simply when you use them
-7. Always prioritize the PSYCHOLOGY OF THE INDIVIDUAL before entering predictions or karmas"""
+**ADDITIONAL RULES:**
+- DO NOT include Python code, code blocks or orbital periods of planets
+- DO NOT include information about Vedic Astrology, Jyotish, Sidereal zodiac, Dasas, Vargas or differences between Tropical and Sidereal
+- NEVER write "House not provided", "in House not provided", "Casa não informada" or any variation - if the house is not available in the data, simply OMIT mentioning the house and focus only on the sign"""
     else:
-        return """**CONTEXTO DO SISTEMA:**
-Você é o COSMOS ASTRAL, uma engine astrológica avançada capaz de interpretar Mapas Natais com profundidade psicológica, kármica e preditiva. Sua função é receber as posições planetárias e gerar uma síntese coerente, não apenas uma lista de definições.
+        return """**Role:** Você é um Astrólogo Sênior, especialista em integrar a **Astrologia Psicológica Moderna** (linha de Stephen Arroyo) com a precisão técnica da **Astrologia Clássica/Tradicional** (Dignidades, Regências) e a profundidade da **Astrologia Kármica**. Sua linguagem é empática, terapêutica, mas focada em orientações práticas e tomada de decisão estratégica.
 
-Você é um Astrólogo Sênior com 30 anos de experiência em Astrologia Psicológica (linha Junguiana) e Astrologia Evolutiva (focada no propósito da alma). Sua linguagem deve ser acolhedora, mas profundamente analítica. Você foge do óbvio e busca a síntese entre as contradições do mapa.
+**Tarefa:** Realizar uma interpretação profunda e completa do Mapa Natal abaixo.
 
-**DIRETRIZES DE HIERARQUIA E PESO (IMPORTANTE):**
+**Dados do Nascimento:** [INSERIR DATA, HORA E LOCAL AQUI]
 
-Ao interpretar o mapa, você deve respeitar a seguinte ordem de relevância:
+**Diretrizes de Análise:**
 
-1. **Nível 1 (Peso Máximo):** Sol, Lua e Regente do Ascendente. Estes definem o "esqueleto" da personalidade.
-2. **Nível 2 (Peso Alto):** Planetas Pessoais (Mercúrio, Vênus, Marte) e Aspectos aos Ângulos (Conjunções ao Ascendente/Meio do Céu).
-3. **Nível 3 (Peso Médio):** Nodos Lunares, Saturno e Júpiter. (Foco em Destino e Estrutura Social).
-4. **Nível 4 (Peso Refinado):** Quíron, Lilith e Planetas Transpessoais (Urano, Netuno, Plutão) nas casas.
-5. **Nível 5 (Detalhe Fino):** Asteroides (Ceres, Juno, Pallas, Vesta) e Estrelas Fixas.
+Utilize uma abordagem de síntese. Não descreva posições isoladas (ex: "Sol na casa X significa Y"); em vez disso, conecte os pontos para contar a história da pessoa, integrando a vontade consciente, necessidades emocionais e destino.
 
-**REFERÊNCIA DOS CORPOS CELESTES:**
+**REGRAS CRÍTICAS - EVITAR REPETIÇÕES:**
+- NUNCA repita informações já mencionadas em seções ou interpretações anteriores
+- Cada seção deve trazer insights NOVOS e ÚNICOS
+- Se você já explicou algo sobre um planeta, signo ou casa em uma seção, NÃO repita em outra seção
+- Conecte informações diferentes, não duplique
+- Sempre traga perspectivas frescas e novas conexões
+- Evite frases genéricas que poderiam se aplicar a qualquer pessoa - seja específico ao mapa DESTA pessoa
 
-• LUMINARES E PLANETAS PESSOAIS (Núcleo da Personalidade):
-  - Sol: A Essência, o Ego Consciente, Propósito Vital
-  - Lua: O Inconsciente, Emoções, Passado, Nutrição
-  - Mercúrio: Intelecto, Comunicação, Processamento de Dados
-  - Vênus: Afeto, Valores, Dinheiro, Pequena Felicidade
-  - Marte: Ação, Desejo, Conquista, Defesa
+**ESTILO:**
+- Use linguagem clara, empática e terapêutica
+- Foco em orientações práticas e tomada de decisão estratégica
+- Evite "astrologuês" excessivo sem explicação
+- Empodere o consulente com insights acionáveis
 
-• PLANETAS SOCIAIS (A Interação com o Meio):
-  - Júpiter: Expansão, Fé, Sabedoria, Grande Benéfico
-  - Saturno: Estrutura, Limites, Tempo, Mestre Kármico
-
-• PLANETAS TRANSPESSOAIS/GERACIONAIS (O Inconsciente Coletivo):
-  - Urano: A Revolução, O Inesperado, A Mente Superior
-  - Netuno: A Espiritualidade, Ilusão, Fusão, Artes
-  - Plutão: A Transformação, Morte/Renascimento, Poder Oculto
-
-• PONTOS MATEMÁTICOS E KÁRMICOS (O Destino):
-  - Ascendente (AC): A Identidade Projetada (Cúspide Casa 1)
-  - Meio do Céu (MC): O Destino Social (Cúspide Casa 10)
-  - Nodo Norte (Cabeça do Dragão): Missão de Vida, Onde se deve ir
-  - Nodo Sul (Cauda do Dragão): Zona de Conforto, Bagagem de Vidas Passadas
-  - Lilith (Lua Negra): O lado sombra, a sexualidade reprimida, a rebeldia
-  - Quíron: O Curador Ferido (Onde dói e onde curamos)
-
-**DEFINIÇÕES DE INTERPRETAÇÃO ESPECÍFICA:**
-
-• Ao analisar NODOS LUNARES: Não diga apenas "bom ou ruim". Interprete o Eixo Nodal como a jornada da alma: Nodo Sul (o que já foi dominado/passado) -> Nodo Norte (o desafio evolutivo/futuro).
-
-• Ao analisar QUÍRON: Foque na "ferida que vira dom". Onde a pessoa sente inadequação, mas onde ela se torna mestre em ajudar os outros.
-
-• Ao analisar LILITH: Interprete como a força visceral, o desejo não domesticado e onde a pessoa recusa submissão.
-
-• Ao analisar SATURNO: Interprete como o grande professor que exige maturidade, disciplina e mostra onde as recompensas vêm tarde, mas de forma sólida.
-
-**REGRAS DE SÍNTESE (COMBINAÇÃO):**
-
-• Se um Asteroide (ex: Juno) estiver em aspecto com um Luminar (ex: Lua), funda os significados: "Sua necessidade emocional (Lua) está intrinsecamente ligada à necessidade de parceria comprometida (Juno)."
-
-• Nunca gere contradições sem explicá-las. Se o Sol pede liberdade e Saturno pede restrição, explique isso como uma "tensão interna de amadurecimento".
-
-**DIRETRIZ GERAL:**
-Não faça listas soltas de significados. Eu quero uma NARRATIVA que conecte os pontos. Se o Sol diz uma coisa e a Lua diz outra, explique a tensão interna.
-
-**REGRAS DE ESTILO:**
-1. Escreva em tom de aconselhamento, focando no potencial de cura e no livre-arbítrio
-2. Evite fatalismos - mostre possibilidades, não determinismos
-3. Seja específico, não genérico - conecte as energias
-4. Use exemplos práticos para ilustrar
-5. Trate a pessoa diretamente usando "você"
-6. Explique termos astrológicos de forma simples quando usá-los
-7. Sempre priorize a PSICOLOGIA DO INDIVÍDUO antes de entrar em previsões ou carmas
-8. NÃO inclua código Python, blocos de código ou períodos orbitais dos planetas - isso não é relevante para interpretação astrológica
-9. NÃO inclua informações sobre Astrologia Védica, Jyotish, zodíaco Sideral, Dasas, Vargas ou diferenças entre Tropical e Sideral"""
+**REGRAS ADICIONAIS:**
+- NÃO inclua código Python, blocos de código ou períodos orbitais dos planetas
+- NÃO inclua informações sobre Astrologia Védica, Jyotish, zodíaco Sideral, Dasas, Vargas ou diferenças entre Tropical e Sideral
+- NUNCA escreva "Casa não informada", "na Casa não informada", "House not provided" ou qualquer variação - se a casa não estiver disponível nos dados, simplesmente OMITA a menção à casa e foque apenas no signo"""
 
 
 def _get_full_chart_context(request: FullBirthChartRequest, lang: str = 'pt') -> str:
@@ -1395,26 +1317,25 @@ MAPA ASTRAL COMPLETO DE {request.name.upper()}:
 ☀️ LUMINARES E PLANETAS PESSOAIS (Nível 1-2):
 - Sol em {request.sunSign} na Casa {request.sunHouse} (Essência, Ego)
 - Lua em {request.moonSign} na Casa {request.moonHouse} (Emoções, Inconsciente)
-- Mercúrio em {request.mercurySign or 'não calculado'} (Comunicação, Mente)
-- Vênus em {request.venusSign or 'não calculado'} (Amor, Valores)
-- Marte em {request.marsSign or 'não calculado'} (Ação, Desejo)
+- Mercúrio em {request.mercurySign or 'não calculado'}{f' na Casa {request.mercuryHouse}' if request.mercuryHouse else ''} (Comunicação, Mente)
+- Vênus em {request.venusSign or 'não calculado'}{f' na Casa {request.venusHouse}' if request.venusHouse else ''} (Amor, Valores)
+- Marte em {request.marsSign or 'não calculado'}{f' na Casa {request.marsHouse}' if request.marsHouse else ''} (Ação, Desejo)
 
 🪐 PLANETAS SOCIAIS (Nível 3):
-- Júpiter em {request.jupiterSign or 'não calculado'} (Expansão, Sorte)
-- Saturno em {request.saturnSign or 'não calculado'} (Limites, Mestre Kármico)
+- Júpiter em {request.jupiterSign or 'não calculado'}{f' na Casa {request.jupiterHouse}' if request.jupiterHouse else ''} (Expansão, Sorte)
+- Saturno em {request.saturnSign or 'não calculado'}{f' na Casa {request.saturnHouse}' if request.saturnHouse else ''} (Limites, Mestre Kármico)
 
 🌌 PLANETAS TRANSPESSOAIS (Nível 4):
-- Urano em {request.uranusSign or 'não calculado'} (Revolução, Liberdade)
-- Netuno em {request.neptuneSign or 'não calculado'} (Espiritualidade, Ilusão)
-- Plutão em {request.plutoSign or 'não calculado'} (Transformação, Poder)
+- Urano em {request.uranusSign or 'não calculado'}{f' na Casa {request.uranusHouse}' if request.uranusHouse else ''} (Revolução, Liberdade)
+- Netuno em {request.neptuneSign or 'não calculado'}{f' na Casa {request.neptuneHouse}' if request.neptuneHouse else ''} (Espiritualidade, Ilusão)
+- Plutão em {request.plutoSign or 'não calculado'}{f' na Casa {request.plutoHouse}' if request.plutoHouse else ''} (Transformação, Poder)
 
 🎯 PONTOS KÁRMICOS:
 - Ascendente em {request.ascendant} (Máscara Social)
 - Meio do Céu em {request.midheavenSign or 'não calculado'} (Vocação, Reputação)
-- Nodo Norte em {request.northNodeSign or 'não calculado'} (Destino, Evolução)
-- Nodo Sul em {request.southNodeSign or 'não calculado'} (Passado, Zona de Conforto)
-- Quíron em {request.chironSign or 'não calculado'} (Ferida/Dom de Cura)
-"""
+- Nodo Norte em {request.northNodeSign or 'não calculado'}{f' na Casa {request.northNodeHouse}' if request.northNodeHouse else ''} (Destino, Evolução)
+- Nodo Sul em {request.southNodeSign or 'não calculado'}{f' na Casa {request.southNodeHouse}' if request.southNodeHouse else ''} (Passado, Zona de Conforto)
+- Quíron em {request.chironSign or 'não calculado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''} (Ferida/Dom de Cura)""" + (f"\n- Lilith em {request.lilithSign}{f' na Casa {request.lilithHouse}' if request.lilithHouse else ''}" if request.lilithSign else "")
     else:
         return f"""
 COMPLETE BIRTH CHART OF {request.name.upper()}:
@@ -1427,244 +1348,312 @@ COMPLETE BIRTH CHART OF {request.name.upper()}:
 ☀️ LUMINARIES AND PERSONAL PLANETS (Level 1-2):
 - Sun in {request.sunSign} in House {request.sunHouse} (Essence, Ego)
 - Moon in {request.moonSign} in House {request.moonHouse} (Emotions, Unconscious)
-- Mercury in {request.mercurySign or 'not calculated'} (Communication, Mind)
-- Venus in {request.venusSign or 'not calculated'} (Love, Values)
-- Mars in {request.marsSign or 'not calculated'} (Action, Desire)
+- Mercury in {request.mercurySign or 'not calculated'}{f' in House {request.mercuryHouse}' if request.mercuryHouse else ''} (Communication, Mind)
+- Venus in {request.venusSign or 'not calculated'}{f' in House {request.venusHouse}' if request.venusHouse else ''} (Love, Values)
+- Mars in {request.marsSign or 'not calculated'}{f' in House {request.marsHouse}' if request.marsHouse else ''} (Action, Desire)
 
 🪐 SOCIAL PLANETS (Level 3):
-- Jupiter in {request.jupiterSign or 'not calculated'} (Expansion, Luck)
-- Saturn in {request.saturnSign or 'not calculated'} (Limits, Karmic Master)
+- Jupiter in {request.jupiterSign or 'not calculated'}{f' in House {request.jupiterHouse}' if request.jupiterHouse else ''} (Expansion, Luck)
+- Saturn in {request.saturnSign or 'not calculated'}{f' in House {request.saturnHouse}' if request.saturnHouse else ''} (Limits, Karmic Master)
 
 🌌 TRANSPERSONAL PLANETS (Level 4):
-- Uranus in {request.uranusSign or 'not calculated'} (Revolution, Freedom)
-- Neptune in {request.neptuneSign or 'not calculated'} (Spirituality, Illusion)
-- Pluto in {request.plutoSign or 'not calculated'} (Transformation, Power)
+- Uranus in {request.uranusSign or 'not calculated'}{f' in House {request.uranusHouse}' if request.uranusHouse else ''} (Revolution, Freedom)
+- Neptune in {request.neptuneSign or 'not calculated'}{f' in House {request.neptuneHouse}' if request.neptuneHouse else ''} (Spirituality, Illusion)
+- Pluto in {request.plutoSign or 'not calculated'}{f' in House {request.plutoHouse}' if request.plutoHouse else ''} (Transformation, Power)
 
 🎯 KARMIC POINTS:
 - Ascendant in {request.ascendant} (Social Mask)
 - Midheaven in {request.midheavenSign or 'not calculated'} (Vocation, Reputation)
-- North Node in {request.northNodeSign or 'not calculated'} (Destiny, Evolution)
-- South Node in {request.southNodeSign or 'not calculated'} (Past, Comfort Zone)
-- Chiron in {request.chironSign or 'not calculated'} (Wound/Healing Gift)
-"""
+- North Node in {request.northNodeSign or 'not calculated'}{f' in House {request.northNodeHouse}' if request.northNodeHouse else ''} (Destiny, Evolution)
+- South Node in {request.southNodeSign or 'not calculated'}{f' in House {request.southNodeHouse}' if request.southNodeHouse else ''} (Past, Comfort Zone)
+- Chiron in {request.chironSign or 'not calculated'}{f' in House {request.chironHouse}' if request.chironHouse else ''} (Wound/Healing Gift)""" + (f"\n- Lilith in {request.lilithSign}{f' in House {request.lilithHouse}' if request.lilithHouse else ''}" if request.lilithSign else "")
 
 
 def _generate_section_prompt(request: FullBirthChartRequest, section: str) -> tuple[str, str]:
-    """Gera o prompt específico para cada seção do mapa."""
+    """Gera o prompt específico para cada seção do mapa baseado na nova estrutura fornecida."""
     lang = request.language or 'pt'
     
     # Contexto completo do mapa para referência
     full_context = _get_full_chart_context(request, lang)
     
-    if section == 'triad':
-        title = "A Tríade da Personalidade" if lang == 'pt' else "The Personality Triad"
-        if lang == 'pt':
-            prompt = f"""{full_context}
-
-SEÇÃO: A TRÍADE DA PERSONALIDADE (O "EU" CENTRAL)
-
-FOCO DESTA SEÇÃO:
-- Sol em {request.sunSign} na Casa {request.sunHouse} (Essência)
-- Lua em {request.moonSign} na Casa {request.moonHouse} (Emoção)
-- Ascendente em {request.ascendant} (Máscara)
-
-INSTRUÇÃO: Analise a combinação de Sol (Essência), Lua (Emoção) e Ascendente (Máscara). Não leia separadamente. Explique como eles conversam, as tensões e harmonias entre eles.
-
-EXEMPLO DE PROFUNDIDADE ESPERADA:
-"Enquanto o seu Sol em Áries impulsiona você a liderar e buscar desafios rápidos, sua Lua em Touro puxa o freio de mão, exigindo segurança e conforto antes de qualquer risco. Isso cria um conflito interno: uma parte de você quer acelerar (Áries), mas a sua alma precisa de garantias (Touro). Seu Ascendente em Virgem entra aqui como o gerente que tenta organizar esse caos..."
-
-Agora escreva a análise para este nativo, com no mínimo 3 parágrafos densos e conectados."""
-        else:
-            prompt = f"""{full_context}
-
-SECTION: THE PERSONALITY TRIAD (THE CENTRAL "SELF")
-
-FOCUS OF THIS SECTION:
-- Sun in {request.sunSign} in House {request.sunHouse} (Essence)
-- Moon in {request.moonSign} in House {request.moonHouse} (Emotion)
-- Ascendant in {request.ascendant} (Mask)
-
-INSTRUCTION: Analyze the combination of Sun (Essence), Moon (Emotion) and Ascendant (Mask). Don't read them separately. Explain how they converse, the tensions and harmonies between them.
-
-Now write the analysis for this native, with at least 3 dense and connected paragraphs."""
+    # Data de nascimento formatada para inserção no prompt
+    birth_data_str = f"Data: {request.birthDate}, Hora: {request.birthTime}, Local: {request.birthPlace}"
     
-    elif section == 'roots':
-        title = "Raízes e Vida Privada" if lang == 'pt' else "Roots and Private Life"
-        ic_sign = request.icSign or "não informado"
+    if section == 'power':
+        title = "A Estrutura de Poder (Temperamento e Motivação)" if lang == 'pt' else "The Power Structure (Temperament and Motivation)"
         if lang == 'pt':
             prompt = f"""{full_context}
 
-SEÇÃO: RAÍZES E VIDA PRIVADA (O PASSADO)
+**SEÇÃO 1: A ESTRUTURA DE PODER (TEMPERAMENTO E MOTIVAÇÃO)**
 
-FOCO DESTA SEÇÃO:
-- Lua em {request.moonSign} na Casa {request.moonHouse}
-- Fundo do Céu (IC/Casa 4) em {ic_sign}
-- Saturno em {request.saturnSign or 'não informado'} (estrutura familiar)
+* **Balanço de Elementos e Qualidades:** Analise a distribuição de Fogo, Terra, Ar e Água e as modalidades (Cardeal, Fixo, Mutável). Identifique excessos (o que sobra) e escassez (o que falta). Dê conselhos práticos de como equilibrar isso na rotina.
 
-INSTRUÇÃO: Descreva o clima emocional da infância e a imagem interna da família. Como isso moldou a forma como a pessoa busca segurança hoje?
+* **O Regente do Mapa:** Identifique o planeta regente do Ascendente {request.ascendant} e analise sua condição (Signo, Casa, Aspectos). Ele é um aliado ou um desafio para o nativo?
 
-EXEMPLO DE PROFUNDIDADE ESPERADA:
-"Com o Fundo do Céu em Aquário, suas raízes podem ter sido instáveis ou pouco convencionais. Talvez você tenha sentido que 'lar' era um lugar de liberdade intelectual, mas com pouco calor físico (distanciamento). Isso faz com que hoje, na vida adulta, você precise de espaço dentro de casa para se sentir seguro..."
-
-Agora escreva a análise para este nativo, conectando Lua, Casa 4 e Saturno."""
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - se a casa não estiver disponível, OMITA completamente a menção à casa
+- Foque no temperamento como motor de motivação e ação
+- Analise o regente do mapa com profundidade técnica (Dignidades, Regências)
+- Dê conselhos práticos e acionáveis para equilíbrio energético"""
         else:
             prompt = f"""{full_context}
 
-SECTION: ROOTS AND PRIVATE LIFE (THE PAST)
+**SECTION 1: THE POWER STRUCTURE (TEMPERAMENT AND MOTIVATION)**
 
-FOCUS OF THIS SECTION:
+* **Balance of Elements and Qualities:** Analyze the distribution of Fire, Earth, Air and Water and the modalities (Cardinal, Fixed, Mutable). Identify excesses (what is in surplus) and scarcity (what is lacking). Give practical advice on how to balance this in routine.
+
+* **The Chart Ruler:** Identify the planet ruling the Ascendant {request.ascendant} and analyze its condition (Sign, House, Aspects). Is it an ally or a challenge for the native?
+
+IMPORTANT:
+- Do not repeat information already mentioned in other sections
+- NEVER write "House not provided", "in House not provided" or any variation - if the house is not available, COMPLETELY OMIT mentioning the house
+- Focus on temperament as a driver of motivation and action
+- Analyze the chart ruler with technical depth (Dignities, Rulerships)
+- Give practical and actionable advice for energy balance"""
+    
+    elif section == 'triad':
+        title = "A Tríade Fundamental (O Núcleo da Personalidade)" if lang == 'pt' else "The Fundamental Triad (The Core of Personality)"
+        if lang == 'pt':
+            prompt = f"""{full_context}
+
+**SEÇÃO 2: A TRÍADE FUNDAMENTAL (O NÚCLEO DA PERSONALIDADE)**
+
+* Faça uma síntese de **Sol** (Identidade/Essência), **Lua** (Emoções/Passado/Reações) e **Ascendente** (Persona/Corpo).
+
+* Explique a dinâmica entre eles: a vontade consciente (Sol) está em harmonia com as necessidades emocionais (Lua) e a forma de agir (Ascendente)?
+
+DADOS:
+- Sol em {request.sunSign} na Casa {request.sunHouse}
+- Lua em {request.moonSign} na Casa {request.moonHouse}
+- Ascendente em {request.ascendant}
+
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação
+- Faça uma síntese que conecte os três pontos para contar a história da pessoa
+- Analise a dinâmica entre vontade consciente (Sol), necessidades emocionais (Lua) e forma de agir (Ascendente)
+- Use abordagem de síntese, evitando descrições fragmentadas ou isoladas
+- Explique como eles se equilibram ou conflitam"""
+        else:
+            prompt = f"""{full_context}
+
+**SECTION 2: THE FUNDAMENTAL TRIAD (THE CORE OF PERSONALITY)**
+
+* Make a synthesis of **Sun** (Identity/Essence), **Moon** (Emotions/Past/Reactions) and **Ascendant** (Persona/Body).
+
+* Explain the dynamics between them: is conscious will (Sun) in harmony with emotional needs (Moon) and way of acting (Ascendant)?
+
+DATA:
+- Sun in {request.sunSign} in House {request.sunHouse}
 - Moon in {request.moonSign} in House {request.moonHouse}
-- IC (House 4) in {ic_sign}
-- Saturn in {request.saturnSign or 'not provided'} (family structure)
+- Ascendant in {request.ascendant}
 
-INSTRUCTION: Describe the emotional climate of childhood and the internal image of family. How did this shape the way the person seeks security today?
+IMPORTANT:
+- Do not repeat information already mentioned in other sections
+- NEVER write "House not provided", "in House not provided" or any variation
+- Make a synthesis that connects the three points to tell the person's story
+- Analyze the dynamics between conscious will (Sun), emotional needs (Moon) and way of acting (Ascendant)
+- Use a synthesis approach, avoiding fragmented or isolated descriptions
+- Explain how they balance or conflict"""
+    
+    elif section == 'personal':
+        title = "Dinâmica Pessoal e Ferramentas (Planetas Pessoais)" if lang == 'pt' else "Personal Dynamics and Tools (Personal Planets)"
+        if lang == 'pt':
+            prompt = f"""{full_context}
 
-Now write the analysis for this native, connecting Moon, House 4 and Saturn."""
+**SEÇÃO 3: DINÂMICA PESSOAL E FERRAMENTAS (PLANETAS PESSOAIS)**
+
+* **Intelecto (Mercúrio):** Como a pessoa processa informações, aprende e toma decisões.
+
+* **Afeto e Valores (Vênus):** Analise a condição de Vênus (Dignidades/Debilidades). Como a pessoa ama, o que valoriza e como lida com recursos.
+
+* **Ação e Conquista (Marte):** Onde coloca sua energia, assertividade e impulso sexual.
+
+DADOS:
+- Mercúrio em {request.mercurySign or 'não informado'}{f' na Casa {request.mercuryHouse}' if request.mercuryHouse else ''}
+- Vênus em {request.venusSign or 'não informado'}{f' na Casa {request.venusHouse}' if request.venusHouse else ''}
+- Marte em {request.marsSign or 'não informado'}{f' na Casa {request.marsHouse}' if request.marsHouse else ''}
+
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- USE OS DADOS ESPECÍFICOS FORNECIDOS ACIMA - não use frases genéricas como "Casa não informada"
+- Se a casa não estiver disponível, foque no signo e no planeta apenas
+- Analise Vênus com técnica de Dignidades/Debilidades (Astrologia Clássica)
+- Foque em como cada planeta funciona como ferramenta prática na vida
+- Conecte com exemplos concretos de manifestação baseados nos dados fornecidos"""
+        else:
+            prompt = f"""{full_context}
+
+**SECTION 3: PERSONAL DYNAMICS AND TOOLS (PERSONAL PLANETS)**
+
+* **Intellect (Mercury):** How the person processes information, learns and makes decisions.
+
+* **Affection and Values (Venus):** Analyze Venus's condition (Dignities/Debilities). How the person loves, what they value and how they handle resources.
+
+* **Action and Conquest (Mars):** Where they put their energy, assertiveness and sexual drive.
+
+DATA:
+- Mercury in {request.mercurySign or 'not provided'}{f' in House {request.mercuryHouse}' if request.mercuryHouse else ''}
+- Venus in {request.venusSign or 'not provided'}{f' in House {request.venusHouse}' if request.venusHouse else ''}
+- Mars in {request.marsSign or 'not provided'}{f' in House {request.marsHouse}' if request.marsHouse else ''}
+
+IMPORTANT:
+- Do not repeat information already mentioned in other sections
+- USE THE SPECIFIC DATA PROVIDED ABOVE - do not use generic phrases like "House not provided"
+- If the house is not available, focus on the sign and planet only
+- Analyze Venus with Dignities/Debilities technique (Classical Astrology)
+- Focus on how each planet functions as a practical tool in life
+- Connect with concrete examples of manifestation based on the provided data"""
+    
+    elif section == 'houses':
+        title = "Análise Setorial Avançada (Vida Prática e Casas)" if lang == 'pt' else "Advanced Sectorial Analysis (Practical Life and Houses)"
+        if lang == 'pt':
+            prompt = f"""{full_context}
+
+**SEÇÃO 4: ANÁLISE SETORIAL AVANÇADA (VIDA PRÁTICA E CASAS)**
+
+* **Instrução:** Para as casas abaixo, analise não apenas os planetas presentes, mas também a condição dos **Regentes das Casas** (os "donos" da área).
+
+* **Finanças e Vocação (Casas 2, 6 e 10):** Onde está o potencial financeiro real? Qual a vocação que traz realização versus a rotina de trabalho?
+
+* **Relacionamentos (Casa 7):** O padrão de parceiro atraído versus o que a pessoa realmente necessita para evoluir.
+
+* **Família e Base (Casa 4):** Dinâmicas familiares, raízes e o ambiente doméstico necessário para recarregar (Lua).
+
+* **Saúde (Casa 6):** Pontos de atenção vital e sugestões de equilíbrio baseadas nos Elementos.
+
+DADOS RELEVANTES:
+- Meio do Céu em {request.midheavenSign or 'não informado'}
+- Fundo do Céu (IC) em {request.icSign or 'não informado'}
+- Lua em {request.moonSign} na Casa {request.moonHouse}
+
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - use apenas os dados fornecidos ou omita a informação
+- Analise os REGENTES das casas, não apenas os planetas presentes
+- Diferencie vocação (Casa 10) de rotina de trabalho (Casa 6)
+- Analise padrões de relacionamento com profundidade psicológica"""
+        else:
+            prompt = f"""{full_context}
+
+**SECTION 4: ADVANCED SECTORIAL ANALYSIS (PRACTICAL LIFE AND HOUSES)**
+
+* **Instruction:** For the houses below, analyze not only the planets present, but also the condition of the **House Rulers** (the "owners" of the area).
+
+* **Finances and Vocation (Houses 2, 6 and 10):** Where is the real financial potential? What vocation brings fulfillment versus work routine?
+
+* **Relationships (House 7):** The pattern of attracted partner versus what the person really needs to evolve.
+
+* **Family and Base (House 4):** Family dynamics, roots and the domestic environment necessary to recharge (Moon).
+
+* **Health (House 6):** Vital attention points and balance suggestions based on Elements.
+
+RELEVANT DATA:
+- Midheaven in {request.midheavenSign or 'not provided'}
+- IC in {request.icSign or 'not provided'}
+- Moon in {request.moonSign} in House {request.moonHouse}
+
+IMPORTANT:
+- Do not repeat information already mentioned in other sections
+- NEVER write "House not provided", "in House not provided" or any variation - use only the provided data or omit the information
+- Analyze the HOUSE RULERS, not just the planets present
+- Differentiate vocation (House 10) from work routine (House 6)
+- Analyze relationship patterns with psychological depth"""
     
     elif section == 'karma':
-        title = "Carma, Desafios e Evolução" if lang == 'pt' else "Karma, Challenges and Evolution"
+        title = "Expansão, Estrutura e Karma (Planetas Sociais e Transpessoais)" if lang == 'pt' else "Expansion, Structure and Karma (Social and Transpersonal Planets)"
         if lang == 'pt':
             prompt = f"""{full_context}
 
-SEÇÃO: CARMA, DESAFIOS E EVOLUÇÃO (A MISSÃO DA ALMA)
+**SEÇÃO 5: EXPANSÃO, ESTRUTURA E KARMA (PLANETAS SOCIAIS E TRANSPESSOAIS)**
 
-FOCO DESTA SEÇÃO:
-- Nodo Norte em {request.northNodeSign or 'não informado'} (Destino a conquistar)
-- Nodo Sul em {request.southNodeSign or 'não informado'} (Zona de conforto/Passado)
-- Saturno em {request.saturnSign or 'não informado'} (Mestre Kármico)
-- Quíron em {request.chironSign or 'não informado'} (Ferida → Dom de Cura)
+* **Júpiter e Saturno:** Onde a pessoa tem sorte/fé natural e onde enfrenta seus maiores testes, medos e responsabilidades.
 
-INSTRUÇÃO: Diferencie o que é zona de conforto (Nodo Sul) do que é o destino a ser conquistado (Nodo Norte). Onde está a ferida (Quíron em {request.chironSign or 'N/A'}) e como transformá-la em dom? O que Saturno exige de amadurecimento?
+* **O Caminho da Alma (Nodos Lunares):** Qual zona de conforto (Nodo Sul) deve ser abandonada e qual missão de vida (Nodo Norte) deve ser perseguida?
 
-EXEMPLO DE PROFUNDIDADE ESPERADA:
-"Seu Nodo Sul em Libra indica que, em vidas passadas ou na primeira metade desta vida, você se definiu através dos outros, sempre cedendo para manter a paz. Seu grande desafio kármico (Nodo Norte em Áries) é aprender a ser 'egoísta' no bom sentido: ter coragem de bancar suas vontades sozinho, sem esperar aprovação..."
+* **Feridas e Sombras (Quíron e Lilith):** Onde reside a ferida que cura (Quíron) e a força visceral/insubmissão (Lilith).
 
-Agora escreva a análise para este nativo, com profundidade sobre propósito de vida."""
+DADOS:
+- Júpiter em {request.jupiterSign or 'não informado'}{f' na Casa {request.jupiterHouse}' if request.jupiterHouse else ''}
+- Saturno em {request.saturnSign or 'não informado'}{f' na Casa {request.saturnHouse}' if request.saturnHouse else ''}
+- Nodo Norte em {request.northNodeSign or 'não informado'}{f' na Casa {request.northNodeHouse}' if request.northNodeHouse else ''}
+- Nodo Sul em {request.southNodeSign or 'não informado'}{f' na Casa {request.southNodeHouse}' if request.southNodeHouse else ''}
+- Quíron em {request.chironSign or 'não informado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''}{f"\n- Lilith em {request.lilithSign} na Casa {request.lilithHouse}" if request.lilithSign and request.lilithHouse else ""}
+
+IMPORTANTE CRÍTICO:
+- USE APENAS OS DADOS FORNECIDOS ACIMA - se a casa não estiver disponível, OMITA completamente a menção à casa, não diga "Casa não informada" ou "na Casa não informada"
+- Se você não tiver a informação da casa, simplesmente não mencione a casa - foque apenas no signo
+- NUNCA escreva "na Casa não informada", "Casa não informada" ou qualquer variação disso
+- Não repita informações já mencionadas em outras seções
+- Analise Júpiter e Saturno como polaridades (expansão vs. estrutura)
+- Conecte os nodos lunares com propósito de vida e evolução da alma
+- Explique Quíron e Lilith como ferramentas de transformação"""
         else:
             prompt = f"""{full_context}
 
-SECTION: KARMA, CHALLENGES AND EVOLUTION (THE SOUL'S MISSION)
+**SECTION 5: EXPANSION, STRUCTURE AND KARMA (SOCIAL AND TRANSPERSONAL PLANETS)**
 
-FOCUS OF THIS SECTION:
-- North Node in {request.northNodeSign or 'not provided'} (Destiny to conquer)
-- South Node in {request.southNodeSign or 'not provided'} (Comfort zone/Past)
-- Saturn in {request.saturnSign or 'not provided'} (Karmic Master)
-- Chiron in {request.chironSign or 'not provided'} (Wound → Healing Gift)
+* **Jupiter and Saturn:** Where the person has natural luck/faith and where they face their greatest tests, fears and responsibilities.
 
-INSTRUCTION: Differentiate what is comfort zone (South Node) from what is the destiny to be conquered (North Node). Where is the wound (Chiron in {request.chironSign or 'N/A'}) and how to transform it into a gift?
+* **The Path of the Soul (Lunar Nodes):** What comfort zone (South Node) should be abandoned and what life mission (North Node) should be pursued?
 
-Now write the analysis for this native, with depth about life purpose."""
-    
-    elif section == 'career':
-        title = "Carreira, Vocação e Dinheiro" if lang == 'pt' else "Career, Vocation and Money"
-        if lang == 'pt':
-            prompt = f"""{full_context}
+* **Wounds and Shadows (Chiron and Lilith):** Where resides the wound that heals (Chiron) and the visceral/insubordinate force (Lilith).
 
-SEÇÃO: CARREIRA, VOCAÇÃO E DINHEIRO (O MUNDO MATERIAL)
+DATA:
+- Jupiter in {request.jupiterSign or 'not provided'}{f' in House {request.jupiterHouse}' if request.jupiterHouse else ''}
+- Saturn in {request.saturnSign or 'not provided'}{f' in House {request.saturnHouse}' if request.saturnHouse else ''}
+- North Node in {request.northNodeSign or 'not provided'}{f' in House {request.northNodeHouse}' if request.northNodeHouse else ''}
+- South Node in {request.southNodeSign or 'not provided'}{f' in House {request.southNodeHouse}' if request.southNodeHouse else ''}
+- Chiron in {request.chironSign or 'not provided'}{f' in House {request.chironHouse}' if request.chironHouse else ''}{f"\n- Lilith in {request.lilithSign} in House {request.lilithHouse}" if request.lilithSign and request.lilithHouse else ""}
 
-FOCO DESTA SEÇÃO:
-- Meio do Céu (MC) em {request.midheavenSign or 'não informado'} (Vocação, Reputação)
-- Sol em {request.sunSign} na Casa {request.sunHouse} (Identidade profissional)
-- Saturno em {request.saturnSign or 'não informado'} (Estrutura, Autoridade)
-- Júpiter em {request.jupiterSign or 'não informado'} (Expansão, Sorte nos negócios)
-- Marte em {request.marsSign or 'não informado'} (Ação, Ambição)
-
-INSTRUÇÃO: Diferencie o "ganha-pão" (trabalho diário) da "missão de vida" (MC/Casa 10). Como a pessoa pode construir autoridade e reconhecimento? Onde está a expansão financeira (Júpiter)?
-
-EXEMPLO DE PROFUNDIDADE ESPERADA:
-"Sua Casa 6 em Gêmeos sugere que sua rotina precisa ser dinâmica, com comunicação e movimento; tédio é seu inimigo no escritório. Porém, seu Meio do Céu em Escorpião aponta para uma vocação mais profunda: você veio para transformar, investigar ou lidar com crises alheias..."
-
-Agora escreva a análise vocacional completa para este nativo."""
-        else:
-            prompt = f"""{full_context}
-
-SECTION: CAREER, VOCATION AND MONEY (THE MATERIAL WORLD)
-
-FOCUS OF THIS SECTION:
-- Midheaven (MC) in {request.midheavenSign or 'not provided'} (Vocation, Reputation)
-- Sun in {request.sunSign} in House {request.sunHouse} (Professional identity)
-- Saturn in {request.saturnSign or 'not provided'} (Structure, Authority)
-- Jupiter in {request.jupiterSign or 'not provided'} (Expansion, Business luck)
-- Mars in {request.marsSign or 'not provided'} (Action, Ambition)
-
-INSTRUCTION: Differentiate the "livelihood" (daily work) from the "life mission" (MC/House 10). How can the person build authority and recognition?
-
-Now write the complete vocational analysis for this native."""
-    
-    elif section == 'love':
-        title = "O Jeito de Amar e Relacionar" if lang == 'pt' else "The Way of Loving and Relating"
-        if lang == 'pt':
-            prompt = f"""{full_context}
-
-SEÇÃO: O JEITO DE AMAR E RELACIONAR
-
-FOCO DESTA SEÇÃO:
-- Vênus em {request.venusSign or 'não informado'} (O que deseja no amor)
-- Marte em {request.marsSign or 'não informado'} (Como conquista)
-- Lua em {request.moonSign} na Casa {request.moonHouse} (Necessidades emocionais)
-- Ascendente em {request.ascendant} → Descendente (Casa 7) = tipo de parceiro que atrai
-- Netuno em {request.neptuneSign or 'não informado'} (Idealização amorosa)
-
-INSTRUÇÃO: Contraste o que a pessoa deseja no amor (Vênus) com como ela age para conquistar (Marte). O que a Lua precisa emocionalmente? O que o Descendente (Casa 7) revela sobre o tipo de parceiro que atrai?
-
-EXEMPLO DE PROFUNDIDADE ESPERADA:
-"Você tem Vênus em Capricórnio, o que significa que leva o amor muito a sério; busca estrutura, status e compromisso de longo prazo. Porém, seu Marte em Sagitário faz você agir de forma oposta: conquista fazendo piada, sendo aventureiro e livre. Isso pode confundir os parceiros..."
-
-Agora escreva a análise amorosa e relacional completa para este nativo."""
-        else:
-            prompt = f"""{full_context}
-
-SECTION: THE WAY OF LOVING AND RELATING
-
-FOCUS OF THIS SECTION:
-- Venus in {request.venusSign or 'not provided'} (What desires in love)
-- Mars in {request.marsSign or 'not provided'} (How conquers)
-- Moon in {request.moonSign} in House {request.moonHouse} (Emotional needs)
-- Ascendant in {request.ascendant} → Descendant (House 7) = type of partner attracted
-- Neptune in {request.neptuneSign or 'not provided'} (Love idealization)
-
-INSTRUCTION: Contrast what the person desires in love (Venus) with how they act to conquer (Mars). What does the Moon need emotionally? What does the Descendant reveal about the type of partner they attract?
-
-Now write the complete love and relationship analysis for this native."""
+CRITICAL IMPORTANT:
+- USE ONLY THE DATA PROVIDED ABOVE - if the house is not available, COMPLETELY OMIT mentioning the house, do not say "House not provided" or "in House not provided"
+- If you don't have the house information, simply don't mention the house - focus only on the sign
+- NEVER write "in House not provided", "House not provided" or any variation of that
+- Do not repeat information already mentioned in other sections
+- Analyze Jupiter and Saturn as polarities (expansion vs. structure)
+- Connect lunar nodes with life purpose and soul evolution
+- Explain Chiron and Lilith as transformation tools"""
     
     elif section == 'synthesis':
-        title = "Síntese e Orientações" if lang == 'pt' else "Synthesis and Guidance"
+        title = "Síntese e Orientação Estratégica" if lang == 'pt' else "Strategic Synthesis and Guidance"
         if lang == 'pt':
             prompt = f"""{full_context}
 
-SEÇÃO: SÍNTESE FINAL E ORIENTAÇÕES
+**SEÇÃO 6: SÍNTESE E ORIENTAÇÃO ESTRATÉGICA**
 
-INTEGRAÇÃO DE TODOS OS ELEMENTOS:
-Use TODOS os dados do mapa astral acima para criar uma síntese coerente.
+* **Pontos Fortes a Explorar:** (Destaque Stelliums, Trígonos exatos ou Planetas em Domicílio/Exaltação).
 
-INSTRUÇÃO: Faça uma síntese integradora de TODO o mapa. Considere:
-1. A Tríade Central (Sol, Lua, Ascendente)
-2. Os Planetas Pessoais (Mercúrio, Vênus, Marte)
-3. Os Mestres Sociais (Júpiter, Saturno)
-4. As Forças Transpessoais (Urano, Netuno, Plutão)
-5. O Eixo Kármico (Nodos Lunares, Quíron)
+* **Desafios e Cuidados:** (Destaque Quadraturas T, Planetas em Queda/Exílio ou Casas vazias de elemento).
 
-Quais são os 3-5 temas centrais da vida desta pessoa? Quais os maiores desafios e potenciais? Termine com orientações práticas e esperançosas.
+* **Conselho Final:** Uma diretriz prática e empoderadora para a evolução pessoal e tomada de decisão.
 
-Escreva uma síntese profunda que conecte TODOS os elementos do mapa em uma narrativa coerente sobre quem é {request.name}, sua missão e seu potencial."""
+IMPORTANTE:
+- NÃO repita informações já detalhadas nas seções anteriores
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação
+- Faça uma síntese integradora que conecte TODOS os elementos já analisados
+- Identifique pontos técnicos específicos (Stelliums, Dignidades, Aspectos exatos)
+- Ofereça uma diretriz estratégica e empoderadora
+- Foque em tomada de decisão prática e evolução pessoal"""
         else:
             prompt = f"""{full_context}
 
-SECTION: FINAL SYNTHESIS AND GUIDANCE
+**SECTION 6: STRATEGIC SYNTHESIS AND GUIDANCE**
 
-INTEGRATION OF ALL ELEMENTS:
-Use ALL birth chart data above to create a coherent synthesis.
+* **Strengths to Explore:** (Highlight Stelliums, Exact Trines or Planets in Domicile/Exaltation).
 
-INSTRUCTION: Make an integrating synthesis of the WHOLE chart. Consider:
-1. The Central Triad (Sun, Moon, Ascendant)
-2. The Personal Planets (Mercury, Venus, Mars)
-3. The Social Masters (Jupiter, Saturn)
-4. The Transpersonal Forces (Uranus, Neptune, Pluto)
-5. The Karmic Axis (Lunar Nodes, Chiron)
+* **Challenges and Cautions:** (Highlight T-Squares, Planets in Fall/Exile or Houses empty of element).
 
-What are the 3-5 central themes of this person's life? What are the biggest challenges and potentials? End with practical and hopeful guidance.
+* **Final Counsel:** A practical and empowering directive for personal evolution and decision-making.
 
-Write a deep synthesis that connects ALL chart elements into a coherent narrative about who {request.name} is, their mission and potential."""
+IMPORTANT:
+- DO NOT repeat information already detailed in previous sections
+- NEVER write "House not provided", "in House not provided" or any variation
+- Make an integrating synthesis that connects ALL elements already analyzed
+- Identify specific technical points (Stelliums, Dignities, Exact Aspects)
+- Offer a strategic and empowering directive
+- Focus on practical decision-making and personal evolution"""
     
     else:
         title = "Análise Astrológica"
@@ -1681,19 +1670,19 @@ def generate_birth_chart_section(
     """
     Gera uma seção específica do Mapa Astral Completo.
     
-    Seções disponíveis:
-    - triad: A Tríade da Personalidade (Sol, Lua, Ascendente)
-    - roots: Raízes e Vida Privada (Casa 4, Lua)
-    - karma: Carma, Desafios e Evolução (Nodos, Saturno, Quíron)
-    - career: Carreira, Vocação e Dinheiro (MC, Casa 10)
-    - love: O Jeito de Amar e Relacionar (Vênus, Marte, Casa 7)
-    - synthesis: Síntese Final e Orientações
+    Seções disponíveis (baseadas na nova estrutura):
+    - power: A Estrutura de Poder (Temperamento e Motivação) - Elementos, Qualidades e Regente do Mapa
+    - triad: A Tríade Fundamental (O Núcleo da Personalidade) - Sol, Lua, Ascendente
+    - personal: Dinâmica Pessoal e Ferramentas - Mercúrio, Vênus, Marte
+    - houses: Análise Setorial Avançada - Casas 2, 4, 6, 7, 10 e Regentes
+    - karma: Expansão, Estrutura e Karma - Júpiter, Saturno, Nodos, Quíron, Lilith
+    - synthesis: Síntese e Orientação Estratégica - Pontos Fortes, Desafios e Conselho Final
     """
     try:
         if not request.section:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Especifique uma seção: triad, roots, karma, career, love, synthesis"
+                detail="Especifique uma seção: power, triad, personal, houses, karma, synthesis"
             )
         
         rag_service = get_rag_service()
@@ -1718,12 +1707,12 @@ def generate_birth_chart_section(
         
         # Buscar contexto relevante do RAG
         search_queries = {
-            'triad': f"Sol Lua Ascendente personalidade {request.sunSign} {request.moonSign} {request.ascendant}",
-            'roots': f"Casa 4 Lua infância família raízes {request.moonSign} {request.icSign or ''}",
-            'karma': f"Nodo Norte Sul karma evolução {request.northNodeSign or ''} Saturno Quíron propósito vida",
-            'career': f"Meio do Céu Casa 10 carreira vocação profissão {request.midheavenSign or ''} Saturno",
-            'love': f"Vênus Marte amor relacionamento Casa 7 {request.venusSign or ''} {request.marsSign or ''}",
-            'synthesis': f"síntese mapa astral integração {request.sunSign} {request.moonSign} {request.ascendant}"
+            'power': f"regente do mapa ascendente {request.ascendant} elementos fogo terra ar água qualidades cardeal fixo mutável temperamento",
+            'triad': f"Sol Lua Ascendente personalidade tríade {request.sunSign} {request.moonSign} {request.ascendant} dinâmica",
+            'personal': f"Mercúrio Vênus Marte planetas pessoais dignidades debilidades {request.mercurySign or ''} {request.venusSign or ''} {request.marsSign or ''}",
+            'houses': f"casas astrológicas regentes casas Casa 2 Casa 4 Casa 6 Casa 7 Casa 10 vocação finanças relacionamentos",
+            'karma': f"Júpiter Saturno Nodo Norte Sul karma evolução {request.northNodeSign or ''} Quíron Lilith propósito vida",
+            'synthesis': f"síntese mapa astral integração stelliums trígonos quadraturas dignidades exaltação queda exílio"
         }
         
         query = search_queries.get(request.section, "interpretação mapa astral")
@@ -1859,15 +1848,15 @@ def generate_full_birth_chart(
     Gera o Mapa Astral Completo com todas as seções.
     
     Esta é a análise mais completa do sistema, gerando:
-    1. A Tríade da Personalidade
-    2. Raízes e Vida Privada
-    3. Carma, Desafios e Evolução
-    4. Carreira, Vocação e Dinheiro
-    5. O Jeito de Amar e Relacionar
-    6. Síntese Final e Orientações
+    1. A Estrutura de Poder (Temperamento e Motivação)
+    2. A Tríade Fundamental (O Núcleo da Personalidade)
+    3. Dinâmica Pessoal e Ferramentas (Planetas Pessoais)
+    4. Análise Setorial Avançada (Vida Prática e Casas)
+    5. Expansão, Estrutura e Karma (Planetas Sociais e Transpessoais)
+    6. Síntese e Orientação Estratégica
     """
     try:
-        sections_to_generate = ['triad', 'roots', 'karma', 'career', 'love', 'synthesis']
+        sections_to_generate = ['power', 'triad', 'personal', 'houses', 'karma', 'synthesis']
         generated_sections = []
         
         for section in sections_to_generate:

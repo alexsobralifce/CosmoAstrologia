@@ -76,11 +76,11 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
   const formatDescription = (text: string): React.ReactNode => {
     if (!text) return null;
 
-    // Dividir por linhas duplas (parágrafos)
+    // Dividir por linhas duplas (parágrafos), mas manter estrutura
     const sections = text.split(/\n\n+/);
     
     return (
-      <div>
+      <div className="transits-transit-description-container">
         {sections.map((section, index) => {
           const trimmed = section.trim();
           if (!trimmed) return null;
@@ -96,12 +96,12 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
               const isExamples = title.toLowerCase().includes('exemplo') || title.toLowerCase().includes('prático');
               
               return (
-                <div key={index} style={{ marginBottom: '1.5rem' }}>
+                <div key={index} className="transits-description-section">
                   <h4 className={`transits-transit-description-title ${isExamples ? 'transits-examples-title' : ''}`}>
                     {title}
                   </h4>
                   {content && (
-                    <div className={isExamples ? 'transits-examples-container' : 'transits-transit-description-paragraph'}>
+                    <div className={isExamples ? 'transits-examples-container' : ''}>
                       {content.split('\n').map((line, lineIndex) => {
                         const trimmedLine = line.trim();
                         if (!trimmedLine) return null;
@@ -141,21 +141,24 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
             }
           }
 
-          // Parágrafo normal
+          // Parágrafo normal (sem título)
           return (
-            <div key={index}>
+            <div key={index} className="transits-description-section">
               {trimmed.split('\n').map((line, lineIndex) => {
+                const trimmedLine = line.trim();
+                if (!trimmedLine) return null;
+                
                 // Verificar se é um bullet point
-                if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+                if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
                   return (
                     <p key={lineIndex} className="transits-transit-description-list-item" style={{ marginLeft: '1rem' }}>
-                      {line.trim()}
+                      {trimmedLine}
                     </p>
                   );
                 }
                 return (
                   <p key={lineIndex} className="transits-transit-description-paragraph">
-                    {line.trim()}
+                    {trimmedLine}
                   </p>
                 );
               })}

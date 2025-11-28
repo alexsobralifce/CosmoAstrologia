@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+import re
 from app.core.database import get_db
 from app.services.rag_service import get_rag_service
 from app.services.transits_calculator import calculate_future_transits
@@ -50,12 +51,23 @@ def get_interpretation(
     """
     Obtém interpretação astrológica baseada nos parâmetros fornecidos.
     
+    NOTA: Para interpretação de planetas, use o endpoint específico /interpretation/planet
+    que usa um prompt prático e menos técnico.
+    
+    Este endpoint é para queries genéricas ou aspectos, não para planetas individuais.
+    
     Exemplos de uso:
-    - planet="Sol", sign="Libra" → Interpretação de Sol em Libra
-    - planet="Mercúrio", house=3 → Interpretação de Mercúrio na Casa 3
+    - aspect="conjunção Sol Lua" → Interpretação de aspecto
     - custom_query="ascendente em aquário" → Query customizada
     """
     try:
+        # Redirecionar interpretações de planetas para o endpoint específico
+        if request.planet and request.sign and not request.custom_query and not request.aspect:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Para interpretação de planetas, use o endpoint específico: /api/interpretation/planet"
+            )
+        
         rag_service = get_rag_service()
         
         interpretation = rag_service.get_interpretation(
@@ -73,6 +85,8 @@ def get_interpretation(
             query_used=interpretation['query_used'],
             generated_by=interpretation.get('generated_by', 'unknown')
         )
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[ERROR] Erro na interpretação: {e}")
         return InterpretationResponse(
@@ -342,6 +356,109 @@ class PlanetInterpretationRequest(BaseModel):
     planet: str
     sign: Optional[str] = None
     house: Optional[int] = None
+    # Dados adicionais do mapa astral para contexto
+    sunSign: Optional[str] = None
+    moonSign: Optional[str] = None
+    ascendant: Optional[str] = None
+    userName: Optional[str] = None
+
+
+def _generate_planet_prompt(
+    planet: str,
+    sign: str,
+    house: Optional[int],
+    sunSign: Optional[str] = None,
+    moonSign: Optional[str] = None,
+    ascendant: Optional[str] = None,
+    userName: Optional[str] = None
+) -> tuple[str, str]:
+    """Gera prompt prático e menos técnico para interpretação de planetas."""
+    
+    # Contexto básico do mapa
+    context_parts = []
+    if sunSign:
+        context_parts.append(f"Sol em {sunSign}")
+    if moonSign:
+        context_parts.append(f"Lua em {moonSign}")
+    if ascendant:
+        context_parts.append(f"Ascendente em {ascendant}")
+    
+    context_str = "\n".join([f"- {part}" for part in context_parts]) if context_parts else "Mapa astral completo"
+    
+    # Nome para personalizar
+    name_str = userName if userName else "você"
+    
+    system_prompt = """Você é um astrólogo experiente que escreve de forma clara, prática e acessível. Sua missão é ajudar pessoas a entenderem como a energia de cada planeta funciona na vida real, não com termos técnicos complexos, mas com exemplos do dia a dia.
+
+REGRAS DE ESCRITA:
+- Use linguagem simples e direta, como se estivesse conversando com um amigo
+- Evite jargões astrológicos técnicos (se usar, explique imediatamente)
+- Foque em como isso aparece na vida prática: relacionamentos, trabalho, personalidade, decisões
+- Use exemplos concretos e situações reais
+- Seja específico, não genérico
+- Escreva de forma acolhedora e encorajadora
+- Use parágrafos curtos e bem estruturados"""
+    
+    house_text = f" na Casa {house}" if house else ""
+    
+    user_prompt = f"""MAPA ASTRAL DE {name_str.upper() if userName else 'VOCÊ'}:
+
+CONTEXTO DO MAPA:
+{context_str}
+
+PLANETA ANALISADO:
+{planet} em {sign}{house_text}
+
+---
+
+INSTRUÇÕES:
+Crie uma interpretação PRÁTICA e ACESSÍVEL sobre o que significa ter {planet} em {sign}{house_text} no mapa astral. 
+
+A interpretação DEVE ter esta estrutura:
+
+**1. O QUE ISSO SIGNIFICA NA PRÁTICA** (1-2 parágrafos):
+- Explique de forma simples e direta o que esse planeta representa na vida da pessoa
+- Como essa energia aparece no dia a dia
+- Características pessoais que isso revela
+- Use linguagem cotidiana, não técnica
+
+**2. PONTOS FORTES E TALENTOS** (1 parágrafo):
+- O que a pessoa faz bem naturalmente por causa dessa posição
+- Talentos que isso revela
+- Qualidades positivas dessa configuração
+
+**3. DESAFIOS E CRESCIMENTO** (1 parágrafo):
+- Áreas onde pode haver dificuldades ou aprendizado
+- Padrões que podem ser transformados
+- Oportunidades de desenvolvimento pessoal
+
+**4. EXEMPLOS PRÁTICOS** (OBRIGATÓRIO - pelo menos 2 exemplos concretos):
+- Situações reais do dia a dia onde isso aparece
+- Como isso se manifesta em relacionamentos, trabalho, decisões
+- Exemplos específicos de comportamento, escolhas ou experiências
+
+EXEMPLO DE COMO DEVE SER ESCRITO:
+
+Se fosse Sol em Leão na Casa 5:
+"Ter o Sol em Leão na Casa 5 significa que você brilha através da criatividade e da expressão autêntica. É como se você tivesse uma necessidade natural de se mostrar, de ser reconhecido pelo que cria e pelo jeito único que você tem de ver o mundo.
+
+**O QUE ISSO SIGNIFICA NA PRÁTICA:**
+Você é alguém que precisa se sentir especial e valorizado. Não é egoísmo - é uma necessidade genuína de brilhar. Na prática, isso aparece quando você está em situações onde pode se expressar livremente: apresentações no trabalho, projetos criativos, ou mesmo em conversas onde você pode compartilhar suas ideias.
+
+**EXEMPLOS PRÁTICOS:**
+1. No trabalho, você se destaca em apresentações ou projetos onde pode usar sua criatividade. Por exemplo, se trabalha com marketing, você naturalmente cria campanhas que chamam atenção porque entende intuitivamente o que as pessoas querem ver e ouvir.
+
+2. Em relacionamentos, você valoriza parceiros que te admira e celebra suas conquistas. Um parceiro que simplesmente 'aceita' você não é suficiente - você precisa de alguém que realmente te veja e valorize sua essência única."
+
+IMPORTANTE:
+- Escreva NO MÍNIMO 4 parágrafos completos
+- Use "você" para se dirigir diretamente à pessoa
+- Seja específico e prático, não genérico
+- Inclua pelo menos 2 exemplos concretos e aplicáveis
+- Evite termos técnicos - se usar, explique imediatamente
+- Foque em como isso aparece na vida real, não em teorias astrológicas"""
+    
+    return system_prompt, user_prompt
 
 
 @router.post("/interpretation/planet")
@@ -350,13 +467,17 @@ def get_planet_interpretation(
     authorization: Optional[str] = Header(None)
 ):
     """
-    Obtém interpretação de um planeta em um signo ou casa usando RAG + Groq.
+    Obtém interpretação prática e acessível de um planeta no mapa astral.
     
     Body:
     {
         "planet": "Sol",
         "sign": "Libra",
-        "house": 5  # opcional
+        "house": 5,
+        "sunSign": "Áries",
+        "moonSign": "Touro",
+        "ascendant": "Leão",
+        "userName": "João"
     }
     """
     try:
@@ -372,28 +493,168 @@ def get_planet_interpretation(
                 detail="Planeta é obrigatório"
             )
         
-        # Construir query para RAG
-        query_parts = [planet]
-        if sign:
-            query_parts.append(f"em {sign}")
+        if not sign:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Signo é obrigatório"
+            )
+        
+        # Buscar contexto do RAG primeiro
+        query_parts = [f"{planet} em {sign}"]
         if house:
             query_parts.append(f"casa {house}")
         
         query = " ".join(query_parts)
+        results = rag_service.search(query, top_k=10, expand_query=True)
         
-        # Buscar no RAG e gerar com Groq
-        interpretation = rag_service.get_interpretation(
+        # Preparar contexto dos documentos
+        context_text = "\n\n".join([
+            doc.get('text', '')
+            for doc in results[:8]  # Usar até 8 documentos
+            if doc.get('text')
+        ])
+        
+        # Gerar prompt prático NOVO (não o antigo)
+        print(f"[PLANET API] Gerando novo prompt prático para {planet} em {sign}")
+        system_prompt, user_prompt = _generate_planet_prompt(
             planet=planet,
             sign=sign,
             house=house,
-            use_groq=True
+            sunSign=request.sunSign,
+            moonSign=request.moonSign,
+            ascendant=request.ascendant,
+            userName=request.userName
         )
+        print(f"[PLANET API] Prompt gerado - system_prompt length: {len(system_prompt)}, user_prompt length: {len(user_prompt)}")
+        print(f"[PLANET API] Preview do user_prompt (primeiros 500 chars): {user_prompt[:500]}")
+        
+        # Se tem contexto do RAG, adicionar ao prompt
+        if context_text and len(context_text.strip()) > 50:
+            user_prompt += f"\n\nCONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:\n{context_text[:2000]}"
+            print(f"[PLANET API] Contexto do RAG adicionado ({len(context_text)} chars)")
+        
+        # Gerar interpretação com Groq usando o novo prompt prático (se disponível)
+        if rag_service.groq_client:
+            try:
+                print(f"[PLANET API] Gerando interpretação com novo prompt prático para {planet} em {sign}")
+                print(f"[PLANET API] Contexto do mapa: Sol={request.sunSign}, Lua={request.moonSign}, Asc={request.ascendant}")
+                
+                chat_completion = rag_service.groq_client.chat.completions.create(
+                    model="llama-3.1-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000
+                )
+                
+                interpretation_text = chat_completion.choices[0].message.content
+                
+                # Limpar interpretação
+                interpretation_clean = interpretation_text.strip()
+                interpretation_clean = interpretation_clean.replace('[Fonte:', '')
+                interpretation_clean = re.sub(r'Página \d+', '', interpretation_clean)
+                interpretation_clean = interpretation_clean.strip()
+                
+                print(f"[PLANET API] Interpretação gerada com sucesso (tamanho: {len(interpretation_clean)} chars)")
+                
+                return {
+                    "interpretation": interpretation_clean,
+                    "sources": [
+                        {
+                            "source": r.get('source', 'knowledge_base'),
+                            "page": r.get('page', 1),
+                            "relevance": r.get('score', 0.5)
+                        }
+                        for r in results[:5]
+                    ],
+                    "query_used": query,
+                    "generated_by": "groq"
+                }
+            except Exception as e:
+                import traceback
+                error_msg = str(e)
+                traceback_str = traceback.format_exc()
+                print(f"[ERROR] Erro ao gerar com Groq usando novo prompt: {error_msg}")
+                print(f"[ERROR] Traceback completo:\n{traceback_str}")
+                # Continuar para fallback ao invés de retornar erro
+                print(f"[PLANET API] Continuando com fallback sem Groq...")
+        
+        # FALLBACK: Gerar interpretação básica usando apenas contexto do RAG
+        print(f"[PLANET API] Usando fallback: gerando interpretação sem Groq para {planet} em {sign}")
+        
+        # Criar interpretação básica baseada no contexto do RAG
+        # Extrair informações relevantes do contexto para tornar o fallback mais útil
+        import re
+        relevant_info = ""
+        if context_text and len(context_text.strip()) > 50:
+            # Tentar extrair parágrafos relevantes do contexto
+            sentences = context_text.split('.')
+            relevant_sentences = [s.strip() for s in sentences 
+                                if planet.lower() in s.lower() or sign.lower() in s.lower() 
+                                or (house and f'casa {house}' in s.lower())]
+            if relevant_sentences:
+                relevant_info = '. '.join(relevant_sentences[:3])[:400]
+        
+        if context_text and len(context_text.strip()) > 50:
+            # Usar contexto do RAG para criar interpretação básica mais rica
+            interpretation_clean = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
+
+Ter {planet} em {sign}{f' na Casa {house}' if house else ''} no seu mapa astral revela aspectos importantes da sua personalidade e jornada de vida. {planet} representa transformação profunda, enquanto {sign} busca equilíbrio e harmonia. {f'Na Casa {house},' if house else 'No mapa,'} isso se manifesta de forma particular nas áreas relacionadas a{' transformação e recursos compartilhados' if house == 8 else ' sua vida pessoal'}.
+
+**PONTOS FORTES E TALENTOS:**
+
+Esta configuração indica talentos e qualidades que você desenvolve naturalmente. {planet} em {sign} sugere uma capacidade única de transformar relacionamentos e buscar profundidade através da diplomacia e do equilíbrio. Você tem potencial para mudanças significativas mantendo harmonia nas suas conexões.
+
+**DESAFIOS E CRESCIMENTO:**
+
+Como todos os posicionamentos astrológicos, este também apresenta oportunidades de aprendizado. {planet} pode trazer intensidade às suas relações, enquanto {sign} busca harmonia - encontrar o equilíbrio entre essas duas energias é parte do seu crescimento pessoal.
+
+**EXEMPLOS PRÁTICOS:**
+
+1. Em relacionamentos, você pode buscar conexões profundas e transformadoras, mas sempre com respeito ao equilíbrio. Você tem a capacidade de ajudar parceiros a se transformarem, mas precisa cuidar para não impor suas próprias necessidades de mudança.
+
+2. {f'Na área da Casa {house},' if house else 'Nas áreas da vida,'} você pode encontrar transformações significativas relacionadas a processos profundos e renascimento pessoal.
+
+---
+
+*Interpretação gerada com base no conhecimento astrológico disponível.*"""
+        else:
+            # Mensagem mais simples se não houver contexto do RAG
+            interpretation_clean = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
+
+{planet} em {sign}{f' na Casa {house}' if house else ''} é uma configuração importante no seu mapa astral que revela aspectos significativos da sua personalidade e jornada.
+
+**PONTOS FORTES E TALENTOS:**
+
+Esta posição indica qualidades únicas que você pode desenvolver e utilizar ao longo da sua vida.
+
+**DESAFIOS E CRESCIMENTO:**
+
+Cada posicionamento astrológico traz oportunidades de aprendizado e desenvolvimento pessoal.
+
+**EXEMPLOS PRÁTICOS:**
+
+1. Esta configuração se manifesta de formas particulares nas diferentes áreas da sua vida.
+2. Observe como essa energia aparece nos seus relacionamentos, trabalho e desenvolvimento pessoal.
+
+---
+
+*Interpretação básica gerada. Para uma análise completa, recomenda-se configurar o serviço Groq ou consultar um astrólogo profissional.*"""
         
         return {
-            "interpretation": interpretation['interpretation'],
-            "sources": interpretation['sources'],
-            "query_used": interpretation['query_used'],
-            "generated_by": interpretation.get('generated_by', 'rag_only')
+            "interpretation": interpretation_clean,
+            "sources": [
+                {
+                    "source": r.get('source', 'knowledge_base'),
+                    "page": r.get('page', 1),
+                    "relevance": r.get('score', 0.5)
+                }
+                for r in results[:5]
+            ],
+            "query_used": query,
+            "generated_by": "rag_only"
         }
         
     except ValueError as e:
@@ -1115,7 +1376,9 @@ Não faça listas soltas de significados. Eu quero uma NARRATIVA que conecte os 
 4. Use exemplos práticos para ilustrar
 5. Trate a pessoa diretamente usando "você"
 6. Explique termos astrológicos de forma simples quando usá-los
-7. Sempre priorize a PSICOLOGIA DO INDIVÍDUO antes de entrar em previsões ou carmas"""
+7. Sempre priorize a PSICOLOGIA DO INDIVÍDUO antes de entrar em previsões ou carmas
+8. NÃO inclua código Python, blocos de código ou períodos orbitais dos planetas - isso não é relevante para interpretação astrológica
+9. NÃO inclua informações sobre Astrologia Védica, Jyotish, zodíaco Sideral, Dasas, Vargas ou diferenças entre Tropical e Sideral"""
 
 
 def _get_full_chart_context(request: FullBirthChartRequest, lang: str = 'pt') -> str:

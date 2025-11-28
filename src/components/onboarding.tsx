@@ -28,27 +28,37 @@ export interface OnboardingData {
   // Dados calculados do mapa astral
   sunSign?: string;
   sunDegree?: number;
+  sunHouse?: number;
   moonSign?: string;
   moonDegree?: number;
+  moonHouse?: number;
   ascendant?: string;
   ascendantDegree?: number;
   // Planetas
   mercurySign?: string;
   mercuryDegree?: number;
+  mercuryHouse?: number;
   venusSign?: string;
   venusDegree?: number;
+  venusHouse?: number;
   marsSign?: string;
   marsDegree?: number;
+  marsHouse?: number;
   jupiterSign?: string;
   jupiterDegree?: number;
+  jupiterHouse?: number;
   saturnSign?: string;
   saturnDegree?: number;
+  saturnHouse?: number;
   uranusSign?: string;
   uranusDegree?: number;
+  uranusHouse?: number;
   neptuneSign?: string;
   neptuneDegree?: number;
+  neptuneHouse?: number;
   plutoSign?: string;
   plutoDegree?: number;
+  plutoHouse?: number;
   // Meio do Céu
   midheavenSign?: string;
   midheavenDegree?: number;

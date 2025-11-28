@@ -403,6 +403,10 @@ class ApiService {
     planet: string;
     sign?: string;
     house?: number;
+    sunSign?: string;
+    moonSign?: string;
+    ascendant?: string;
+    userName?: string;
   }): Promise<{
     interpretation: string;
     sources: Array<{

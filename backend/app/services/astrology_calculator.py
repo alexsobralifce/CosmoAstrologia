@@ -24,6 +24,16 @@ PLANET_DISPLAY_NAMES = {
 
 MIDHEAVEN_CONJUNCTION_ORB = 5.0  # graus de orbe para conjunções com o MC
 
+# Períodos orbitais dos planetas em anos terrestres
+# Usado para calcular retornos planetários e ciclos críticos
+PERIODOS_ORBITAIS = {
+    'Saturno': 29.5,   # anos - Retorno de Saturno ~28-30 anos
+    'Júpiter': 11.86,  # anos - Retorno de Júpiter ~12 anos
+    'Urano': 84.0,     # anos - Oposição de Urano ~42 anos (84/2)
+    'Netuno': 164.8,   # anos - Ciclo geracional muito longo
+    'Plutão': 248.0    # anos - Ciclo geracional extremamente longo
+}
+
 
 def get_zodiac_sign(longitude: float) -> Dict[str, any]:
     """Converte longitude eclíptica em signo e grau."""

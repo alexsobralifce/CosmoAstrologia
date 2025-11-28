@@ -183,18 +183,6 @@ analise_ciclos.py
   - Datas de retorno baseadas em períodos orbitais
   - Status do ciclo baseado na idade
 
-### Períodos Orbitais:
-
-```python
-PERIODOS_ORBITAIS = {
-    'Saturno': 29.5,   # anos
-    'Júpiter': 11.86,  # anos
-    'Urano': 84.0,     # anos
-    'Netuno': 164.8,   # anos
-    'Plutão': 248.0    # anos
-}
-```
-
 ---
 
 ## 📊 Exemplo de Uso

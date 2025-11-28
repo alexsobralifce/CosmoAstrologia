@@ -24,7 +24,12 @@
 
 ### Planetas Transpessoais (Geracionais): Urano, Netuno, Plutão
 
-**Urano**: Traz inovação, independência e revoluções pessoais. Indica onde buscamos liberdade para experimentar novos caminhos. Rege Aquário. Exaltado em Escorpião, em detrimento em Leão, queda em Touro.
+**Urano (Planeta da Liberdade / Despertador Cósmico)**: 
+- **Essência**: Revolução, liberdade, mudanças súbitas, autenticidade, inovação
+- **Apelido**: "O Despertador Cósmico" - quebra padrões obsoletos e acorda para o novo
+- **Função**: Indica onde buscamos liberdade para experimentar novos caminhos e onde rompemos com convenções. Rege mudanças súbitas e autenticidade. Quebra padrões obsoletos.
+- **Características**: Mudanças inesperadas, revoluções pessoais, necessidade de independência, mente superior, originalidade
+- **Dignidades**: Rege Aquário. Exaltado em Escorpião, em detrimento em Leão, queda em Touro.
 
 **Netuno**: Fala sobre imaginação, espiritualidade e compaixão. Aponta áreas onde buscamos transcendência e conexão com o invisível. Rege Peixes. Exaltado em Leão, em detrimento em Virgem, queda em Capricórnio.
 
@@ -40,9 +45,11 @@
 
 **Fundo do Céu (IC)**: O ponto oposto ao MC, cúspide da Casa 4. Representa raízes, família de origem, lar e vida privada. Mostra onde ancoramos nossa vida interior.
 
-**Nodo Norte Lunar**: Ponto de crescimento e evolução. Indica direção do dharma, missão de vida e qualidades a desenvolver. Representa o futuro e o caminho de expansão.
+**Nodo Norte Lunar (Cabeça do Dragão)**: Ponto de crescimento e evolução. Indica direção do dharma, missão de vida e qualidades a desenvolver. Representa o futuro e o caminho de expansão. Sempre está oposto ao Nodo Sul (180°).
 
-**Nodo Sul Lunar**: Ponto de karma e padrões passados. Indica talentos já desenvolvidos, hábitos familiares e áreas de conforto. Representa o passado e padrões a transcender.
+**Nodo Sul Lunar (Cauda do Dragão)**: Ponto de karma e padrões passados. Indica talentos já desenvolvidos, hábitos familiares e áreas de conforto. Representa o passado e padrões a transcender. Não é "ruim" - mostra habilidades naturais que devem ser usadas como base para evoluir na direção do Nodo Norte.
+
+⚠️ **IMPORTANTE**: Os nodos sempre formam um eixo e devem ser interpretados em conjunto. Para guia completo e exemplos práticos, consulte: `NODOS_LUNARES_GUIA_COMPLETO.md`
 
 **Lilith (Lua Negra)**: Ponto de rebeldia, sexualidade autêntica e poder feminino. Indica onde rejeitamos convenções e expressamos nossa natureza selvagem. Mostra áreas de independência e autenticidade.
 
@@ -225,26 +232,69 @@ Foco em arquétipos junguianos, desenvolvimento pessoal e livre arbítrio. Enfat
 
 ### Astrologia Tradicional/Helenística
 
-Foco em destino, condições planetárias e técnicas clássicas. Usa apenas 7 planetas clássicos (Sol, Lua, Mercúrio, Vênus, Marte, Júpiter, Saturno). Enfatiza dignidades essenciais e acidentais, seitas (diurna/noturna) e técnicas de previsão tradicionais.
+Foco em destino, condições planetárias e técnicas clássicas. Usa apenas **7 planetas clássicos** (Sol, Lua, Mercúrio, Vênus, Marte, Júpiter, Saturno). Enfatiza dignidades essenciais e acidentais, seitas (diurna/noturna) e técnicas de previsão tradicionais.
 
-**Dignidades Essenciais**: 
-- Domicílio: Planeta em seu signo regente
-- Exaltação: Planeta em signo onde está exaltado
-- Detrimento: Planeta em signo oposto ao domicílio
-- Queda: Planeta em signo oposto à exaltação
+#### Dignidades Essenciais (Força do Planeta no Signo)
 
-**Dignidades Acidentais**:
-- Casa angular (1, 4, 7, 10): +5 pontos
-- Casa sucedente (2, 5, 8, 11): +4 pontos
-- Casa cadente (3, 6, 9, 12): +3 pontos
-- Aspectos com luminares: +2 pontos
-- Retrogradação: -5 pontos
+As dignidades essenciais indicam o **poder e capacidade** de um planeta expressar suas qualidades, baseado na relação entre planeta e signo:
 
-### Astrologia Védica (Jyotish)
+**1. Domicílio (Força Máxima)**: 
+- Planeta em seu próprio signo regente
+- Exemplo: Sol em Leão, Lua em Câncer, Marte em Áries
+- Significado: Planeta está "em casa", expressa suas qualidades naturalmente
 
-Usa o zodíaco Sideral (diferente do Tropical ocidental, deslocado em ~24 graus). Enfatiza Dasas (períodos planetários), divisões de casas (Vargas) e técnicas específicas. Foco em karma e destino.
+**2. Exaltação (Força Muito Alta)**:
+- Planeta em signo onde está exaltado (mais forte)
+- Exemplo: Sol em Áries, Lua em Touro, Marte em Capricórnio
+- Significado: Planeta funciona de forma ideal, com qualidades amplificadas
 
-**Diferença Tropical vs Sideral**: O zodíaco Tropical é baseado nas estações, o Sideral é baseado nas estrelas fixas. Atualmente há diferença de aproximadamente 24 graus entre os dois sistemas.
+**3. Detrimento (Força Baixa)**:
+- Planeta em signo oposto ao seu domicílio
+- Exemplo: Sol em Aquário (oposto a Leão), Lua em Capricórnio (oposto a Câncer)
+- Significado: Planeta está "fora de casa", precisa se adaptar, mas não é impossível
+
+**4. Queda (Força Muito Baixa)**:
+- Planeta em signo oposto à sua exaltação
+- Exemplo: Sol em Libra (oposto a Áries), Lua em Escorpião (oposto a Touro)
+- Significado: Planeta tem dificuldade, mas pode aprender lições importantes
+
+**Exemplo Prático:**
+- Marte em Áries (Domicílio) = Ação direta, coragem natural, liderança instintiva
+- Marte em Capricórnio (Exaltação) = Ação disciplinada, ambição estruturada, coragem estratégica
+- Marte em Libra (Detrimento) = Ação hesitante, precisa pensar antes de agir, busca harmonia
+- Marte em Câncer (Queda) = Ação emocional, reatividade, dificuldade em ser assertivo
+
+#### Dignidades Acidentais (Força do Planeta pela Posição)
+
+As dignidades acidentais indicam o **poder do planeta pela posição** no mapa (casa, aspectos, etc.):
+
+**Sistema de Pontos (Força Relativa)**:
+
+- **Casa Angular (1, 4, 7, 10)**: +5 pontos
+  - Planeta tem força para agir e se manifestar no mundo
+  
+- **Casa Sucedente (2, 5, 8, 11)**: +4 pontos
+  - Planeta tem estabilidade e recursos para se desenvolver
+  
+- **Casa Cadente (3, 6, 9, 12)**: +3 pontos
+  - Planeta tem força interna, mas menos visível externamente
+
+- **Aspectos com Luminares (Sol/Lua)**: +2 pontos cada
+  - Planeta recebe apoio dos luminares, tem destaque no mapa
+
+- **Retrogradação**: -5 pontos
+  - Planeta funciona de forma introspectiva, menos direta
+
+**Exemplo de Cálculo:**
+- Vênus em Touro (Domicílio = força base alta) na Casa 7 (Angular = +5) em trígono com Sol (+2) = Vênus muito forte e harmonioso
+- Marte em Libra (Detrimento = força base baixa) na Casa 12 (Cadente = +3) retrógrado (-5) = Marte muito fraco, energia reprimida
+
+#### Seitas (Diurna/Noturna)
+
+Na astrologia tradicional, os planetas podem estar em **secta diurna ou noturna**:
+- **Secta Diurna**: Sol, Júpiter, Saturno funcionam melhor em mapas diurnos (Sol acima do horizonte)
+- **Secta Noturna**: Lua, Vênus, Marte funcionam melhor em mapas noturnos (Sol abaixo do horizonte)
+- Mercúrio é neutro e se adapta
 
 ### Astrologia Mundana
 

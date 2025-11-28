@@ -1,0 +1,13 @@
+# Arquivos que não devem ser enviados ao Vercel
+node_modules/
+.env
+.env.local
+.env.production
+backend/
+*.log
+*.db
+*.pkl
+venv/
+.venv/
+__pycache__/
+*.pyc

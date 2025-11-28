@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.core.database import get_db
 from app.services.rag_service import get_rag_service
 from app.services.transits_calculator import calculate_future_transits
@@ -255,7 +255,32 @@ def get_future_transits(
         # Formatar resposta
         formatted_transits = []
         for transit in enriched_transits:
-            transit_date = datetime.fromisoformat(transit['date'])
+            try:
+                transit_date = datetime.fromisoformat(transit['date'])
+            except (KeyError, ValueError, TypeError):
+                print(f"[WARNING] Erro ao processar data do trânsito: {transit.get('date', 'N/A')}")
+                continue
+            
+            # Tentar obter start_date e end_date, com fallback
+            try:
+                start_date = datetime.fromisoformat(transit.get('start_date', transit['date']))
+            except (KeyError, ValueError, TypeError):
+                start_date = transit_date
+            
+            try:
+                end_date = datetime.fromisoformat(transit.get('end_date', transit['date']))
+            except (KeyError, ValueError, TypeError):
+                # Se não tiver end_date, estimar baseado no tipo de aspecto
+                duration_days = {
+                    'conjunção': 30,
+                    'sextil': 20,
+                    'quadratura': 25,
+                    'trígono': 20,
+                    'oposição': 30
+                }
+                aspect_type = transit.get('aspect_type', 'conjunção')
+                estimated_duration = duration_days.get(aspect_type, 30)
+                end_date = start_date + timedelta(days=estimated_duration)
             
             # Determinar tipo para o frontend
             transit_type_map = {
@@ -276,25 +301,36 @@ def get_future_transits(
             if transit['transit_type'] == 'saturn-return':
                 transit_type = 'saturn-return'
             
-            # Formatar timeframe
-            from datetime import timedelta
-            end_date = transit_date + timedelta(days=90)  # Aproximação de 3 meses
+            # Formatar timeframe com datas reais
             months_pt = [
                 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
             ]
-            timeframe = f"{months_pt[transit_date.month - 1]} {transit_date.year} - {months_pt[end_date.month - 1]} {end_date.year}"
+            timeframe = f"{months_pt[start_date.month - 1]} {start_date.year} - {months_pt[end_date.month - 1]} {end_date.year}"
+            
+            # Mapear tipo de aspecto para português
+            aspect_type_pt = {
+                'conjunção': 'Conjunção',
+                'sextil': 'Sextil',
+                'quadratura': 'Quadratura',
+                'trígono': 'Trígono',
+                'oposição': 'Oposição'
+            }
+            aspect_type_display = aspect_type_pt.get(transit['aspect_type'], transit['aspect_type'].capitalize())
             
             formatted_transits.append({
-                'id': f"{transit['planet']}-{transit['natal_point']}-{transit_date.isoformat()}",
+                'id': f"{transit['planet']}-{transit['natal_point']}-{start_date.isoformat()}",
                 'type': transit_type,
                 'title': transit['title'],
                 'planet': transit['planet'],
                 'timeframe': timeframe,
                 'description': transit['description'],
                 'isActive': transit['is_active'],
-                'date': transit['date'],
+                'date': start_date.isoformat(),
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat(),
                 'aspect_type': transit['aspect_type'],
+                'aspect_type_display': aspect_type_display,
                 'natal_point': transit['natal_point']
             })
         

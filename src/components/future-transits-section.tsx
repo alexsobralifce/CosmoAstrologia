@@ -13,6 +13,11 @@ interface Transit {
   timeframe: string;
   description: string;
   isActive?: boolean;
+  start_date?: string;
+  end_date?: string;
+  aspect_type?: string;
+  aspect_type_display?: string;
+  natal_point?: string;
 }
 
 interface FutureTransitsSectionProps {
@@ -53,6 +58,90 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
   const [transits, setTransits] = useState<Transit[]>(defaultTransits);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Função para formatar data
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+      return `${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Função para formatar texto da descrição (markdown simples)
+  const formatDescription = (text: string): React.ReactNode => {
+    if (!text) return null;
+
+    // Dividir por linhas duplas (parágrafos)
+    const sections = text.split(/\n\n+/);
+    
+    return (
+      <div className="space-y-4">
+        {sections.map((section, index) => {
+          const trimmed = section.trim();
+          if (!trimmed) return null;
+
+          // Verificar se é um título (começa com **)
+          if (trimmed.startsWith('**') && trimmed.includes('**')) {
+            const titleMatch = trimmed.match(/\*\*(.+?)\*\*/);
+            if (titleMatch) {
+              const title = titleMatch[1];
+              const content = trimmed.replace(/\*\*(.+?)\*\*/, '').trim();
+              return (
+                <div key={index} className="mb-4">
+                  <h4 className="font-semibold text-foreground mb-2 text-base">{title}</h4>
+                  {content && (
+                    <div className="space-y-2">
+                      {content.split('\n').map((line, lineIndex) => {
+                        // Verificar se é um bullet point
+                        if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+                          return (
+                            <p key={lineIndex} className="text-sm text-foreground/90 ml-4 leading-relaxed">
+                              {line.trim()}
+                            </p>
+                          );
+                        }
+                        return (
+                          <p key={lineIndex} className="text-sm text-foreground/90 leading-relaxed">
+                            {line.trim()}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+          }
+
+          // Parágrafo normal
+          return (
+            <div key={index} className="space-y-2">
+              {trimmed.split('\n').map((line, lineIndex) => {
+                // Verificar se é um bullet point
+                if (line.trim().startsWith('•') || line.trim().startsWith('-')) {
+                  return (
+                    <p key={lineIndex} className="text-sm text-foreground/90 ml-4 leading-relaxed">
+                      {line.trim()}
+                    </p>
+                  );
+                }
+                return (
+                  <p key={lineIndex} className="text-sm text-foreground/90 leading-relaxed">
+                    {line.trim()}
+                  </p>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   useEffect(() => {
     // Se transits foram passados como prop, usar eles
@@ -196,25 +285,34 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
                           )}
                           <div className="flex-1 min-w-0">
                             <h3 className="text-foreground font-semibold text-base mb-2">{transit.title}</h3>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Badge variant="outline" className={getTypeBadgeStyle(transit.type)}>
-                                📅 {transit.timeframe}
-                              </Badge>
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              {transit.aspect_type_display && (
+                                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                                  {transit.aspect_type_display}
+                                </Badge>
+                              )}
                               {transit.isActive && (
                                 <Badge variant="outline" className="bg-accent/20 text-accent border-accent/40">
                                   ⚡ Em Progresso
                                 </Badge>
                               )}
                             </div>
+                            {transit.start_date && transit.end_date && (
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <p><span className="font-medium">Início:</span> {formatDate(transit.start_date)}</p>
+                                <p><span className="font-medium">Término:</span> {formatDate(transit.end_date)}</p>
+                              </div>
+                            )}
+                            {!transit.start_date && transit.timeframe && (
+                              <p className="text-xs text-muted-foreground">📅 {transit.timeframe}</p>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Descrição - cor preta/foreground para melhor legibilidade */}
+                      {/* Descrição formatada */}
                       <div className="border-l-2 border-accent/30 pl-4 py-2 bg-muted/30 rounded-r-lg">
-                        <p className="text-sm text-foreground leading-relaxed">
-                          {transit.description}
-                        </p>
+                        {formatDescription(transit.description)}
                       </div>
 
                       {/* Tags do Tipo de Trânsito */}

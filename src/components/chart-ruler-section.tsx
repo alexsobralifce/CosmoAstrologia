@@ -27,6 +27,71 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
   const RulerIcon = planets.find(p => p.name === ruler)?.icon;
   const RulerSignIcon = zodiacSigns.find(z => z.name === rulerSign)?.icon;
 
+  // Função para formatar o texto organizando por tópicos
+  const formatTextByTopics = (text: string): React.ReactNode => {
+    if (!text) return null;
+
+    // Dividir o texto em parágrafos
+    const paragraphs = text.split('\n').filter(p => p.trim());
+    
+    // Identificar tópicos (números, bullets, títulos em negrito, etc.)
+    const formattedParagraphs: React.ReactNode[] = [];
+    
+    paragraphs.forEach((paragraph, index) => {
+      const trimmed = paragraph.trim();
+      if (!trimmed) return;
+
+      // Verificar se é um tópico numerado (1., 2., etc.)
+      const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s*(.+)$/);
+      // Verificar se é um bullet (-, •, etc.)
+      const bulletMatch = trimmed.match(/^[-•*]\s*(.+)$/);
+      // Verificar se é um título (texto em negrito ou em maiúsculas curtas)
+      const titleMatch = trimmed.match(/^([A-ZÁÊÇ][A-ZÁÊÇ\s]{2,30}):?\s*$/);
+      // Verificar se contém texto em negrito (markdown **texto**)
+      const boldMatch = trimmed.match(/\*\*(.+?)\*\*/);
+
+      if (numberedMatch) {
+        // Tópico numerado
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p className="text-foreground/90 leading-relaxed">
+              <span className="font-semibold text-foreground">{numberedMatch[1]}.</span> {numberedMatch[2]}
+            </p>
+          </div>
+        );
+      } else if (bulletMatch) {
+        // Tópico com bullet
+        formattedParagraphs.push(
+          <div key={index} className="mb-4 ml-4">
+            <p className="text-foreground/90 leading-relaxed">
+              <span className="text-accent mr-2">•</span> {bulletMatch[1]}
+            </p>
+          </div>
+        );
+      } else if (boldMatch || (titleMatch && trimmed.length < 50)) {
+        // Título ou texto em negrito
+        const content = boldMatch ? trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') : trimmed;
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p 
+              className="font-semibold text-foreground mb-2" 
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          </div>
+        );
+      } else {
+        // Parágrafo normal
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p className="text-foreground/90 leading-relaxed">{trimmed}</p>
+          </div>
+        );
+      }
+    });
+
+    return <div className="space-y-1">{formattedParagraphs}</div>;
+  };
+
   useEffect(() => {
     const fetchInterpretation = async () => {
       try {
@@ -214,13 +279,7 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
               </button>
             </div>
             <div className="prose prose-sm max-w-none text-foreground/90">
-              {detailedInterpretation.split('\n').map((paragraph, index) => (
-                paragraph.trim() && (
-                  <p key={index} className="mb-3 leading-relaxed">
-                    {paragraph.trim()}
-                  </p>
-                )
-              ))}
+              {formatTextByTopics(detailedInterpretation)}
             </div>
           </div>
         )}

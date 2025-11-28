@@ -477,6 +477,12 @@ class RAGService:
             raise ValueError("Cliente Groq não disponível")
         
         # Preparar contexto dos documentos (sem informações de fonte)
+        # Detectar se é consulta sobre sinastria/compatibilidade (ANTES de usar)
+        is_synastry_query = any(phrase in query.lower() for phrase in [
+            'sinastria', 'synastry', 'compatibilidade', 'compatibility', 
+            'relacionamento', 'relationship', 'casal', 'couple'
+        ])
+        
         context_text = "\n\n".join([
             doc.get('text', '')
             for doc in context_documents
@@ -514,12 +520,6 @@ Cada signo traz suas próprias necessidades, valores e formas de expressão. A c
         is_chart_ruler_query = any(phrase in query.lower() for phrase in [
             'regente do mapa', 'regente do ascendente', 'planeta regente', 
             'chart ruler', 'ruler of', 'ascendant ruler'
-        ])
-        
-        # Detectar se é consulta sobre sinastria/compatibilidade
-        is_synastry_query = any(phrase in query.lower() for phrase in [
-            'sinastria', 'synastry', 'compatibilidade', 'compatibility', 
-            'relacionamento', 'relationship', 'casal', 'couple'
         ])
         
         # Prompt específico para sinastria/compatibilidade
@@ -871,6 +871,10 @@ IMPORTANTE: O texto deve ser formatado de forma clara e didática, usando quebra
         is_karma_query = any(word in query_lower for word in ['nodo', 'karma', 'carma', 'passado', 'vidas passadas', 'retrógrado'])
         is_transit_query = any(word in query_lower for word in ['trânsito', 'transito', 'futuro', 'previsão', 'tendência'])
         is_aspect_query = any(word in query_lower for word in ['aspecto', 'conjunção', 'oposição', 'trígono', 'quadratura', 'sextil'])
+        is_synastry_query = any(phrase in query_lower for phrase in [
+            'sinastria', 'synastry', 'compatibilidade', 'compatibility', 
+            'relacionamento', 'relationship', 'casal', 'couple'
+        ])
         
         # Buscar mais documentos para ter contexto suficiente
         # Queries mais complexas precisam de mais contexto

@@ -8,6 +8,7 @@ import { FutureTransitsSection } from './future-transits-section';
 import { apiService } from '../services/api';
 import { useLanguage } from '../i18n';
 import { OnboardingData } from './onboarding';
+import { AstroCard } from './astro-card';
 
 // ===== VISÃO GERAL =====
 interface OverviewSectionProps {
@@ -33,6 +34,71 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
   };
 
   const chartRuler = rulerMap[ascendantSign] || 'Sol';
+
+  // Função para formatar o texto do regente organizando por tópicos
+  const formatChartRulerText = (text: string): React.ReactNode => {
+    if (!text) return null;
+
+    // Dividir o texto em parágrafos
+    const paragraphs = text.split('\n').filter(p => p.trim());
+    
+    // Identificar tópicos (números, bullets, títulos em negrito, etc.)
+    const formattedParagraphs: React.ReactNode[] = [];
+    
+    paragraphs.forEach((paragraph, index) => {
+      const trimmed = paragraph.trim();
+      if (!trimmed) return;
+
+      // Verificar se é um tópico numerado (1., 2., etc.)
+      const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s*(.+)$/);
+      // Verificar se é um bullet (-, •, etc.)
+      const bulletMatch = trimmed.match(/^[-•*]\s*(.+)$/);
+      // Verificar se é um título (texto em negrito ou em maiúsculas curtas)
+      const titleMatch = trimmed.match(/^([A-ZÁÊÇ][A-ZÁÊÇ\s]{2,30}):?\s*$/);
+      // Verificar se contém texto em negrito (markdown **texto**)
+      const boldMatch = trimmed.match(/\*\*(.+?)\*\*/);
+
+      if (numberedMatch) {
+        // Tópico numerado
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p className="text-foreground/80 leading-relaxed">
+              <span className="font-semibold text-foreground">{numberedMatch[1]}.</span> {numberedMatch[2]}
+            </p>
+          </div>
+        );
+      } else if (bulletMatch) {
+        // Tópico com bullet
+        formattedParagraphs.push(
+          <div key={index} className="mb-4 ml-4">
+            <p className="text-foreground/80 leading-relaxed">
+              <span className="text-primary mr-2">•</span> {bulletMatch[1]}
+            </p>
+          </div>
+        );
+      } else if (boldMatch || (titleMatch && trimmed.length < 50)) {
+        // Título ou texto em negrito
+        const content = boldMatch ? trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') : trimmed;
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p 
+              className="font-semibold text-foreground mb-2" 
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          </div>
+        );
+      } else {
+        // Parágrafo normal
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p className="text-foreground/80 leading-relaxed">{trimmed}</p>
+          </div>
+        );
+      }
+    });
+
+    return <div className="space-y-1">{formattedParagraphs}</div>;
+  };
 
   // Dados dos elementos baseados nos planetas
   const elementData = [
@@ -181,7 +247,9 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
               </p>
             </div>
           ) : (
-            <p className="text-foreground/80 leading-relaxed">{chartRulerInterpretation}</p>
+            <div className="text-foreground/80">
+              {formatChartRulerText(chartRulerInterpretation)}
+            </div>
           )}
         </div>
 
@@ -281,6 +349,77 @@ const FormattedPlanetInterpretation = ({
   // Dividir o texto em parágrafos
   const paragraphs = text.split(/\n\n+/).filter(p => p.trim());
 
+  // Agrupar por seção principal (PASSADO/KARMA, PRESENTE/ESSÊNCIA, etc.)
+  interface Section {
+    mainTitle: string;
+    mainTitleRaw: string;
+    subsections: Array<{
+      subTitle: string;
+      content: string;
+      color: string;
+    }>;
+  }
+
+  const sections: Section[] = [];
+  let currentSection: Section | null = null;
+
+  paragraphs.forEach((paragraph) => {
+    const trimmed = paragraph.trim();
+    
+    // Verificar se é um título principal (PASSADO/KARMA, PRESENTE/ESSÊNCIA, etc.)
+    const mainTitleMatch = trimmed.match(/^\*\*(PASSADO|PRESENTE|FUTURO|PAST|PRESENT|FUTURE)[\s\/]*(KARMA|ESSÊNCIA|EVOLUÇÃO|KARMA|ESSENCE|EVOLUTION)?\*\*\s*$/i);
+    
+    if (mainTitleMatch) {
+      // Salvar seção anterior se existir
+      if (currentSection && currentSection.subsections.length > 0) {
+        sections.push(currentSection);
+      }
+      
+      // Criar nova seção principal
+      currentSection = {
+        mainTitle: trimmed.replace(/^\*\*|\*\*$/g, ''),
+        mainTitleRaw: trimmed,
+        subsections: []
+      };
+    } else if (currentSection) {
+      // Identificar tipo de subseção
+      const lowerP = paragraph.toLowerCase();
+      let subTitle = language === 'pt' ? 'Análise' : 'Analysis';
+      let color = 'text-purple-500';
+      
+      if (lowerP.includes('personalidade') || lowerP.includes('personality') || lowerP.includes('essência') || lowerP.includes('essence')) {
+        subTitle = language === 'pt' ? 'Personalidade' : 'Personality';
+        color = 'text-blue-500';
+      } else if (lowerP.includes('desafio') || lowerP.includes('challenge') || lowerP.includes('dificuldade') || lowerP.includes('difficulty')) {
+        subTitle = language === 'pt' ? 'Desafios' : 'Challenges';
+        color = 'text-red-500';
+      } else if (lowerP.includes('potencial') || lowerP.includes('potential') || lowerP.includes('talento') || lowerP.includes('talent') || lowerP.includes('dom') || lowerP.includes('gift')) {
+        subTitle = language === 'pt' ? 'Potenciais e Dons' : 'Potentials and Gifts';
+        color = 'text-emerald-500';
+      } else if (lowerP.includes('conselho') || lowerP.includes('advice') || lowerP.includes('orientação') || lowerP.includes('guidance') || lowerP.includes('recomend')) {
+        subTitle = language === 'pt' ? 'Orientações' : 'Guidance';
+        color = 'text-amber-500';
+      } else if (lowerP.includes('relacionamento') || lowerP.includes('relationship') || lowerP.includes('amor') || lowerP.includes('love')) {
+        subTitle = language === 'pt' ? 'Relacionamentos' : 'Relationships';
+        color = 'text-pink-500';
+      } else if (lowerP.includes('carreira') || lowerP.includes('career') || lowerP.includes('profissão') || lowerP.includes('profession') || lowerP.includes('trabalho') || lowerP.includes('work')) {
+        subTitle = language === 'pt' ? 'Carreira' : 'Career';
+        color = 'text-indigo-500';
+      }
+      
+      currentSection.subsections.push({
+        subTitle,
+        content: paragraph,
+        color
+      });
+    }
+  });
+
+  // Adicionar última seção
+  if (currentSection && currentSection.subsections.length > 0) {
+    sections.push(currentSection);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header do Planeta */}
@@ -323,76 +462,40 @@ const FormattedPlanetInterpretation = ({
       </div>
 
       {/* Seções da Interpretação */}
-      {paragraphs.length > 0 && (
+      {sections.length > 0 && (
         <div className="space-y-4">
-          <h4 className="font-semibold text-foreground flex items-center gap-2">
-            <UIIcons.BookOpen className="w-5 h-5 text-primary" />
+          <h4 className="font-semibold text-foreground">
             {language === 'pt' ? 'Interpretação Completa' : 'Complete Interpretation'}
           </h4>
           
-          {paragraphs.map((paragraph, index) => {
-            // Identificar tipo de seção
-            const lowerP = paragraph.toLowerCase();
-            let sectionType = 'general';
-            let sectionIcon = <UIIcons.BookOpen className="w-5 h-5" />;
-            let sectionTitle = language === 'pt' ? '📖 Análise' : '📖 Analysis';
-            let sectionColor = 'text-purple-500';
-            
-            if (lowerP.includes('personalidade') || lowerP.includes('personality') || lowerP.includes('essência') || lowerP.includes('essence')) {
-              sectionType = 'personality';
-              sectionIcon = <UIIcons.User className="w-5 h-5" />;
-              sectionTitle = language === 'pt' ? '👤 Personalidade' : '👤 Personality';
-              sectionColor = 'text-blue-500';
-            } else if (lowerP.includes('desafio') || lowerP.includes('challenge') || lowerP.includes('dificuldade') || lowerP.includes('difficulty')) {
-              sectionType = 'challenge';
-              sectionIcon = <UIIcons.AlertCircle className="w-5 h-5" />;
-              sectionTitle = language === 'pt' ? '🔥 Desafios' : '🔥 Challenges';
-              sectionColor = 'text-red-500';
-            } else if (lowerP.includes('potencial') || lowerP.includes('potential') || lowerP.includes('talento') || lowerP.includes('talent') || lowerP.includes('dom') || lowerP.includes('gift')) {
-              sectionType = 'potential';
-              sectionIcon = <UIIcons.Star className="w-5 h-5" />;
-              sectionTitle = language === 'pt' ? '✨ Potenciais e Dons' : '✨ Potentials and Gifts';
-              sectionColor = 'text-emerald-500';
-            } else if (lowerP.includes('conselho') || lowerP.includes('advice') || lowerP.includes('orientação') || lowerP.includes('guidance') || lowerP.includes('recomend')) {
-              sectionType = 'advice';
-              sectionIcon = <UIIcons.Compass className="w-5 h-5" />;
-              sectionTitle = language === 'pt' ? '🧭 Orientações' : '🧭 Guidance';
-              sectionColor = 'text-amber-500';
-            } else if (lowerP.includes('relacionamento') || lowerP.includes('relationship') || lowerP.includes('amor') || lowerP.includes('love')) {
-              sectionType = 'relationships';
-              sectionIcon = <UIIcons.Heart className="w-5 h-5" />;
-              sectionTitle = language === 'pt' ? '💖 Relacionamentos' : '💖 Relationships';
-              sectionColor = 'text-pink-500';
-            } else if (lowerP.includes('carreira') || lowerP.includes('career') || lowerP.includes('profissão') || lowerP.includes('profession') || lowerP.includes('trabalho') || lowerP.includes('work')) {
-              sectionType = 'career';
-              sectionIcon = <UIIcons.Briefcase className="w-5 h-5" />;
-              sectionTitle = language === 'pt' ? '💼 Carreira' : '💼 Career';
-              sectionColor = 'text-indigo-500';
-            }
-            
-            return (
-              <div 
-                key={index}
-                className="bg-muted/30 rounded-lg p-4 border border-border/50"
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`flex-shrink-0 mt-0.5 ${sectionColor}`}>
-                    {sectionIcon}
-                  </div>
-                  <div className="flex-1">
-                    {paragraphs.length > 1 && (
-                      <p className={`text-sm font-medium mb-2 ${sectionColor}`}>
-                        {sectionTitle}
+          {/* Card único com todos os tópicos */}
+          <div className="bg-muted/30 rounded-lg p-6 border border-border/50 space-y-8">
+            {sections.map((section, sectionIndex) => (
+              <div key={sectionIndex}>
+                {/* Título Principal */}
+                <h5 className="text-lg font-bold text-foreground mb-4">
+                  {section.mainTitle}
+                </h5>
+                
+                {/* Subseções */}
+                <div className="space-y-6">
+                  {section.subsections.map((subsection, subIndex) => (
+                    <div key={subIndex}>
+                      {/* Subtítulo */}
+                      <p className={`text-sm font-medium mb-2 ${subsection.color}`}>
+                        {subsection.subTitle}
                       </p>
-                    )}
-                    <p className="text-foreground leading-relaxed">
-                      {paragraph}
-                    </p>
-                  </div>
+                      
+                      {/* Conteúdo */}
+                      <p className="text-foreground leading-relaxed">
+                        {subsection.content}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -498,10 +601,15 @@ export const PlanetsSection = ({ userData, onBack }: PlanetsSectionProps) => {
 
       {/* Planets Grid */}
       <div>
-        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+        <h3 className="font-semibold text-foreground mb-2 flex items-center gap-2">
           <UIIcons.Star size={18} className="text-primary" />
           {language === 'pt' ? 'Seus Planetas' : 'Your Planets'}
         </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          {language === 'pt' 
+            ? 'Clique em qualquer planeta para ver sua análise completa abaixo' 
+            : 'Click on any planet to see its complete analysis below'}
+        </p>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {planetData.map((planet, index) => {
           const PlanetIcon = planets[index]?.icon;
@@ -582,32 +690,32 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
 
   const houseMeanings = {
     pt: [
-      { house: 1, title: 'Identidade', desc: 'Aparência, personalidade, primeira impressão' },
-      { house: 2, title: 'Recursos', desc: 'Finanças, valores, posses materiais' },
-      { house: 3, title: 'Comunicação', desc: 'Irmãos, vizinhos, aprendizado' },
-      { house: 4, title: 'Lar', desc: 'Família, raízes, vida doméstica' },
-      { house: 5, title: 'Criatividade', desc: 'Romance, filhos, hobbies' },
-      { house: 6, title: 'Rotina', desc: 'Saúde, trabalho diário, serviço' },
-      { house: 7, title: 'Parcerias', desc: 'Casamento, sociedades, contratos' },
-      { house: 8, title: 'Transformação', desc: 'Crises, heranças, sexualidade' },
-      { house: 9, title: 'Expansão', desc: 'Viagens, filosofia, ensino superior' },
-      { house: 10, title: 'Carreira', desc: 'Profissão, status, reputação' },
-      { house: 11, title: 'Amizades', desc: 'Grupos, sonhos, causas sociais' },
-      { house: 12, title: 'Espiritualidade', desc: 'Inconsciente, karma, isolamento' },
+      { house: 1, title: 'Identidade', desc: 'Aparência física, personalidade e primeira impressão' },
+      { house: 2, title: 'Recursos', desc: 'Finanças pessoais, valores e posses materiais' },
+      { house: 3, title: 'Comunicação', desc: 'Irmãos, vizinhos, estudos e aprendizado' },
+      { house: 4, title: 'Lar', desc: 'Família, raízes, lar e vida doméstica' },
+      { house: 5, title: 'Criatividade', desc: 'Romance, filhos, diversão e hobbies' },
+      { house: 6, title: 'Rotina', desc: 'Saúde, trabalho diário e prestação de serviço' },
+      { house: 7, title: 'Parcerias', desc: 'Casamento, sociedades e contratos' },
+      { house: 8, title: 'Transformação', desc: 'Crises, heranças, sexualidade e recursos compartilhados' },
+      { house: 9, title: 'Expansão', desc: 'Viagens longas, filosofia e ensino superior' },
+      { house: 10, title: 'Carreira', desc: 'Profissão, vocação, status e reputação pública' },
+      { house: 11, title: 'Amizades', desc: 'Grupos, redes sociais, sonhos e causas coletivas' },
+      { house: 12, title: 'Espiritualidade', desc: 'Inconsciente, karma, isolamento e transcendência' },
     ],
     en: [
-      { house: 1, title: 'Identity', desc: 'Appearance, personality, first impression' },
-      { house: 2, title: 'Resources', desc: 'Finances, values, material possessions' },
-      { house: 3, title: 'Communication', desc: 'Siblings, neighbors, learning' },
-      { house: 4, title: 'Home', desc: 'Family, roots, domestic life' },
-      { house: 5, title: 'Creativity', desc: 'Romance, children, hobbies' },
-      { house: 6, title: 'Routine', desc: 'Health, daily work, service' },
-      { house: 7, title: 'Partnerships', desc: 'Marriage, partnerships, contracts' },
-      { house: 8, title: 'Transformation', desc: 'Crises, inheritance, sexuality' },
-      { house: 9, title: 'Expansion', desc: 'Travel, philosophy, higher education' },
-      { house: 10, title: 'Career', desc: 'Profession, status, reputation' },
-      { house: 11, title: 'Friendships', desc: 'Groups, dreams, social causes' },
-      { house: 12, title: 'Spirituality', desc: 'Unconscious, karma, isolation' },
+      { house: 1, title: 'Identity', desc: 'Physical appearance, personality and first impression' },
+      { house: 2, title: 'Resources', desc: 'Personal finances, values and material possessions' },
+      { house: 3, title: 'Communication', desc: 'Siblings, neighbors, studies and learning' },
+      { house: 4, title: 'Home', desc: 'Family, roots, home and domestic life' },
+      { house: 5, title: 'Creativity', desc: 'Romance, children, fun and hobbies' },
+      { house: 6, title: 'Routine', desc: 'Health, daily work and service provision' },
+      { house: 7, title: 'Partnerships', desc: 'Marriage, partnerships and contracts' },
+      { house: 8, title: 'Transformation', desc: 'Crises, inheritance, sexuality and shared resources' },
+      { house: 9, title: 'Expansion', desc: 'Long travels, philosophy and higher education' },
+      { house: 10, title: 'Career', desc: 'Profession, vocation, status and public reputation' },
+      { house: 11, title: 'Friendships', desc: 'Groups, social networks, dreams and collective causes' },
+      { house: 12, title: 'Spirituality', desc: 'Unconscious, karma, isolation and transcendence' },
     ],
   };
 
@@ -657,59 +765,149 @@ export const HousesSection = ({ userData, onBack }: HousesSectionProps) => {
         </button>
       </div>
 
-      {/* Houses Grid */}
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {houses.map((house) => {
-          const isSelected = selectedHouse === house.house;
-          return (
-            <button
-              key={house.house}
-              onClick={() => fetchHouseInterpretation(house.house)}
-              className={`p-4 rounded-xl border transition-all hover:scale-105 ${
-                isSelected 
-                  ? 'bg-primary/20 border-primary shadow-lg' 
-                  : 'bg-card border-border hover:border-primary/50'
-              }`}
-            >
-              <div className="text-center">
-                <div className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2 ${
-                  isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                }`}>
-                  <span className="font-bold">{house.house}</span>
-                </div>
-                <p className="font-medium text-sm text-foreground">{house.title}</p>
+      {/* Explicação */}
+      <div className="bg-card/50 border border-border rounded-xl p-5">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <UIIcons.Info size={20} className="text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground mb-2">
+              {language === 'pt' ? 'Como usar esta seção' : 'How to use this section'}
+            </h3>
+            <p className="text-muted-foreground text-sm leading-relaxed mb-3">
+              {language === 'pt' 
+                ? 'As 12 casas astrológicas dividem o mapa natal em áreas específicas da vida, cada uma representando diferentes aspectos da sua experiência humana. Clique em qualquer uma das casas abaixo para ver uma análise personalizada baseada no seu mapa natal.'
+                : 'The 12 astrological houses divide the birth chart into specific life areas, each representing different aspects of your human experience. Click on any house below to see a personalized analysis based on your birth chart.'}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+              <div className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span className="text-foreground/80">
+                  {language === 'pt' ? 'Casas 1-4: Identidade e Fundamentos' : 'Houses 1-4: Identity and Foundations'}
+                </span>
               </div>
-            </button>
-          );
-        })}
+              <div className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span className="text-foreground/80">
+                  {language === 'pt' ? 'Casas 5-8: Criatividade e Relações' : 'Houses 5-8: Creativity and Relationships'}
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span className="text-foreground/80">
+                  {language === 'pt' ? 'Casas 9-12: Expansão e Transcendência' : 'Houses 9-12: Expansion and Transcendence'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Houses Grid */}
+      <div>
+        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+          <UIIcons.Home size={18} className="text-primary" />
+          {language === 'pt' ? 'Selecione uma Casa para Ver a Análise' : 'Select a House to See the Analysis'}
+        </h3>
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {houses.map((house) => {
+            const isSelected = selectedHouse === house.house;
+            return (
+              <button
+                key={house.house}
+                onClick={() => fetchHouseInterpretation(house.house)}
+                className={`p-4 rounded-xl border transition-all hover:scale-105 ${
+                  isSelected 
+                    ? 'bg-primary/20 border-primary shadow-lg' 
+                    : 'bg-card border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="text-center">
+                  <div className={`w-10 h-10 mx-auto rounded-full flex items-center justify-center mb-2 ${
+                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                  }`}>
+                    <span className="font-bold">{house.house}</span>
+                  </div>
+                  <p className="font-medium text-sm text-foreground">{house.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{house.desc}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Interpretation Panel */}
       {selectedHouse && (
-        <div className="bg-card rounded-xl p-6 border border-border animate-fadeIn">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-primary-foreground text-xl font-bold">
+        <div className="bg-gradient-to-br from-card to-card/50 rounded-xl p-6 border border-border shadow-lg animate-fadeIn">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-primary-foreground text-xl font-bold shadow-md">
               {selectedHouse}
             </div>
             <div className="flex-1">
-              <h3 className="font-serif text-xl font-bold text-foreground mb-1">
+              <h3 className="font-serif text-2xl font-bold text-foreground mb-2">
                 Casa {selectedHouse}: {houses.find(h => h.house === selectedHouse)?.title}
               </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {houses.find(h => h.house === selectedHouse)?.desc}
-              </p>
-              {isLoading ? (
-                <div className="flex items-center gap-3 py-4">
-                  <UIIcons.Loader className="w-5 h-5 animate-spin text-primary" />
-                  <p className="text-muted-foreground">
-                    {language === 'pt' ? 'Buscando interpretação...' : 'Fetching interpretation...'}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-foreground/80 leading-relaxed whitespace-pre-line">{interpretation}</p>
-              )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <UIIcons.Home size={14} />
+                <span>{houses.find(h => h.house === selectedHouse)?.desc}</span>
+              </div>
             </div>
           </div>
+
+          {isLoading ? (
+            <div className="flex items-center gap-3 py-8 justify-center">
+              <UIIcons.Loader className="w-5 h-5 animate-spin text-primary" />
+              <p className="text-muted-foreground">
+                {language === 'pt' ? 'Buscando interpretação personalizada...' : 'Fetching personalized interpretation...'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="h-px bg-border/50"></div>
+              <div className="prose prose-sm max-w-none space-y-6">
+                {interpretation.split('\n\n').map((paragraph, idx) => {
+                  // Detecta se é um título/tópico (linhas que começam com maiúscula e terminam com :)
+                  const isHeading = paragraph.match(/^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][^.!?]*:$/);
+                  // Detecta listas com marcadores
+                  const isList = paragraph.includes('\n-') || paragraph.includes('\n•') || paragraph.includes('\n*');
+                  
+                  if (isHeading) {
+                    return (
+                      <h4 key={idx} className="font-semibold text-foreground text-base mt-6 mb-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                        {paragraph.replace(':', '')}
+                      </h4>
+                    );
+                  } else if (isList) {
+                    const items = paragraph.split('\n').filter(line => line.trim());
+                    return (
+                      <ul key={idx} className="space-y-2 ml-2 mb-6">
+                        {items.map((item, i) => {
+                          const cleanItem = item.replace(/^[-•*]\s*/, '').trim();
+                          if (!cleanItem) return null;
+                          return (
+                            <li key={i} className="flex items-start gap-2 text-foreground/80 leading-relaxed">
+                              <span className="text-primary mt-1.5 flex-shrink-0">•</span>
+                              <span>{cleanItem}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    );
+                  } else if (paragraph.trim()) {
+                    return (
+                      <p key={idx} className="text-foreground/80 leading-relaxed mb-6">
+                        {paragraph}
+                      </p>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -744,10 +942,10 @@ export const Guide2026Section = ({ userData, onBack }: Guide2026SectionProps) =>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-serif text-3xl font-bold text-foreground">
-            {language === 'pt' ? 'Guia Astrológico 2026' : '2026 Astrological Guide'}
+            {language === 'pt' ? 'Trânsitos Astrológicos' : 'Astrological Transits'}
           </h2>
           <p className="text-muted-foreground mt-2">
-            {language === 'pt' ? 'Previsões e tendências para os próximos meses' : 'Predictions and trends for the coming months'}
+            {language === 'pt' ? 'Acompanhe os movimentos planetários e suas influências' : 'Track planetary movements and their influences'}
           </p>
         </div>
         <button
@@ -780,41 +978,41 @@ export const Guide2026Section = ({ userData, onBack }: Guide2026SectionProps) =>
       </div>
 
       {/* Legenda de Tipos de Trânsitos */}
-      <div className="bg-card rounded-xl p-5 border border-border">
+      <AstroCard className="p-5">
         <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <UIIcons.Info size={18} className="text-primary" />
           {language === 'pt' ? 'Tipos de Trânsitos' : 'Transit Types'}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30">
             <span className="text-lg">🌟</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Expansão' : 'Expansion'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Júpiter' : 'Jupiter'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-stone-100 dark:bg-stone-500/15 border border-stone-200 dark:border-stone-500/30">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-stone-500/15 border border-stone-500/30">
             <span className="text-lg">🏛️</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Estrutura' : 'Structure'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Saturno' : 'Saturn'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-teal-100 dark:bg-teal-500/15 border border-teal-200 dark:border-teal-500/30">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-teal-500/15 border border-teal-500/30">
             <span className="text-lg">⚡</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Mudança' : 'Change'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Urano' : 'Uranus'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-100 dark:bg-purple-500/15 border border-purple-200 dark:border-purple-500/30">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-500/15 border border-purple-500/30">
             <span className="text-lg">🌊</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Espiritualidade' : 'Spirituality'}</p>
               <p className="text-xs text-muted-foreground">{language === 'pt' ? 'Netuno' : 'Neptune'}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-red-100 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/15 border border-red-500/30">
             <span className="text-lg">🔥</span>
             <div>
               <p className="text-sm font-medium text-foreground">{language === 'pt' ? 'Transformação' : 'Transformation'}</p>
@@ -822,7 +1020,7 @@ export const Guide2026Section = ({ userData, onBack }: Guide2026SectionProps) =>
             </div>
           </div>
         </div>
-      </div>
+      </AstroCard>
 
       {/* Future Transits Component */}
       <div>
@@ -1583,7 +1781,7 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
     };
 
     // Dividir o texto em parágrafos
-    const paragraphs = rawText.split(/\n\n+/);
+    const paragraphs: string[] = rawText.split(/\n\n+/);
     let currentSection: { title: string; icon: React.ReactNode; content: string[]; color: string } | null = null;
     const result: Array<{ title: string; icon: React.ReactNode; content: string; color: string }> = [];
 
@@ -1595,8 +1793,13 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
       let isNewSection = false;
       
       if (patterns.passado.test(trimmed)) {
-        if (currentSection) {
-          result.push({ ...currentSection, content: currentSection.content.join('\n\n') });
+        if (currentSection && currentSection.content.length > 0) {
+          result.push({ 
+            title: currentSection.title, 
+            icon: currentSection.icon, 
+            content: currentSection.content.join('\n\n'),
+            color: currentSection.color
+          });
         }
         currentSection = {
           title: language === 'pt' ? '🌙 Passado / Karma' : '🌙 Past / Karma',
@@ -1609,8 +1812,13 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         if (cleaned) currentSection.content.push(cleaned);
         isNewSection = true;
       } else if (patterns.presente.test(trimmed)) {
-        if (currentSection) {
-          result.push({ ...currentSection, content: currentSection.content.join('\n\n') });
+        if (currentSection && currentSection.content.length > 0) {
+          result.push({ 
+            title: currentSection.title, 
+            icon: currentSection.icon, 
+            content: currentSection.content.join('\n\n'),
+            color: currentSection.color
+          });
         }
         currentSection = {
           title: language === 'pt' ? '☀️ Presente / Essência' : '☀️ Present / Essence',
@@ -1622,8 +1830,13 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         if (cleaned) currentSection.content.push(cleaned);
         isNewSection = true;
       } else if (patterns.futuro.test(trimmed)) {
-        if (currentSection) {
-          result.push({ ...currentSection, content: currentSection.content.join('\n\n') });
+        if (currentSection && currentSection.content.length > 0) {
+          result.push({ 
+            title: currentSection.title, 
+            icon: currentSection.icon, 
+            content: currentSection.content.join('\n\n'),
+            color: currentSection.color
+          });
         }
         currentSection = {
           title: language === 'pt' ? '⭐ Futuro / Evolução' : '⭐ Future / Evolution',
@@ -1642,22 +1855,26 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
         if (cleaned) currentSection.content.push(cleaned);
       } else if (!isNewSection && !currentSection) {
         // Se não há seção atual, criar uma seção de resumo
-        if (!result.find(r => r.title.includes('Resumo') || r.title.includes('Summary'))) {
+        const existingSummary = result.find(r => r.title.includes('Resumo') || r.title.includes('Summary'));
+        if (!existingSummary) {
           currentSection = {
             title: language === 'pt' ? '📋 Resumo' : '📋 Summary',
             icon: <UIIcons.BookOpen className="w-6 h-6 text-gray-600 dark:text-gray-400" />,
             content: [trimmed],
             color: 'from-gray-100 to-gray-50 dark:from-gray-500/20 dark:to-gray-500/5 border-gray-300 dark:border-gray-500/30'
           };
-        } else if (currentSection) {
-          currentSection.content.push(trimmed);
         }
       }
     }
 
     // Adicionar última seção
-    if (currentSection) {
-      result.push({ ...currentSection, content: currentSection.content.join('\n\n') });
+    if (currentSection && currentSection.content.length > 0) {
+      result.push({ 
+        title: currentSection.title, 
+        icon: currentSection.icon, 
+        content: currentSection.content.join('\n\n'),
+        color: currentSection.color
+      });
     }
 
     return result;
@@ -1683,11 +1900,16 @@ const FormattedInterpretation = ({ text, language }: { text: string; language: s
           key={index} 
           className={`bg-gradient-to-br ${section.color} rounded-xl p-5 border`}
         >
-          <div className="flex items-center gap-3 mb-4">
+          {/* Título acima */}
+          <h4 className="font-semibold text-lg text-foreground mb-3">{section.title}</h4>
+          
+          {/* Ícone e nome da análise */}
+          <div className="flex items-center gap-3 mb-4 pl-1">
             {section.icon}
-            <h4 className="font-semibold text-lg text-foreground">{section.title}</h4>
           </div>
-          <div className="text-foreground/80 leading-relaxed space-y-3 pl-9">
+          
+          {/* Conteúdo da análise */}
+          <div className="text-foreground/80 leading-relaxed space-y-3">
             {section.content.split('\n\n').map((paragraph, pIndex) => {
               // Destacar termos importantes
               const formatted = paragraph
@@ -1872,6 +2094,71 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
 
   const userSunSign = userData.sunSign || 'Áries';
 
+  // Função para formatar o texto da compatibilidade organizando por tópicos
+  const formatCompatibilityText = (text: string): React.ReactNode => {
+    if (!text) return null;
+
+    // Dividir o texto em parágrafos
+    const paragraphs = text.split('\n').filter(p => p.trim());
+    
+    // Identificar tópicos (números, bullets, títulos em negrito, etc.)
+    const formattedParagraphs: React.ReactNode[] = [];
+    
+    paragraphs.forEach((paragraph, index) => {
+      const trimmed = paragraph.trim();
+      if (!trimmed) return;
+
+      // Verificar se é um tópico numerado (1., 2., etc.)
+      const numberedMatch = trimmed.match(/^(\d+)[\.\)]\s*(.+)$/);
+      // Verificar se é um bullet (-, •, etc.)
+      const bulletMatch = trimmed.match(/^[-•*]\s*(.+)$/);
+      // Verificar se é um título (texto em negrito ou em maiúsculas curtas)
+      const titleMatch = trimmed.match(/^([A-ZÁÊÇ][A-ZÁÊÇ\s]{2,30}):?\s*$/);
+      // Verificar se contém texto em negrito (markdown **texto**)
+      const boldMatch = trimmed.match(/\*\*(.+?)\*\*/);
+
+      if (numberedMatch) {
+        // Tópico numerado
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p className="text-foreground/80 leading-relaxed">
+              <span className="font-semibold text-foreground">{numberedMatch[1]}.</span> {numberedMatch[2]}
+            </p>
+          </div>
+        );
+      } else if (bulletMatch) {
+        // Tópico com bullet
+        formattedParagraphs.push(
+          <div key={index} className="mb-4 ml-4">
+            <p className="text-foreground/80 leading-relaxed">
+              <span className="text-primary mr-2">•</span> {bulletMatch[1]}
+            </p>
+          </div>
+        );
+      } else if (boldMatch || (titleMatch && trimmed.length < 50)) {
+        // Título ou texto em negrito
+        const content = boldMatch ? trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') : trimmed;
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p 
+              className="font-semibold text-foreground mb-2" 
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          </div>
+        );
+      } else {
+        // Parágrafo normal
+        formattedParagraphs.push(
+          <div key={index} className="mb-4">
+            <p className="text-foreground/80 leading-relaxed">{trimmed}</p>
+          </div>
+        );
+      }
+    });
+
+    return <div className="space-y-1">{formattedParagraphs}</div>;
+  };
+
   const fetchCompatibility = async () => {
     if (!partnerSign) return;
     
@@ -1936,7 +2223,7 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
         <h3 className="font-serif text-lg font-bold text-foreground mb-4">
           {language === 'pt' ? 'Selecione o signo do parceiro(a)' : 'Select partner\'s sign'}
         </h3>
-        <div className="grid grid-cols-4 md:grid-cols-6 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           {zodiacSigns.map((sign) => {
             const SignIcon = sign.icon;
             const isSelected = partnerSign === sign.name;
@@ -1981,7 +2268,9 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
           <h3 className="font-serif text-xl font-bold text-foreground mb-4">
             {userSunSign} + {partnerSign}
           </h3>
-          <p className="text-foreground/80 leading-relaxed whitespace-pre-line">{interpretation}</p>
+          <div className="text-foreground/80">
+            {formatCompatibilityText(interpretation)}
+          </div>
         </div>
       )}
     </div>

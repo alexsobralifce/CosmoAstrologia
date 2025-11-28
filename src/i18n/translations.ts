@@ -196,8 +196,8 @@ export const translations = {
       en: 'Synastry',
     },
     guide2026: {
-      pt: 'Guia 2026',
-      en: '2026 Guide',
+      pt: 'Trânsitos Astrológicos',
+      en: 'Astrological Transits',
     },
     lunarNodes: {
       pt: 'Nodos Lunares',
@@ -560,12 +560,12 @@ export const translations = {
       en: 'Compare your chart with others and discover compatibility.',
     },
     guide2026Title: {
-      pt: 'Guia Astrológico 2026',
-      en: '2026 Astrological Guide',
+      pt: 'Trânsitos Astrológicos',
+      en: 'Astrological Transits',
     },
     guide2026Desc: {
-      pt: 'Previsões e tendências para o próximo ano.',
-      en: 'Predictions and trends for the upcoming year.',
+      pt: 'Acompanhe os movimentos planetários e suas influências.',
+      en: 'Track planetary movements and their influences.',
     },
     lunarNodesTitle: {
       pt: 'Nodos Lunares',

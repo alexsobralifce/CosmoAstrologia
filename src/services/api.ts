@@ -356,7 +356,10 @@ class ApiService {
       description: string;
       isActive: boolean;
       date: string;
+      start_date: string;
+      end_date: string;
       aspect_type: string;
+      aspect_type_display: string;
       natal_point: string;
     }>;
     count: number;

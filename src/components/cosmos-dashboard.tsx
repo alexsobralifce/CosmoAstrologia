@@ -139,6 +139,7 @@ interface CosmosDashboardProps {
 export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: CosmosDashboardProps) => {
   const [activeSection, setActiveSection] = useState('inicio');
   const { language, t } = useLanguage();
+  const { theme } = useTheme(); // Adicionar acesso ao tema
   
   // Estado para modal de aviso de inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
@@ -185,6 +186,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
   ];
 
   // Dados mockados para previsões com traduções
+  // isDark: true = fundo escuro (texto branco), false = fundo claro (texto preto)
   const insights = [
     {
       id: 'energia',
@@ -192,9 +194,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       value: '8.5/10',
       description: t('insights', 'favorableMoment'),
       icon: UIIcons.Zap,
-      color: 'orange',
-      bgColor: 'bg-orange-100 dark:bg-orange-500/15',
-      textColor: 'text-orange-700 dark:text-orange-300',
+      bgColor: 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800',
+      accentColor: '#EA580C', // orange-600
+      iconBg: 'bg-orange-100 dark:bg-orange-900/50',
     },
     {
       id: 'signo',
@@ -202,9 +204,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       value: language === 'pt' ? 'Touro' : 'Taurus',
       description: t('insights', 'focusStability'),
       icon: zodiacSigns[1].icon,
-      color: 'emerald',
-      bgColor: 'bg-emerald-100 dark:bg-emerald-500/15',
-      textColor: 'text-emerald-700 dark:text-emerald-300',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800',
+      accentColor: '#059669', // emerald-600
+      iconBg: 'bg-emerald-100 dark:bg-emerald-900/50',
     },
     {
       id: 'fase-lunar',
@@ -212,9 +214,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       value: language === 'pt' ? 'Crescente' : 'Waxing',
       description: t('insights', 'expansionGrowth'),
       icon: UIIcons.Moon,
-      color: 'amber',
-      bgColor: 'bg-amber-100 dark:bg-amber-500/15',
-      textColor: 'text-amber-700 dark:text-amber-300',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800',
+      accentColor: '#4F46E5', // indigo-600
+      iconBg: 'bg-indigo-100 dark:bg-indigo-900/50',
     },
     {
       id: 'elemento',
@@ -222,12 +224,13 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       value: t('elements', 'earth'),
       description: t('insights', 'practicalityRealization'),
       icon: UIIcons.Globe,
-      color: 'emerald',
-      bgColor: 'bg-emerald-100 dark:bg-emerald-500/15',
-      textColor: 'text-emerald-700 dark:text-emerald-300',
+      bgColor: 'bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800',
+      accentColor: '#0D9488', // teal-600
+      iconBg: 'bg-teal-100 dark:bg-teal-900/50',
     },
   ];
 
+  // isDark: true = fundo escuro (texto branco), false = fundo claro (texto preto)
   const areas = [
     {
       id: 'amor',
@@ -236,8 +239,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'venusHarmony'),
       icon: UIIcons.Heart,
       color: 'bg-red-500',
-      textColor: 'text-red-700 dark:text-red-300',
-      bgColor: 'bg-red-100 dark:bg-red-500/15',
+      accentColor: '#DC2626', // red-600
+      bgColor: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800',
+      iconBg: 'bg-red-100 dark:bg-red-900/50',
     },
     {
       id: 'carreira',
@@ -246,8 +250,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'jupiterOpportunities'),
       icon: UIIcons.Briefcase,
       color: 'bg-amber-500',
-      textColor: 'text-amber-700 dark:text-amber-300',
-      bgColor: 'bg-amber-100 dark:bg-amber-500/15',
+      accentColor: '#D97706', // amber-600
+      bgColor: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800',
+      iconBg: 'bg-amber-100 dark:bg-amber-900/50',
     },
     {
       id: 'saude',
@@ -256,8 +261,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'marsEnergy'),
       icon: UIIcons.Activity,
       color: 'bg-emerald-500',
-      textColor: 'text-emerald-700 dark:text-emerald-300',
-      bgColor: 'bg-emerald-100 dark:bg-emerald-500/15',
+      accentColor: '#059669', // emerald-600
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800',
+      iconBg: 'bg-emerald-100 dark:bg-emerald-900/50',
     },
     {
       id: 'familia',
@@ -266,8 +272,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       description: t('areas', 'moonRelations'),
       icon: UIIcons.Users,
       color: 'bg-purple-500',
-      textColor: 'text-purple-700 dark:text-purple-300',
-      bgColor: 'bg-purple-100 dark:bg-purple-500/15',
+      accentColor: '#9333EA', // purple-600
+      bgColor: 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800',
+      iconBg: 'bg-purple-100 dark:bg-purple-900/50',
     },
   ];
 
@@ -542,30 +549,31 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
           ) : (
           <>
           {/* ===== HERO SECTION ===== */}
+          {/* Card sempre com fundo escuro e texto branco, independente do tema */}
           <div className="mb-8 bg-gradient-to-br from-[#2D324D] to-[#1F2337] rounded-3xl p-8 relative overflow-hidden shadow-xl">
             {/* Orbes de fundo */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue/20 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple/20 rounded-full blur-3xl"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl"></div>
             
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-3">
-                <UIIcons.Sparkles size={20} className="text-purple-400" />
-                <span className="text-sm text-purple-300 font-medium">{texts.astralForecast}</span>
+                <UIIcons.Sparkles size={20} className="text-purple-300" />
+                <span className="text-sm font-medium text-purple-300">{texts.astralForecast}</span>
               </div>
-              <h2 className="font-serif text-4xl font-bold text-white mb-4">
+              <h2 className="font-serif text-4xl font-bold mb-4 text-white">
                 {texts.welcome}
               </h2>
-              <p className="text-gray-200 text-lg max-w-2xl">
+              <p className="text-lg max-w-2xl text-white/90">
                 {texts.heroText}
               </p>
-              <div className="flex gap-4 mt-6">
+              <div className="flex flex-wrap gap-4 mt-6">
                 <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
                   <UIIcons.Calendar size={16} className="inline mr-2 text-white" />
-                  <span className="text-white text-sm">{texts.monday}, 24 {texts.of} {texts.november}</span>
+                  <span className="text-sm text-white">{texts.monday}, 24 {texts.of} {texts.november}</span>
                 </div>
                 <div className="px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20">
-                  <UIIcons.Moon size={16} className="inline mr-2 text-amber-400" />
-                  <span className="text-white text-sm">{texts.waxingMoonIn}</span>
+                  <UIIcons.Moon size={16} className="inline mr-2 text-yellow-300" />
+                  <span className="text-sm text-white">{texts.waxingMoonIn}</span>
                 </div>
               </div>
             </div>
@@ -578,14 +586,31 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               {insights.map((insight) => (
                 <div
                   key={insight.id}
-                  className={`${insight.bgColor} rounded-xl p-6 border border-border hover:border-primary/30 transition-all cursor-pointer group`}
+                  className="rounded-xl p-6 border hover:shadow-lg transition-all cursor-pointer group"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+                    borderColor: theme === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(229, 231, 235)'
+                  }}
                 >
-                  <div className={`w-12 h-12 rounded-lg ${insight.bgColor} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <insight.icon size={24} className={insight.textColor} />
+                  {/* Ícone com fundo contrastante - mantém cor original */}
+                  <div 
+                    className="w-12 h-12 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-sm"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)'
+                    }}
+                  >
+                    <insight.icon size={24} style={{ color: insight.accentColor }} />
                   </div>
-                  <h4 className="text-sm font-medium text-foreground mb-1">{insight.title}</h4>
-                  <p className={`text-2xl font-bold ${insight.textColor} mb-2`}>{insight.value}</p>
-                  <p className="text-xs text-foreground/90 dark:text-gray-200">{insight.description}</p>
+                  {/* Textos adaptáveis ao tema - claros de dia e brancos à noite */}
+                  <h4 className="text-sm font-semibold mb-1" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(55, 65, 81)' }}>
+                    {insight.title}
+                  </h4>
+                  <p className="text-2xl font-bold mb-2" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(17, 24, 39)' }}>
+                    {insight.value}
+                  </p>
+                  <p className="text-xs leading-relaxed" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(75, 85, 99)' }}>
+                    {insight.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -598,24 +623,48 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               {areas.map((area) => (
                 <div
                   key={area.id}
-                  className={`${area.bgColor} rounded-xl p-6 border border-border hover:border-primary/30 transition-all cursor-pointer`}
+                  className="rounded-xl p-6 border hover:shadow-lg transition-all cursor-pointer"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#000000' : '#ffffff',
+                    borderColor: theme === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(229, 231, 235)'
+                  }}
                   onClick={() => onViewInterpretation(area.id)}
                 >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg ${area.bgColor} flex items-center justify-center`}>
-                        <area.icon size={20} className={area.textColor} />
+                      {/* Ícone com fundo contrastante - mantém cor original */}
+                      <div 
+                        className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm"
+                        style={{
+                          backgroundColor: theme === 'dark' ? 'rgb(17, 24, 39)' : 'rgb(243, 244, 246)'
+                        }}
+                      >
+                        <area.icon size={20} style={{ color: area.accentColor }} />
                       </div>
-                      <h4 className={`font-semibold ${area.textColor}`}>{area.title}</h4>
+                      <h4 
+                        className="font-semibold"
+                        style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(17, 24, 39)' }}
+                      >
+                        {area.title}
+                      </h4>
                     </div>
                     <div className="text-right">
-                      <span className="text-sm text-foreground/90 dark:text-gray-300">{texts.intensity}</span>
-                      <p className={`text-xl font-bold ${area.textColor}`}>{area.intensity}/10</p>
+                      <span className="text-xs block font-medium" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(75, 85, 99)' }}>
+                        {texts.intensity}
+                      </span>
+                      <p 
+                        className="text-xl font-bold"
+                        style={{ color: area.accentColor }}
+                      >
+                        {area.intensity}/10
+                      </p>
                     </div>
                   </div>
-                  <p className="text-sm text-foreground/90 dark:text-gray-200 mb-4">{area.description}</p>
-                  {/* Barra de progresso */}
-                  <div className="h-1.5 bg-white/30 dark:bg-black/20 rounded-full overflow-hidden">
+                  <p className="text-sm mb-4 leading-relaxed" style={{ color: theme === 'dark' ? '#ffffff' : 'rgb(75, 85, 99)' }}>
+                    {area.description}
+                  </p>
+                  {/* Barra de progresso melhorada */}
+                  <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: theme === 'dark' ? 'rgb(31, 41, 55)' : 'rgb(229, 231, 235)' }}>
                     <div
                       className={`h-full ${area.color} rounded-full transition-all duration-500`}
                       style={{ width: `${area.intensity * 10}%` }}

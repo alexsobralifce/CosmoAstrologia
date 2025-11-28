@@ -288,8 +288,8 @@
   position: relative;
   padding-left: 2rem;
   padding-right: 0.5rem;
-  max-height: 600px;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 
@@ -493,6 +493,21 @@
   background-color: hsl(var(--muted) / 0.3);
   border-radius: 0 0.5rem 0.5rem 0;
   margin-bottom: 1rem;
+  /* Garantir que todo o conteúdo seja exibido */
+  overflow: visible;
+  max-height: none;
+}
+
+.transits-transit-description-container {
+  width: 100%;
+  /* Garantir que todo o conteúdo seja exibido */
+  overflow: visible;
+}
+
+.transits-description-section {
+  margin-bottom: 1.5rem;
+  /* Garantir que todo o conteúdo seja exibido */
+  overflow: visible;
 }
 
 .transits-transit-description-paragraph {

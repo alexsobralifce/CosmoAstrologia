@@ -232,19 +232,9 @@ def get_future_transits(
                 try:
                     # Verificar se o índice RAG está carregado
                     if rag_service.embeddings is not None and len(rag_service.documents) > 0:
-                        # Buscar documentos relevantes com busca expandida
-                        rag_results = rag_service.search(transit_query, top_k=5, expand_query=True)
-                        
-                        # Se RAG e Groq estiverem disponíveis, gerar interpretação enriquecida
-                        if rag_service.groq_client and rag_results:
-                            enriched_description = _generate_transit_interpretation_with_groq(
-                                rag_service,
-                                transit,
-                                rag_results
-                            )
-                            if enriched_description:
-                                transit['description'] = enriched_description
-                                print(f"[INFO] Trânsito enriquecido com RAG+Groq: {transit.get('planet')} {transit.get('aspect_type')} com {natal_point_display}")
+                        # A descrição base já é completa com exemplos práticos
+                        # Não precisa enriquecer com RAG/Groq para não cortar o texto
+                        print(f"[INFO] Usando descrição base completa: {transit.get('planet')} {transit.get('aspect_type')} com {natal_point_display}")
                 except Exception as e:
                     print(f"[WARNING] Erro ao enriquecer trânsito com RAG/Groq: {e}")
                     # Manter descrição original em caso de erro
@@ -346,89 +336,6 @@ def get_future_transits(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao calcular trânsitos: {str(e)}"
         )
-
-
-def _generate_transit_interpretation_with_groq(
-    rag_service,
-    transit: Dict,
-    rag_results: List[Dict]
-) -> Optional[str]:
-    """
-    Gera interpretação enriquecida de trânsito usando RAG + Groq.
-    
-    Args:
-        rag_service: Instância do serviço RAG
-        transit: Dicionário com dados do trânsito
-        rag_results: Resultados da busca RAG
-    
-    Returns:
-        Descrição enriquecida ou None em caso de erro
-    """
-    if not rag_service.groq_client:
-        return None
-    
-    # Preparar contexto dos documentos
-    context_text = "\n\n".join([
-        f"--- Documento {i+1} (Fonte: {doc['source']}, Página {doc['page']}) ---\n{doc['text']}"
-        for i, doc in enumerate(rag_results)
-    ])
-    
-    # Prompt otimizado para reduzir tokens
-    system_prompt = """Astrólogo especialista em trânsitos. Crie interpretações práticas e acessíveis baseadas nos documentos. Foque em insights aplicáveis e orientações práticas."""
-    
-    # Converter nome do ponto natal
-    natal_point_names = {
-        'sun': 'Sol',
-        'moon': 'Lua',
-        'mercury': 'Mercúrio',
-        'venus': 'Vênus',
-        'mars': 'Marte',
-        'ascendant': 'Ascendente'
-    }
-    natal_point_display = natal_point_names.get(transit.get('natal_point', ''), transit.get('natal_point', '').capitalize())
-    
-    aspect_names_pt = {
-        'conjunção': 'conjunção',
-        'oposição': 'oposição',
-        'quadratura': 'quadratura',
-        'trígono': 'trígono',
-        'sextil': 'sextil'
-    }
-    aspect_name_pt = aspect_names_pt.get(transit.get('aspect_type', ''), transit.get('aspect_type', ''))
-    
-    user_prompt = f"""Trânsito: {transit.get('planet', '')} {aspect_name_pt} {natal_point_display}
-Signo: {transit.get('natal_sign', '')} | Data: {transit.get('date', '')}
-
-Contexto:
-{context_text}
-
-Crie interpretação prática (1-2 parágrafos): significado, impacto na área de vida do {natal_point_display}, orientações."""
-    
-    try:
-        # Chamar Groq API
-        chat_completion = rag_service.groq_client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": user_prompt
-                }
-            ],
-            model="llama-3.1-8b-instant",  # Modelo mais rápido e econômico
-            temperature=0.7,
-            max_tokens=350,  # Otimizado para 1-2 parágrafos
-            top_p=1,
-        )
-        
-        interpretation = chat_completion.choices[0].message.content
-        return interpretation.strip()
-        
-    except Exception as e:
-        print(f"[ERROR] Erro ao gerar interpretação de trânsito com Groq: {e}")
-        return None
 
 
 class PlanetInterpretationRequest(BaseModel):

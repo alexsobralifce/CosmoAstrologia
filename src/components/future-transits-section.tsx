@@ -72,6 +72,20 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
     }
   };
 
+  // Função para formatar data apenas com números (usada na timeline horizontal)
+  const formatDateShort = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
   // Função para formatar texto da descrição (markdown simples)
   const formatDescription = (text: string): React.ReactNode => {
     if (!text) return null;
@@ -314,7 +328,7 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
                       <div className="transits-timeline-marker-dot"></div>
                       {startDate && (
                         <div className="transits-timeline-marker-date">
-                          {formatDate(transit.start_date)}
+                          {formatDateShort(transit.start_date)}
                         </div>
                       )}
                     </div>

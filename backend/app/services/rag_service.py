@@ -240,19 +240,27 @@ class RAGService:
                 for i, section in enumerate(sections):
                     section = section.strip()
                     if section and len(section) > 50:  # Ignorar seções muito curtas
-                        # Remover marcações excessivas de formatação
+                        # Extrair metadados se presentes (formato: **METADADOS:** `tipo:...`)
+                        metadata_text = ""
+                        metadata_match = re.search(r'\*\*METADADOS:\*\*\s*`([^`]+)`', section, re.IGNORECASE)
+                        if metadata_match:
+                            metadata_text = metadata_match.group(1)
+                        
+                        # Remover marcações excessivas de formatação (mas manter METADADOS visível no texto)
                         clean_section = section
                         # Manter headers mas limpar formatação excessiva
                         clean_section = re.sub(r'\*\*([^*]+)\*\*', r'\1', clean_section)  # Remove bold
                         clean_section = re.sub(r'\*([^*]+)\*', r'\1', clean_section)  # Remove italic
-                        clean_section = re.sub(r'`([^`]+)`', r'\1', clean_section)  # Remove code
+                        # Preservar metadados removendo apenas os backticks mas mantendo o conteúdo
+                        clean_section = re.sub(r'`([^`]+)`', r'\1', clean_section)  # Remove code backticks, mantém conteúdo
                         clean_section = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', clean_section)  # Remove links
                         
                         chunks.append({
                             'text': clean_section,
                             'source': md_path.name,
                             'page': i + 1,  # Usar número da seção como "página"
-                            'chunk_index': len(chunks)
+                            'chunk_index': len(chunks),
+                            'metadata': metadata_text  # Armazenar metadados extraídos
                         })
         except Exception as e:
             print(f"[ERROR] Erro ao processar {md_path.name}: {e}")

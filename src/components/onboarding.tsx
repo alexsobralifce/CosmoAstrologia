@@ -65,11 +65,21 @@ export interface OnboardingData {
   // Nodos Lunares
   northNodeSign?: string;
   northNodeDegree?: number;
+  northNodeHouse?: number;
   southNodeSign?: string;
   southNodeDegree?: number;
+  southNodeHouse?: number;
   // Quíron (a ferida do curador)
   chironSign?: string;
   chironDegree?: number;
+  chironHouse?: number;
+  // Lilith (Lua Negra)
+  lilithSign?: string;
+  lilithDegree?: number;
+  lilithHouse?: number;
+  // Fundo do Céu
+  icSign?: string;
+  icDegree?: number;
 }
 
 const STORAGE_KEY = 'saved_users';

@@ -18,6 +18,58 @@
 }
 
 /* ============================================================================
+ * BOTÃO HAMBÚRGUER (MOBILE)
+ * ============================================================================ */
+.dashboard-mobile-menu-button {
+  display: none; /* Escondido por padrão (desktop) */
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  color: hsl(var(--foreground));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.dashboard-mobile-menu-button:hover {
+  background-color: hsl(var(--accent) / 0.1);
+  transform: scale(1.05);
+}
+
+.dashboard-mobile-menu-button:active {
+  transform: scale(0.95);
+}
+
+/* ============================================================================
+ * OVERLAY ESCURO (MOBILE)
+ * ============================================================================ */
+.dashboard-sidebar-overlay {
+  display: none; /* Escondido por padrão (desktop) */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 49;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
  * SIDEBAR
  * ============================================================================ */
 .dashboard-sidebar {
@@ -32,6 +84,7 @@
   display: flex;
   flex-direction: column;
   z-index: 50;
+  transition: transform 0.3s ease;
 }
 
 .dashboard-sidebar-profile {
@@ -1088,6 +1141,32 @@
 }
 
 @media (max-width: 767px) {
+  /* Mostrar botão hambúrguer em mobile */
+  .dashboard-mobile-menu-button {
+    display: block;
+  }
+
+  /* Mostrar overlay em mobile quando sidebar está aberta */
+  .dashboard-sidebar-overlay {
+    display: block;
+  }
+
+  /* Sidebar escondida por padrão em mobile */
+  .dashboard-sidebar {
+    transform: translateX(-100%);
+  }
+
+  /* Sidebar aberta em mobile */
+  .dashboard-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Ajustar área principal em mobile */
+  .dashboard-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
   .dashboard-header-content {
     padding: 0 1rem;
     gap: 1rem;

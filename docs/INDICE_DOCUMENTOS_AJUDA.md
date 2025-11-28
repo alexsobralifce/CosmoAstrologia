@@ -161,6 +161,19 @@ Documentos organizados na ordem que devem ser consultados durante o setup e depl
 
 ---
 
+### 14. **GOOGLE_OAUTH_SAIR_MODO_TESTE.md** ⚠️ ERRO COMUM
+**Quando usar:** Mensagem "Usando modo de teste. Configure VITE_GOOGLE_CLIENT_ID"  
+**Conteúdo:**
+- Como obter Client ID do Google Cloud Console
+- Como configurar VITE_GOOGLE_CLIENT_ID no Vercel
+- Como publicar o app no Google (sair do modo de teste)
+- Verificação de URLs autorizadas
+- Checklist completo
+
+**📍 Use quando:** Google OAuth está em modo de teste e precisa ser configurado para produção
+
+---
+
 ## 📋 Fluxo Recomendado
 
 ### Para Setup Inicial Completo:

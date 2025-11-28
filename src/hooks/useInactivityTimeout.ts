@@ -106,13 +106,19 @@ export const useInactivityTimeout = ({
     }
 
     // Lista de eventos que resetam o timer
+    // Inclui eventos de mouse, teclado, scroll, touch e interações com formulários
     const events = [
       'mousedown',
       'mousemove',
       'keypress',
+      'keydown',
       'scroll',
       'touchstart',
       'click',
+      'input',      // Eventos de input em formulários
+      'change',     // Mudanças em selects, checkboxes, etc
+      'focus',      // Quando o usuário foca em elementos
+      'blur',       // Quando o usuário sai de elementos focados
     ];
 
     // Throttle para evitar muitas chamadas em eventos como mousemove

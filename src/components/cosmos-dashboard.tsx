@@ -151,18 +151,20 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
   
   // Estado para modal de aviso de inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
-  const [warningCountdown, setWarningCountdown] = useState(120); // 2 minutos em segundos
+  const [warningCountdown, setWarningCountdown] = useState(60); // 1 minuto em segundos
 
   // Sistema de timeout de inatividade
+  // Timeout de 10 minutos de inatividade com aviso de 1 minuto antes
   useInactivityTimeout({
-    timeout: 30 * 60 * 1000, // 30 minutos de inatividade
-    warningTime: 2 * 60 * 1000, // Avisar 2 minutos antes
+    timeout: 10 * 60 * 1000, // 10 minutos de inatividade total
+    warningTime: 1 * 60 * 1000, // Avisar 1 minuto antes (9 minutos de inatividade)
     onWarning: (remainingSeconds) => {
+      console.log(`[CosmosDashboard] Aviso de inatividade: ${remainingSeconds} segundos restantes`);
       setWarningCountdown(remainingSeconds);
       setShowInactivityWarning(true);
     },
     onTimeout: () => {
-      console.log('[CosmosDashboard] Sessão expirada por inatividade');
+      console.log('[CosmosDashboard] Sessão expirada por inatividade - fazendo logout');
       setShowInactivityWarning(false);
       onLogout();
     },
@@ -171,8 +173,10 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
 
   // Handler para continuar conectado
   const handleContinueSession = () => {
+    console.log('[CosmosDashboard] Usuário escolheu continuar conectado - resetando timer');
     setShowInactivityWarning(false);
     // O hook já reseta o timer automaticamente ao detectar atividade
+    // Ao clicar no botão, o evento de click já dispara o reset do timer
   };
 
   // Handlers para calendário

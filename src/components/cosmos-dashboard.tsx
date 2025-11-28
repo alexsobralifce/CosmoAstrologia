@@ -138,6 +138,7 @@ interface CosmosDashboardProps {
 
 export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: CosmosDashboardProps) => {
   const [activeSection, setActiveSection] = useState('inicio');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { language, t } = useLanguage();
   const { theme } = useTheme(); // Adicionar acesso ao tema
   
@@ -424,8 +425,25 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
 
   return (
     <div className="dashboard-container">
+      {/* ===== BOTÃO HAMBÚRGUER (MOBILE) ===== */}
+      <button
+        className="dashboard-mobile-menu-button"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        aria-label="Toggle menu"
+      >
+        <UIIcons.Menu size={24} />
+      </button>
+
+      {/* ===== OVERLAY ESCURO (MOBILE) ===== */}
+      {isSidebarOpen && (
+        <div 
+          className="dashboard-sidebar-overlay"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* ===== SIDEBAR FIXA À ESQUERDA ===== */}
-      <aside className="dashboard-sidebar">
+      <aside className={`dashboard-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         {/* Perfil do Usuário - Centralizado */}
         <div className="dashboard-sidebar-profile">
           <div className="dashboard-sidebar-profile-content">
@@ -452,7 +470,10 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveSection(item.id)}
+              onClick={() => {
+                setActiveSection(item.id);
+                setIsSidebarOpen(false); // Fechar sidebar ao clicar em um item (mobile)
+              }}
               className={`dashboard-sidebar-menu-item ${activeSection === item.id ? 'active' : ''}`}
             >
               <item.icon size={20} />

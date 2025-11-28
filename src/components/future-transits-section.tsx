@@ -92,44 +92,42 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
               const title = titleMatch[1];
               const content = trimmed.replace(/\*\*(.+?)\*\*/, '').trim();
               
-              // Verificar se é seção de exemplos
-              const isExamples = title.toLowerCase().includes('exemplo');
+              // Verificar se é seção de exemplos (case-insensitive)
+              const isExamples = title.toLowerCase().includes('exemplo') || title.toLowerCase().includes('prático');
               
               return (
-                <div key={index} style={{ marginBottom: '1rem' }}>
+                <div key={index} style={{ marginBottom: '1.5rem' }}>
                   <h4 className={`transits-transit-description-title ${isExamples ? 'transits-examples-title' : ''}`}>
                     {title}
                   </h4>
                   {content && (
-                    <div className={isExamples ? 'transits-examples-container' : ''}>
+                    <div className={isExamples ? 'transits-examples-container' : 'transits-transit-description-paragraph'}>
                       {content.split('\n').map((line, lineIndex) => {
                         const trimmedLine = line.trim();
                         if (!trimmedLine) return null;
                         
-                        // Verificar se é um bullet point
-                        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
-                          // Verificar se contém aspas (exemplo prático)
-                          if (isExamples && trimmedLine.includes('"')) {
-                            return (
-                              <div key={lineIndex} className="transits-example-box">
-                                <p className="transits-example-text">{trimmedLine}</p>
-                              </div>
-                            );
-                          }
+                        // Se é seção de exemplos, sempre renderizar como exemplo
+                        if (isExamples) {
+                          // Remover o bullet point se existir
+                          const cleanLine = trimmedLine.replace(/^[•\-]\s*/, '');
                           return (
-                            <p key={lineIndex} className={`transits-transit-description-list-item ${isExamples ? 'transits-example-item' : ''}`} style={{ marginLeft: isExamples ? '0' : '1rem' }}>
+                            <div key={lineIndex} className="transits-example-item">
+                              <div className="transits-example-box">
+                                <p className="transits-example-text">{cleanLine}</p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                        // Verificar se é um bullet point (para outras seções)
+                        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+                          return (
+                            <p key={lineIndex} className="transits-transit-description-list-item" style={{ marginLeft: '1rem' }}>
                               {trimmedLine}
                             </p>
                           );
                         }
-                        // Verificar se é um exemplo (contém aspas)
-                        if (isExamples && trimmedLine.includes('"')) {
-                          return (
-                            <div key={lineIndex} className="transits-example-box">
-                              <p className="transits-example-text">{trimmedLine}</p>
-                            </div>
-                          );
-                        }
+                        
                         return (
                           <p key={lineIndex} className="transits-transit-description-paragraph">
                             {trimmedLine}

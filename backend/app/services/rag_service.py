@@ -79,15 +79,20 @@ class RAGService:
             pass
         
         # Inicializar cliente Groq se disponível
-        if HAS_GROQ and groq_api_key:
-            try:
-                self.groq_client = Groq(api_key=groq_api_key)
-            except Exception as e:
-                print(f"[WARNING] Erro ao inicializar Groq: {e}")
+        if HAS_GROQ:
+            if groq_api_key and groq_api_key.strip():
+                try:
+                    self.groq_client = Groq(api_key=groq_api_key.strip())
+                    print("[RAG] Cliente Groq inicializado com sucesso")
+                except Exception as e:
+                    print(f"[WARNING] Erro ao inicializar Groq: {e}")
+                    self.groq_client = None
+            else:
+                print("[WARNING] GROQ_API_KEY não configurada ou vazia. Funcionalidades com Groq estarão desabilitadas.")
                 self.groq_client = None
-        elif HAS_GROQ and not groq_api_key:
-            # Só avisar se tentar usar Groq sem chave
-            pass
+        else:
+            print("[WARNING] Biblioteca Groq não instalada. Instale com: pip install groq")
+            self.groq_client = None
     
     def _clean_text(self, text: str) -> str:
         """Remove ruído comum de PDFs (URLs, headers repetidos, etc.)."""
@@ -599,16 +604,26 @@ Estruture a interpretação explicando:
    - Dicas para navegar diferenças
    - Formas de fortalecer o relacionamento
 
+5. **Exemplos Práticos** (OBRIGATÓRIO - pelo menos 3 exemplos):
+   - Situações reais do dia a dia do relacionamento
+   - Como os signos interagem em momentos específicos
+   - Exemplos de conversas, atividades ou decisões que funcionam bem
+   - Situações que podem gerar tensão e como lidar
+   - Momentos de conexão e harmonia entre os signos
+
 IMPORTANTE:
 - Escreva NO MÍNIMO 4 parágrafos completos e práticos
+- SEMPRE inclua uma seção "**Exemplos Práticos:**" com pelo menos 3 exemplos concretos e aplicáveis
 - Use linguagem didática, atual e aplicável ao dia a dia
 - Foque em dinâmicas reais de relacionamento
 - Seja específico sobre comunicação, valores, intimidade e objetivos
 - Use títulos em negrito quando apropriado (formato markdown **texto**)
 - Baseie-se no conhecimento astrológico geral sobre os signos mencionados
 - Seja criativo e prático, mesmo sem documentos específicos de referência
+- NÃO inclua informações sobre "Astrologia Moderna", "Suporte" ou outros tópicos não relacionados à compatibilidade
 
-Formate a resposta de forma didática, usando quebras de linha e estruturação adequada para facilitar a leitura."""
+Formate a resposta de forma didática, usando quebras de linha e estruturação adequada para facilitar a leitura.
+PARE a resposta ANTES de qualquer seção sobre "Astrologia Moderna", "Suporte" ou outros tópicos não relacionados."""
         
         # Prompt específico para regente do mapa (mais detalhado)
         elif is_chart_ruler_query:
@@ -695,6 +710,9 @@ REGRAS:
 - Seja específico e prático, não genérico
 - NÃO mencione fontes, páginas ou referências aos documentos
 - NÃO repita a query ou o tema da consulta no início da resposta
+- NÃO inclua código Python, blocos de código ou referências técnicas (como PERIODOS_ORBITAIS, dicionários Python, etc.)
+- NÃO inclua períodos orbitais dos planetas (29.5, 11.86, 84.0, etc.) - isso não é relevante para interpretação astrológica
+- NÃO inclua informações sobre Astrologia Védica, Jyotish, zodíaco Sideral, Dasas, Vargas ou diferenças entre Tropical e Sideral
 - Mínimo 3 parágrafos principais (um para cada dimensão temporal)
 - Formate o texto de forma organizada e fácil de ler"""
             
@@ -779,6 +797,21 @@ IMPORTANTE: O texto deve ser formatado de forma clara e didática, usando quebra
                 filtered_lines.append(line)
             
             interpretation_clean = '\n'.join(filtered_lines).strip()
+            
+            # Remover blocos de código Python com PERIODOS_ORBITAIS
+            interpretation_clean = re.sub(r'PERIODOS_ORBITAIS\s*=\s*\{[\s\S]*?\}', '', interpretation_clean)
+            interpretation_clean = re.sub(r'`python\s*PERIODOS_ORBITAIS[\s\S]*?`', '', interpretation_clean)
+            interpretation_clean = re.sub(r'python\s*PERIODOS_ORBITAIS[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            
+            # Remover informações sobre Astrologia Védica/Jyotish
+            interpretation_clean = re.sub(r'###\s*Astrologia Védica[\s\S]*?(?=###|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            interpretation_clean = re.sub(r'Astrologia Védica \(Jyotish\)[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            interpretation_clean = re.sub(r'Jyotish[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            interpretation_clean = re.sub(r'zodíaco Sideral[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            interpretation_clean = re.sub(r'Diferença Tropical vs Sideral[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            interpretation_clean = re.sub(r'Dasas[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            interpretation_clean = re.sub(r'Vargas[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
+            interpretation_clean = re.sub(r'~24 graus[\s\S]*?(?=\n\n|$)', '', interpretation_clean, flags=re.IGNORECASE)
             
             print(f"[RAG] Interpretação após primeira limpeza (tamanho: {len(interpretation_clean)} chars)")
             

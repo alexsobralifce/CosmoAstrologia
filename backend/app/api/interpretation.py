@@ -18,6 +18,103 @@ from app.models.database import BirthChart
 router = APIRouter()
 
 
+def _deduplicate_text(text: str) -> str:
+    """
+    Remove duplicações de texto nas interpretações geradas.
+    Remove parágrafos duplicados, frases repetidas e padrões comuns.
+    """
+    if not text or len(text.strip()) < 50:
+        return text
+    
+    # Remover duplicações de parágrafos inteiros
+    paragraphs = text.split('\n\n')
+    seen_paragraphs = set()
+    unique_paragraphs = []
+    
+    for para in paragraphs:
+        para_clean = para.strip()
+        if not para_clean:
+            unique_paragraphs.append(para)
+            continue
+        
+        # Normalizar para comparação (remover espaços extras, case insensitive, remover pontuação final)
+        para_key = re.sub(r'\s+', ' ', para_clean.lower())
+        para_key = re.sub(r'[.,;:!?]+$', '', para_key).strip()
+        
+        # Ignorar parágrafos muito curtos (provavelmente títulos ou separadores)
+        if len(para_key) > 50:
+            if para_key not in seen_paragraphs:
+                seen_paragraphs.add(para_key)
+                unique_paragraphs.append(para)
+        else:
+            # Manter parágrafos curtos (títulos, etc) mas verificar duplicação
+            if para_key not in seen_paragraphs or len(para_key) < 20:
+                seen_paragraphs.add(para_key)
+                unique_paragraphs.append(para)
+    
+    text = '\n\n'.join(unique_paragraphs)
+    
+    # Remover frases duplicadas dentro do mesmo parágrafo
+    lines = text.split('\n')
+    cleaned_lines = []
+    seen_sentences = set()
+    
+    for line in lines:
+        if not line.strip():
+            cleaned_lines.append(line)
+            continue
+        
+        # Dividir por pontos finais para detectar frases repetidas
+        sentences = re.split(r'[.!?]+\s+', line)
+        unique_sentences = []
+        
+        for sentence in sentences:
+            if not sentence.strip():
+                continue
+            
+            sentence_clean = re.sub(r'\s+', ' ', sentence.strip().lower())
+            sentence_clean = re.sub(r'[.,;:!?]+$', '', sentence_clean).strip()
+            
+            # Ignorar frases muito curtas (provavelmente parte de listas)
+            if len(sentence_clean) > 30:
+                if sentence_clean not in seen_sentences:
+                    seen_sentences.add(sentence_clean)
+                    unique_sentences.append(sentence.strip())
+            else:
+                unique_sentences.append(sentence.strip())
+        
+        if unique_sentences:
+            cleaned_lines.append('. '.join(unique_sentences))
+        else:
+            cleaned_lines.append(line)
+    
+    text = '\n'.join(cleaned_lines)
+    
+    # Remover padrões comuns de repetição
+    patterns_to_deduplicate = [
+        r'A pessoa pode esperar:.*?(?=\n\n|\*\*|$)',
+        r'The person can expect:.*?(?=\n\n|\*\*|$)',
+        r'Oportunidades de crescimento e expansão.*?(?=\n\n|\*\*|$)',
+        r'Opportunities for growth and expansion.*?(?=\n\n|\*\*|$)',
+        r'Liderança e autoconfiança.*?(?=\n\n|\*\*|$)',
+        r'Desenvolver habilidades de comunicação.*?(?=\n\n|\*\*|$)',
+        r'Buscar apoio emocional.*?(?=\n\n|\*\*|$)',
+    ]
+    
+    for pattern in patterns_to_deduplicate:
+        matches = list(re.finditer(pattern, text, re.IGNORECASE | re.DOTALL))
+        if len(matches) > 1:
+            # Manter apenas a primeira ocorrência, remover as demais
+            for match in matches[1:]:
+                text = text[:match.start()] + text[match.end():]
+    
+    # Limpar espaços extras e quebras de linha múltiplas
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = re.sub(r' {2,}', ' ', text)
+    
+    return text.strip()
+
+
 class DailyAdviceRequest(BaseModel):
     """Request para conselhos diários."""
     moonHouse: int
@@ -97,8 +194,13 @@ def get_interpretation(
                     relevance=src.get('relevance') or src.get('score')
                 ))
         
+        # Aplicar filtro de deduplicação na interpretação
+        interpretation_text = interpretation['interpretation']
+        if interpretation_text:
+            interpretation_text = _deduplicate_text(interpretation_text)
+        
         return InterpretationResponse(
-            interpretation=interpretation['interpretation'],
+            interpretation=interpretation_text,
             sources=sources_list,
             query_used=interpretation['query_used'],
             generated_by=interpretation.get('generated_by', 'unknown')
@@ -612,6 +714,9 @@ def get_planet_interpretation(
                 interpretation_clean = re.sub(r'Página \d+', '', interpretation_clean)
                 interpretation_clean = interpretation_clean.strip()
                 
+                # Aplicar filtro de deduplicação
+                interpretation_clean = _deduplicate_text(interpretation_clean)
+                
                 print(f"[PLANET API] Interpretação gerada com sucesso (tamanho: {len(interpretation_clean)} chars)")
                 
                 return {
@@ -903,6 +1008,9 @@ Formate a resposta de forma didática, usando quebras de linha e estruturação 
                 
                 interpretation_text = chat_completion.choices[0].message.content.strip()
                 
+                # Aplicar filtro de deduplicação primeiro
+                interpretation_text = _deduplicate_text(interpretation_text)
+                
                 # Verificar se a interpretação tem pelo menos 2 parágrafos e tamanho adequado
                 paragraphs = [p.strip() for p in interpretation_text.split('\n\n') if p.strip() and len(p.strip()) > 50]
                 
@@ -954,8 +1062,13 @@ Formate a resposta de forma didática, usando quebras de linha e estruturação 
             top_k=12  # Aumentar top_k no fallback também
         )
         
+        # Aplicar filtro de deduplicação na interpretação
+        interpretation_text = interpretation['interpretation']
+        if interpretation_text:
+            interpretation_text = _deduplicate_text(interpretation_text)
+        
         return {
-            "interpretation": interpretation['interpretation'],
+            "interpretation": interpretation_text,
             "sources": interpretation['sources'],
             "query_used": interpretation['query_used'],
             "generated_by": interpretation.get('generated_by', 'rag_only')
@@ -1011,8 +1124,13 @@ def get_planet_house_interpretation(
             use_groq=True
         )
         
+        # Aplicar filtro de deduplicação na interpretação
+        interpretation_text = interpretation['interpretation']
+        if interpretation_text:
+            interpretation_text = _deduplicate_text(interpretation_text)
+        
         return {
-            "interpretation": interpretation['interpretation'],
+            "interpretation": interpretation_text,
             "sources": interpretation['sources'],
             "query_used": interpretation['query_used'],
             "generated_by": interpretation.get('generated_by', 'rag_only')
@@ -1073,8 +1191,13 @@ def get_aspect_interpretation(
             use_groq=True
         )
         
+        # Aplicar filtro de deduplicação na interpretação
+        interpretation_text = interpretation['interpretation']
+        if interpretation_text:
+            interpretation_text = _deduplicate_text(interpretation_text)
+        
         return {
-            "interpretation": interpretation['interpretation'],
+            "interpretation": interpretation_text,
             "sources": interpretation['sources'],
             "query_used": interpretation['query_used'],
             "generated_by": interpretation.get('generated_by', 'rag_only')
@@ -1190,13 +1313,20 @@ def get_daily_advice(
                         f"Conselho astrológico sobre {request.category} considerando Lua na casa {request.moonHouse}",
                         rag_results
                     )
+                    # Aplicar filtro de deduplicação
+                    interpretation_text = _deduplicate_text(interpretation_text)
                     interpretation['interpretation'] = interpretation_text
                     interpretation['generated_by'] = 'groq'
             except Exception as e:
                 print(f"[WARNING] Erro ao gerar com Groq: {e}")
         
+        # Aplicar filtro de deduplicação na interpretação
+        interpretation_text = interpretation['interpretation']
+        if interpretation_text:
+            interpretation_text = _deduplicate_text(interpretation_text)
+        
         return {
-            "interpretation": interpretation['interpretation'],
+            "interpretation": interpretation_text,
             "sources": interpretation['sources'],
             "query_used": interpretation['query_used'],
             "generated_by": interpretation.get('generated_by', 'rag_only')
@@ -1297,65 +1427,69 @@ class FullBirthChartSectionsResponse(BaseModel):
 
 
 def _get_master_prompt(language: str = 'pt') -> str:
-    """Retorna o prompt mestre para geração do Mapa Astral baseado na nova estrutura fornecida."""
+    """Retorna o prompt mestre para geração do Mapa Astral baseado na nova estrutura otimizada."""
     if language == 'en':
-        return """**Role:** You are a Senior Astrologer, specialist in integrating **Modern Psychological Astrology** (Stephen Arroyo's line) with the technical precision of **Classical/Traditional Astrology** (Dignities, Rulerships) and the depth of **Karmic Astrology**. Your language is empathetic, therapeutic, but focused on practical guidance and strategic decision-making.
+        return """**Role:** You are a Senior Astrologer and Strategic Consultant. Your specialty is Precision Astrological Synthesis, integrating Stephen Arroyo's energetic vision, the rigorous technique of Sakoian & Acker (aspects and orbs) and the practical application of Kris Brandt Riske's Houses.
 
-**Task:** Perform a deep and complete interpretation of the Natal Chart below.
+**Objective:** Analyze the Natal Chart below to provide Strategic Life Direction and support Decision Making. I don't want generic descriptions; I want the mechanics of how this person functions.
 
-**Birth Data:** [INSERT DATE, TIME AND PLACE HERE]
+**Birth Data:** [INSERT DATA HERE]
 
-**Analysis Guidelines:**
+**ANALYSIS PROTOCOL (THE "ALGORITHM"):**
 
-Use a synthesis approach. Do not describe isolated positions (e.g., "Sun in house X means Y"); instead, connect the points to tell the person's story, integrating conscious will, emotional needs and destiny.
+Follow these reasoning steps before generating the final response:
 
-**CRITICAL RULES - AVOID REPETITIONS:**
-- NEVER repeat information already mentioned in previous sections or interpretations
-- Each section must bring NEW and UNIQUE insights
-- If you've already explained something about a planet, sign, or house in one section, do NOT repeat it in another section
-- Connect different information, don't duplicate
-- Always bring fresh perspectives and new connections
-- Avoid generic phrases that could apply to anyone - be specific to THIS person's chart
+**Temperament Calculation (Arroyo's Filter):** Evaluate the balance of the 4 Elements (Fire, Earth, Air, Water). Identify the dominant element (the fuel) and the absent/weak element (the blind spot). Use this to nuance all guidance.
 
-**STYLE:**
-- Use clear, empathetic and therapeutic language
-- Focus on practical guidance and strategic decision-making
-- Avoid excessive "astrologuese" without explanation
-- Empower the consultee with actionable insights
+**Hierarchy of Strength:** Give maximum priority in interpretation to:
+- The Ascendant Ruler (The Captain of Life).
+- Planets in Angular Houses (1, 4, 7, 10).
+- Exact/Partile Aspects (orb less than 2°). These are the "screams" of the chart.
 
-**ADDITIONAL RULES:**
-- DO NOT include Python code, code blocks or orbital periods of planets
-- DO NOT include information about Vedic Astrology, Jyotish, Sidereal zodiac, Dasas, Vargas or differences between Tropical and Sidereal
-- NEVER write "House not provided", "in House not provided", "Casa não informada" or any variation - if the house is not available in the data, simply OMIT mentioning the house and focus only on the sign"""
+**Decision Mechanics:** Analyze Mercury (how they think) and Mars (how they act) to explain how this person makes decisions and where they usually err.
+
+**GOLDEN RULES (GUIDELINES):**
+
+**Synthesis, not List:** Never list "Sun in Aries, Moon in Taurus...". Say: "Your Arian will to initiate is slowed by a Taurean need for security..."
+
+**Precision:** If there is a tense aspect (Square/Opposition) involving personal planets, treat this as a "Critical Attention Point".
+
+**Language:** Therapeutic, direct, empowering. Use metaphors to explain complex energies.
+
+**No repetitions:** Each section must reveal a new layer of the individual.
+
+**House Treatment:** If the time is not exact or the house is not provided, focus on the psychology of planets in signs and ignore life areas (Houses)."""
     else:
-        return """**Role:** Você é um Astrólogo Sênior, especialista em integrar a **Astrologia Psicológica Moderna** (linha de Stephen Arroyo) com a precisão técnica da **Astrologia Clássica/Tradicional** (Dignidades, Regências) e a profundidade da **Astrologia Kármica**. Sua linguagem é empática, terapêutica, mas focada em orientações práticas e tomada de decisão estratégica.
+        return """**Role:** Você é um Astrólogo Sênior e Consultor Estratégico. Sua especialidade é a Síntese Astrológica de Precisão, integrando a visão energética de Stephen Arroyo, a técnica rigorosa de Sakoian & Acker (aspectos e orbes) e a aplicação prática das Casas de Kris Brandt Riske.
 
-**Tarefa:** Realizar uma interpretação profunda e completa do Mapa Natal abaixo.
+**Objetivo:** Analisar o Mapa Natal abaixo para fornecer Direcionamento Estratégico de Vida e apoiar a Tomada de Decisões. Não quero descrições genéricas; quero a mecânica de funcionamento desta pessoa.
 
-**Dados do Nascimento:** [INSERIR DATA, HORA E LOCAL AQUI]
+**Dados do Nascimento:** [INSERIR DADOS AQUI]
 
-**Diretrizes de Análise:**
+**PROTOCOLO DE ANÁLISE (O "ALGORITMO"):**
 
-Utilize uma abordagem de síntese. Não descreva posições isoladas (ex: "Sol na casa X significa Y"); em vez disso, conecte os pontos para contar a história da pessoa, integrando a vontade consciente, necessidades emocionais e destino.
+Siga estas etapas de raciocínio antes de gerar a resposta final:
 
-**REGRAS CRÍTICAS - EVITAR REPETIÇÕES:**
-- NUNCA repita informações já mencionadas em seções ou interpretações anteriores
-- Cada seção deve trazer insights NOVOS e ÚNICOS
-- Se você já explicou algo sobre um planeta, signo ou casa em uma seção, NÃO repita em outra seção
-- Conecte informações diferentes, não duplique
-- Sempre traga perspectivas frescas e novas conexões
-- Evite frases genéricas que poderiam se aplicar a qualquer pessoa - seja específico ao mapa DESTA pessoa
+**Cálculo do Temperamento (Filtro de Arroyo):** Avalie o balanço dos 4 Elementos (Fogo, Terra, Ar, Água). Identifique o elemento dominante (o combustível) e o elemento ausente/fraco (o ponto cego). Use isso para matizar todas as orientações.
 
-**ESTILO:**
-- Use linguagem clara, empática e terapêutica
-- Foco em orientações práticas e tomada de decisão estratégica
-- Evite "astrologuês" excessivo sem explicação
-- Empodere o consulente com insights acionáveis
+**Hierarquia de Força:** Dê prioridade máxima na interpretação para:
+- O Regente do Ascendente (O Capitão da Vida).
+- Planetas em Casas Angulares (1, 4, 7, 10).
+- Aspectos Partis/Exatos (orbe menor que 2°). Estes são os "gritos" do mapa.
 
-**REGRAS ADICIONAIS:**
-- NÃO inclua código Python, blocos de código ou períodos orbitais dos planetas
-- NÃO inclua informações sobre Astrologia Védica, Jyotish, zodíaco Sideral, Dasas, Vargas ou diferenças entre Tropical e Sideral
-- NUNCA escreva "Casa não informada", "na Casa não informada", "House not provided" ou qualquer variação - se a casa não estiver disponível nos dados, simplesmente OMITA a menção à casa e foque apenas no signo"""
+**Mecânica de Decisão:** Analise Mercúrio (como pensa) e Marte (como age) para explicar como esta pessoa toma decisões e onde ela costuma errar.
+
+**REGRAS DE OURO (GUIDELINES):**
+
+**Síntese, não Lista:** Nunca liste "Sol em áries, Lua em touro...". Diga: "Sua vontade ariana de iniciar é freada por uma necessidade taurina de segurança..."
+
+**Precisão:** Se houver um aspecto tenso (Quadratura/Oposição) envolvendo planetas pessoais, trate isso como um "Ponto de Atenção Crítica".
+
+**Linguagem:** Terapêutica, direta, empoderadora. Use metáforas para explicar energias complexas.
+
+**Sem repetições:** Cada seção deve revelar uma nova camada do indivíduo.
+
+**Tratamento de Casas:** Se a hora não for exata ou a casa não for informada, foque na psicologia dos planetas nos signos e ignore as áreas da vida (Casas)."""
 
 
 def _get_full_chart_context(request: FullBirthChartRequest, lang: str = 'pt') -> str:
@@ -1439,17 +1573,31 @@ def _generate_section_prompt(request: FullBirthChartRequest, section: str) -> Tu
     birth_data_str = f"Data: {request.birthDate}, Hora: {request.birthTime}, Local: {request.birthPlace}"
     
     if section == 'power':
-        title = "A Estrutura de Poder (Temperamento e Motivação)" if lang == 'pt' else "The Power Structure (Temperament and Motivation)"
+        title = "A Engenharia da Sua Energia (Temperamento)" if lang == 'pt' else "The Engineering of Your Energy (Temperament)"
         if lang == 'pt':
             prompt = f"""{full_context}
 
-**SEÇÃO 1: A ESTRUTURA DE PODER (TEMPERAMENTO E MOTIVAÇÃO)**
+**1. A ENGENHARIA DA SUA ENERGIA (TEMPERAMENTO)**
 
-* **Balanço de Elementos e Qualidades:** Analise a distribuição de Fogo, Terra, Ar e Água e as modalidades (Cardeal, Fixo, Mutável). Identifique excessos (o que sobra) e escassez (o que falta). Dê conselhos práticos de como equilibrar isso na rotina.
+Comece sua resposta com: "Análise do Mapa Astral de {request.name}"
 
-* **O Regente do Mapa:** Identifique o planeta regente do Ascendente {request.ascendant} e analise sua condição (Signo, Casa, Aspectos). Ele é um aliado ou um desafio para o nativo?
+Em seguida, inclua uma seção intitulada: "Cálculo do Temperamento (Filtro de Arroyo)"
+
+Explique como o balanço de elementos afeta a vitalidade e a psicologia básica.
+
+**Análise Obrigatória:**
+- Avalie o balanço dos 4 Elementos (Fogo, Terra, Ar, Água)
+- Identifique o elemento dominante (o combustível) e o elemento ausente/fraco (o ponto cego)
+- Analise as modalidades (Cardeal, Fixo, Mutável)
+
+**Insight Prático:** Como lidar com a falta ou excesso de um elemento no dia a dia.
+
+**O Regente do Ascendente:** Identifique o planeta regente do Ascendente {request.ascendant} e analise sua condição (Signo, Casa, Aspectos). Onde ele está e como ele direciona o foco principal da vida. Ele é um aliado ou um desafio para o nativo?
 
 IMPORTANTE:
+- SEMPRE comece com "Análise do Mapa Astral de {request.name}"
+- SEMPRE inclua a seção "Cálculo do Temperamento (Filtro de Arroyo)" com conteúdo detalhado
+- Use "conselhos" (português), NUNCA "consejo" (espanhol)
 - Não repita informações já mencionadas em outras seções
 - NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - se a casa não estiver disponível, OMITA completamente a menção à casa
 - Foque no temperamento como motor de motivação e ação
@@ -1458,11 +1606,18 @@ IMPORTANTE:
         else:
             prompt = f"""{full_context}
 
-**SECTION 1: THE POWER STRUCTURE (TEMPERAMENT AND MOTIVATION)**
+**1. THE ENGINEERING OF YOUR ENERGY (TEMPERAMENT)**
 
-* **Balance of Elements and Qualities:** Analyze the distribution of Fire, Earth, Air and Water and the modalities (Cardinal, Fixed, Mutable). Identify excesses (what is in surplus) and scarcity (what is lacking). Give practical advice on how to balance this in routine.
+Explain how the balance of elements affects vitality and basic psychology.
 
-* **The Chart Ruler:** Identify the planet ruling the Ascendant {request.ascendant} and analyze its condition (Sign, House, Aspects). Is it an ally or a challenge for the native?
+**Mandatory Analysis:**
+- Evaluate the balance of the 4 Elements (Fire, Earth, Air, Water)
+- Identify the dominant element (the fuel) and the absent/weak element (the blind spot)
+- Analyze the modalities (Cardinal, Fixed, Mutable)
+
+**Practical Insight:** How to deal with the lack or excess of an element in daily life.
+
+**The Ascendant Ruler:** Identify the planet ruling the Ascendant {request.ascendant} and analyze its condition (Sign, House, Aspects). Where is it and how does it direct the main focus of life. Is it an ally or a challenge for the native?
 
 IMPORTANT:
 - Do not repeat information already mentioned in other sections
@@ -1472,15 +1627,20 @@ IMPORTANT:
 - Give practical and actionable advice for energy balance"""
     
     elif section == 'triad':
-        title = "A Tríade Fundamental (O Núcleo da Personalidade)" if lang == 'pt' else "The Fundamental Triad (The Core of Personality)"
+        title = "O Núcleo da Personalidade (A Tríade Primordial)" if lang == 'pt' else "The Core of Personality (The Primordial Triad)"
         if lang == 'pt':
             prompt = f"""{full_context}
 
-**SEÇÃO 2: A TRÍADE FUNDAMENTAL (O NÚCLEO DA PERSONALIDADE)**
+**2. O NÚCLEO DA PERSONALIDADE (A TRÍADE PRIMORDIAL)**
 
-* Faça uma síntese de **Sol** (Identidade/Essência), **Lua** (Emoções/Passado/Reações) e **Ascendente** (Persona/Corpo).
+Sintetize Sol (Vontade), Lua (Necessidade Emocional) e Ascendente (Modo de Ação).
 
-* Explique a dinâmica entre eles: a vontade consciente (Sol) está em harmonia com as necessidades emocionais (Lua) e a forma de agir (Ascendente)?
+**Análise Obrigatória:**
+- Não interprete separados. Explique o conflito ou a harmonia entre o que a pessoa quer (Sol) e o que ela precisa (Lua)
+- Analise a dinâmica entre vontade consciente (Sol), necessidades emocionais (Lua) e forma de agir (Ascendente)
+- Explique como eles se equilibram ou conflitam
+
+**Foco no Regente do Ascendente:** Onde ele está e como ele direciona o foco principal da vida.
 
 DADOS:
 - Sol em {request.sunSign} na Casa {request.sunHouse}
@@ -1491,17 +1651,21 @@ IMPORTANTE:
 - Não repita informações já mencionadas em outras seções
 - NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação
 - Faça uma síntese que conecte os três pontos para contar a história da pessoa
-- Analise a dinâmica entre vontade consciente (Sol), necessidades emocionais (Lua) e forma de agir (Ascendente)
 - Use abordagem de síntese, evitando descrições fragmentadas ou isoladas
-- Explique como eles se equilibram ou conflitam"""
+- Procure contradições - é nas contradições que a pessoa trava na hora de decidir"""
         else:
             prompt = f"""{full_context}
 
-**SECTION 2: THE FUNDAMENTAL TRIAD (THE CORE OF PERSONALITY)**
+**2. THE CORE OF PERSONALITY (THE PRIMORDIAL TRIAD)**
 
-* Make a synthesis of **Sun** (Identity/Essence), **Moon** (Emotions/Past/Reactions) and **Ascendant** (Persona/Body).
+Synthesize Sun (Will), Moon (Emotional Need) and Ascendant (Mode of Action).
 
-* Explain the dynamics between them: is conscious will (Sun) in harmony with emotional needs (Moon) and way of acting (Ascendant)?
+**Mandatory Analysis:**
+- Do not interpret separately. Explain the conflict or harmony between what the person wants (Sun) and what they need (Moon)
+- Analyze the dynamics between conscious will (Sun), emotional needs (Moon) and way of acting (Ascendant)
+- Explain how they balance or conflict
+
+**Focus on the Ascendant Ruler:** Where it is and how it directs the main focus of life.
 
 DATA:
 - Sun in {request.sunSign} in House {request.sunHouse}
@@ -1512,131 +1676,126 @@ IMPORTANT:
 - Do not repeat information already mentioned in other sections
 - NEVER write "House not provided", "in House not provided" or any variation
 - Make a synthesis that connects the three points to tell the person's story
-- Analyze the dynamics between conscious will (Sun), emotional needs (Moon) and way of acting (Ascendant)
 - Use a synthesis approach, avoiding fragmented or isolated descriptions
-- Explain how they balance or conflict"""
+- Look for contradictions - it's in contradictions that the person gets stuck when deciding"""
     
     elif section == 'personal':
-        title = "Dinâmica Pessoal e Ferramentas (Planetas Pessoais)" if lang == 'pt' else "Personal Dynamics and Tools (Personal Planets)"
+        title = "Estratégia de Tomada de Decisão & Carreira" if lang == 'pt' else "Decision Making Strategy & Career"
         if lang == 'pt':
             prompt = f"""{full_context}
 
-**SEÇÃO 3: DINÂMICA PESSOAL E FERRAMENTAS (PLANETAS PESSOAIS)**
+**3. ESTRATÉGIA DE TOMADA DE DECISÃO & CARREIRA**
 
-* **Intelecto (Mercúrio):** Como a pessoa processa informações, aprende e toma decisões.
+Analise Mercúrio e Marte. A pessoa é impulsiva ou cautelosa? Racional ou intuitiva?
 
-* **Afeto e Valores (Vênus):** Analise a condição de Vênus (Dignidades/Debilidades). Como a pessoa ama, o que valoriza e como lida com recursos.
+**Análise Obrigatória:**
+- **Mercúrio (como pensa):** Como a pessoa processa informações, aprende e toma decisões
+- **Marte (como age):** Onde coloca sua energia, assertividade e impulso. A pessoa é impulsiva ou cautelosa?
+- Analise a Casa 2 (Dinheiro), Casa 6 (Rotina) e Casa 10 (Metas/Saturno)
 
-* **Ação e Conquista (Marte):** Onde coloca sua energia, assertividade e impulso sexual.
+**Orientação:** Qual o melhor ambiente para ela prosperar? Onde estão os bloqueios de Saturno que exigem paciência?
+
+IMPORTANTE: Use "conselhos" (português), NUNCA "consejo" (espanhol). Use sempre português brasileiro.
 
 DADOS:
 - Mercúrio em {request.mercurySign or 'não informado'}{f' na Casa {request.mercuryHouse}' if request.mercuryHouse else ''}
-- Vênus em {request.venusSign or 'não informado'}{f' na Casa {request.venusHouse}' if request.venusHouse else ''}
 - Marte em {request.marsSign or 'não informado'}{f' na Casa {request.marsHouse}' if request.marsHouse else ''}
+- Vênus em {request.venusSign or 'não informado'}{f' na Casa {request.venusHouse}' if request.venusHouse else ''}
 
 IMPORTANTE:
 - Não repita informações já mencionadas em outras seções
 - USE OS DADOS ESPECÍFICOS FORNECIDOS ACIMA - não use frases genéricas como "Casa não informada"
 - Se a casa não estiver disponível, foque no signo e no planeta apenas
-- Analise Vênus com técnica de Dignidades/Debilidades (Astrologia Clássica)
 - Foque em como cada planeta funciona como ferramenta prática na vida
 - Conecte com exemplos concretos de manifestação baseados nos dados fornecidos"""
         else:
             prompt = f"""{full_context}
 
-**SECTION 3: PERSONAL DYNAMICS AND TOOLS (PERSONAL PLANETS)**
+**3. DECISION MAKING STRATEGY & CAREER**
 
-* **Intellect (Mercury):** How the person processes information, learns and makes decisions.
+Analyze Mercury and Mars. Is the person impulsive or cautious? Rational or intuitive?
 
-* **Affection and Values (Venus):** Analyze Venus's condition (Dignities/Debilities). How the person loves, what they value and how they handle resources.
+**Mandatory Analysis:**
+- **Mercury (how they think):** How the person processes information, learns and makes decisions
+- **Mars (how they act):** Where they put their energy, assertiveness and drive. Is the person impulsive or cautious?
+- Analyze House 2 (Money), House 6 (Routine) and House 10 (Goals/Saturn)
 
-* **Action and Conquest (Mars):** Where they put their energy, assertiveness and sexual drive.
+**Guidance:** What is the best environment for them to prosper? Where are Saturn's blocks that require patience?
 
 DATA:
 - Mercury in {request.mercurySign or 'not provided'}{f' in House {request.mercuryHouse}' if request.mercuryHouse else ''}
-- Venus in {request.venusSign or 'not provided'}{f' in House {request.venusHouse}' if request.venusHouse else ''}
 - Mars in {request.marsSign or 'not provided'}{f' in House {request.marsHouse}' if request.marsHouse else ''}
+- Venus in {request.venusSign or 'not provided'}{f' in House {request.venusHouse}' if request.venusHouse else ''}
 
 IMPORTANT:
 - Do not repeat information already mentioned in other sections
 - USE THE SPECIFIC DATA PROVIDED ABOVE - do not use generic phrases like "House not provided"
 - If the house is not available, focus on the sign and planet only
-- Analyze Venus with Dignities/Debilities technique (Classical Astrology)
 - Focus on how each planet functions as a practical tool in life
 - Connect with concrete examples of manifestation based on the provided data"""
     
     elif section == 'houses':
-        title = "Análise Setorial Avançada (Vida Prática e Casas)" if lang == 'pt' else "Advanced Sectorial Analysis (Practical Life and Houses)"
+        title = "Relacionamentos e Vida Afetiva" if lang == 'pt' else "Relationships and Affective Life"
         if lang == 'pt':
             prompt = f"""{full_context}
 
-**SEÇÃO 4: ANÁLISE SETORIAL AVANÇADA (VIDA PRÁTICA E CASAS)**
+**4. RELACIONAMENTOS E VIDA AFETIVA**
 
-* **Instrução:** Para as casas abaixo, analise não apenas os planetas presentes, mas também a condição dos **Regentes das Casas** (os "donos" da área).
+Analise Vênus e a Casa 7.
 
-* **Finanças e Vocação (Casas 2, 6 e 10):** Onde está o potencial financeiro real? Qual a vocação que traz realização versus a rotina de trabalho?
-
-* **Relacionamentos (Casa 7):** O padrão de parceiro atraído versus o que a pessoa realmente necessita para evoluir.
-
-* **Família e Base (Casa 4):** Dinâmicas familiares, raízes e o ambiente doméstico necessário para recarregar (Lua).
-
-* **Saúde (Casa 6):** Pontos de atenção vital e sugestões de equilíbrio baseadas nos Elementos.
+**Análise Obrigatória:**
+- **Vênus:** Analise a condição de Vênus (Dignidades/Debilidades). Como a pessoa ama, o que valoriza e como lida com recursos
+- **Casa 7 (Relacionamentos):** O padrão de parceiro atraído versus o que a pessoa realmente necessita para evoluir
+- O que a pessoa diz que quer vs. o que ela atrai inconscientemente (Descendente)
 
 DADOS RELEVANTES:
-- Meio do Céu em {request.midheavenSign or 'não informado'}
-- Fundo do Céu (IC) em {request.icSign or 'não informado'}
-- Lua em {request.moonSign} na Casa {request.moonHouse}
+- Vênus em {request.venusSign or 'não informado'}{f' na Casa {request.venusHouse}' if request.venusHouse else ''}
+- Descendente (oposto ao Ascendente {request.ascendant})
 
 IMPORTANTE:
 - Não repita informações já mencionadas em outras seções
 - NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - use apenas os dados fornecidos ou omita a informação
-- Analise os REGENTES das casas, não apenas os planetas presentes
-- Diferencie vocação (Casa 10) de rotina de trabalho (Casa 6)
+- Analise Vênus com técnica de Dignidades/Debilidades (Astrologia Clássica)
 - Analise padrões de relacionamento com profundidade psicológica"""
         else:
             prompt = f"""{full_context}
 
-**SECTION 4: ADVANCED SECTORIAL ANALYSIS (PRACTICAL LIFE AND HOUSES)**
+**4. RELATIONSHIPS AND AFFECTIVE LIFE**
 
-* **Instruction:** For the houses below, analyze not only the planets present, but also the condition of the **House Rulers** (the "owners" of the area).
+Analyze Venus and House 7.
 
-* **Finances and Vocation (Houses 2, 6 and 10):** Where is the real financial potential? What vocation brings fulfillment versus work routine?
-
-* **Relationships (House 7):** The pattern of attracted partner versus what the person really needs to evolve.
-
-* **Family and Base (House 4):** Family dynamics, roots and the domestic environment necessary to recharge (Moon).
-
-* **Health (House 6):** Vital attention points and balance suggestions based on Elements.
+**Mandatory Analysis:**
+- **Venus:** Analyze Venus's condition (Dignities/Debilities). How the person loves, what they value and how they handle resources
+- **House 7 (Relationships):** The pattern of attracted partner versus what the person really needs to evolve
+- What the person says they want vs. what they unconsciously attract (Descendant)
 
 RELEVANT DATA:
-- Midheaven in {request.midheavenSign or 'not provided'}
-- IC in {request.icSign or 'not provided'}
-- Moon in {request.moonSign} in House {request.moonHouse}
+- Venus in {request.venusSign or 'not provided'}{f' in House {request.venusHouse}' if request.venusHouse else ''}
+- Descendant (opposite to Ascendant {request.ascendant})
 
 IMPORTANT:
 - Do not repeat information already mentioned in other sections
 - NEVER write "House not provided", "in House not provided" or any variation - use only the provided data or omit the information
-- Analyze the HOUSE RULERS, not just the planets present
-- Differentiate vocation (House 10) from work routine (House 6)
+- Analyze Venus with Dignities/Debilities technique (Classical Astrology)
 - Analyze relationship patterns with psychological depth"""
     
     elif section == 'karma':
-        title = "Expansão, Estrutura e Karma (Planetas Sociais e Transpessoais)" if lang == 'pt' else "Expansion, Structure and Karma (Social and Transpersonal Planets)"
+        title = "O Caminho Kármico e Desafios de Crescimento" if lang == 'pt' else "The Karmic Path and Growth Challenges"
         if lang == 'pt':
             # Preparar string de Lilith para evitar backslash em f-string
             lilith_str = f'\n- Lilith em {request.lilithSign} na Casa {request.lilithHouse}' if request.lilithSign and request.lilithHouse else ''
             prompt = f"""{full_context}
 
-**SEÇÃO 5: EXPANSÃO, ESTRUTURA E KARMA (PLANETAS SOCIAIS E TRANSPESSOAIS)**
+**5. O CAMINHO KÁRMICO E DESAFIOS DE CRESCIMENTO**
 
-* **Júpiter e Saturno:** Onde a pessoa tem sorte/fé natural e onde enfrenta seus maiores testes, medos e responsabilidades.
+Analise Saturno (o mestre severo) e os Nodos Lunares (direção da alma).
 
-* **O Caminho da Alma (Nodos Lunares):** Qual zona de conforto (Nodo Sul) deve ser abandonada e qual missão de vida (Nodo Norte) deve ser perseguida?
-
-* **Feridas e Sombras (Quíron e Lilith):** Onde reside a ferida que cura (Quíron) e a força visceral/insubmissão (Lilith).
+**Análise Obrigatória:**
+- **Saturno:** Onde a pessoa enfrenta seus maiores testes, medos e responsabilidades. Onde a vida vai exigir mais esforço e onde está a recompensa final
+- **Nodos Lunares:** Qual zona de conforto (Nodo Sul) deve ser abandonada e qual missão de vida (Nodo Norte) deve ser perseguida
+- **Quíron e Lilith:** Onde reside a ferida que cura (Quíron) e a força visceral/insubmissão (Lilith)
 
 DADOS:
-- Júpiter em {request.jupiterSign or 'não informado'}{f' na Casa {request.jupiterHouse}' if request.jupiterHouse else ''}
 - Saturno em {request.saturnSign or 'não informado'}{f' na Casa {request.saturnHouse}' if request.saturnHouse else ''}
 - Nodo Norte em {request.northNodeSign or 'não informado'}{f' na Casa {request.northNodeHouse}' if request.northNodeHouse else ''}
 - Nodo Sul em {request.southNodeSign or 'não informado'}{f' na Casa {request.southNodeHouse}' if request.southNodeHouse else ''}
@@ -1647,7 +1806,7 @@ IMPORTANTE CRÍTICO:
 - Se você não tiver a informação da casa, simplesmente não mencione a casa - foque apenas no signo
 - NUNCA escreva "na Casa não informada", "Casa não informada" ou qualquer variação disso
 - Não repita informações já mencionadas em outras seções
-- Analise Júpiter e Saturno como polaridades (expansão vs. estrutura)
+- Analise Saturno como o "Mestre da Realidade" (Riske/Sakoian)
 - Conecte os nodos lunares com propósito de vida e evolução da alma
 - Explique Quíron e Lilith como ferramentas de transformação"""
         else:
@@ -1655,16 +1814,16 @@ IMPORTANTE CRÍTICO:
             lilith_str = f'\n- Lilith in {request.lilithSign} in House {request.lilithHouse}' if request.lilithSign and request.lilithHouse else ''
             prompt = f"""{full_context}
 
-**SECTION 5: EXPANSION, STRUCTURE AND KARMA (SOCIAL AND TRANSPERSONAL PLANETS)**
+**5. THE KARMIC PATH AND GROWTH CHALLENGES**
 
-* **Jupiter and Saturn:** Where the person has natural luck/faith and where they face their greatest tests, fears and responsibilities.
+Analyze Saturn (the severe master) and the Lunar Nodes (soul direction).
 
-* **The Path of the Soul (Lunar Nodes):** What comfort zone (South Node) should be abandoned and what life mission (North Node) should be pursued?
-
-* **Wounds and Shadows (Chiron and Lilith):** Where resides the wound that heals (Chiron) and the visceral/insubordinate force (Lilith).
+**Mandatory Analysis:**
+- **Saturn:** Where the person faces their greatest tests, fears and responsibilities. Where life will require more effort and where the final reward is
+- **Lunar Nodes:** What comfort zone (South Node) should be abandoned and what life mission (North Node) should be pursued
+- **Chiron and Lilith:** Where resides the wound that heals (Chiron) and the visceral/insubordinate force (Lilith)
 
 DATA:
-- Jupiter in {request.jupiterSign or 'not provided'}{f' in House {request.jupiterHouse}' if request.jupiterHouse else ''}
 - Saturn in {request.saturnSign or 'not provided'}{f' in House {request.saturnHouse}' if request.saturnHouse else ''}
 - North Node in {request.northNodeSign or 'not provided'}{f' in House {request.northNodeHouse}' if request.northNodeHouse else ''}
 - South Node in {request.southNodeSign or 'not provided'}{f' in House {request.southNodeHouse}' if request.southNodeHouse else ''}
@@ -1675,7 +1834,7 @@ CRITICAL IMPORTANT:
 - If you don't have the house information, simply don't mention the house - focus only on the sign
 - NEVER write "in House not provided", "House not provided" or any variation of that
 - Do not repeat information already mentioned in other sections
-- Analyze Jupiter and Saturn as polarities (expansion vs. structure)
+- Analyze Saturn as the "Master of Reality" (Riske/Sakoian)
 - Connect lunar nodes with life purpose and soul evolution
 - Explain Chiron and Lilith as transformation tools"""
     
@@ -1684,7 +1843,7 @@ CRITICAL IMPORTANT:
         if lang == 'pt':
             prompt = f"""{full_context}
 
-**SEÇÃO 6: SÍNTESE E ORIENTAÇÃO ESTRATÉGICA**
+**SÍNTESE FINAL E ORIENTAÇÃO ESTRATÉGICA**
 
 * **Pontos Fortes a Explorar:** (Destaque Stelliums, Trígonos exatos ou Planetas em Domicílio/Exaltação).
 
@@ -1693,6 +1852,7 @@ CRITICAL IMPORTANT:
 * **Conselho Final:** Uma diretriz prática e empoderadora para a evolução pessoal e tomada de decisão.
 
 IMPORTANTE:
+- Use "conselhos" (português), NUNCA "consejo" (espanhol). Use sempre português brasileiro.
 - NÃO repita informações já detalhadas nas seções anteriores
 - NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação
 - Faça uma síntese integradora que conecte TODOS os elementos já analisados
@@ -1702,7 +1862,7 @@ IMPORTANTE:
         else:
             prompt = f"""{full_context}
 
-**SECTION 6: STRATEGIC SYNTHESIS AND GUIDANCE**
+**FINAL SYNTHESIS AND STRATEGIC GUIDANCE**
 
 * **Strengths to Explore:** (Highlight Stelliums, Exact Trines or Planets in Domicile/Exaltation).
 
@@ -1830,7 +1990,13 @@ def generate_birth_chart_section(
 ---
 
 CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
-{context_snippet}"""
+{context_snippet}
+
+IMPORTANTE FINAL: 
+- Use SEMPRE português brasileiro
+- Use "conselhos", NUNCA "consejo"
+- Garanta que TODAS as seções tenham conteúdo completo e detalhado
+- Não deixe títulos sem conteúdo"""
                 
                 chat_completion = rag_service.groq_client.chat.completions.create(
                     messages=[
@@ -1847,6 +2013,9 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                 
                 if not content or len(content.strip()) < 50:
                     raise ValueError("Resposta do Groq muito curta ou vazia")
+                
+                # Aplicar filtro de deduplicação
+                content = _deduplicate_text(content)
                 
                 return FullBirthChartResponse(
                     section=request.section,
@@ -2086,208 +2255,205 @@ def get_solar_return_interpretation(
                 print(f"[SOLAR RETURN] GROQ_API_KEY tem {len(settings.GROQ_API_KEY)} caracteres")
                 print(f"[SOLAR RETURN] Possível problema: RAG service não inicializou o Groq corretamente")
         
-        # Construir dados do cliente para o prompt
-        client_data = f"""Signo Solar Natal: {request.natal_sun_sign}
-Ascendente da Revolução Solar (RS): {request.solar_return_ascendant}
+        # Construir dados do mapa natal (base)
+        natal_data_summary = f"""Signo Solar Natal: {request.natal_sun_sign}"""
+        if request.natal_ascendant:
+            natal_data_summary += f"\nAscendente Natal: {request.natal_ascendant}"
+        # Nota: Aspectos tensos principais seriam calculados se tivéssemos mais dados do mapa natal
+        # Por enquanto, focamos no que temos disponível
+        
+        # Construir dados da revolução solar
+        solar_return_data = f"""Ascendente da Revolução Solar (RS): {request.solar_return_ascendant}
 Casa onde cai o Sol na RS: Casa {request.solar_return_sun_house}
 Lua na RS (Signo e Casa): {request.solar_return_moon_sign} na Casa {request.solar_return_moon_house}"""
         
         if request.solar_return_venus_sign:
-            client_data += f"\nVênus na RS: {request.solar_return_venus_sign}{f' na Casa {request.solar_return_venus_house}' if request.solar_return_venus_house else ''}"
+            solar_return_data += f"\nVênus na RS: {request.solar_return_venus_sign}{f' na Casa {request.solar_return_venus_house}' if request.solar_return_venus_house else ''}"
         
         if request.solar_return_mars_sign:
-            client_data += f"\nMarte na RS: {request.solar_return_mars_sign}{f' na Casa {request.solar_return_mars_house}' if request.solar_return_mars_house else ''}"
+            solar_return_data += f"\nMarte na RS: {request.solar_return_mars_sign}{f' na Casa {request.solar_return_mars_house}' if request.solar_return_mars_house else ''}"
         
         if request.solar_return_jupiter_sign:
-            client_data += f"\nJúpiter na RS: {request.solar_return_jupiter_sign}{f' na Casa {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''}"
+            solar_return_data += f"\nJúpiter na RS: {request.solar_return_jupiter_sign}{f' na Casa {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''}"
         
         if request.solar_return_midheaven:
-            client_data += f"\nMeio do Céu da RS: {request.solar_return_midheaven}"
+            solar_return_data += f"\nMeio do Céu da RS: {request.solar_return_midheaven}"
         
         if request.solar_return_saturn_sign:
-            client_data += f"\nSaturno na RS: {request.solar_return_saturn_sign}"
+            solar_return_data += f"\nSaturno na RS: {request.solar_return_saturn_sign}"
         
-        # Prompt baseado no fornecido pelo usuário
+        # Calcular em qual Casa Natal cai o Ascendente da RS (sobreposição)
+        # Nota: Isso requereria cálculo astrológico completo. Por enquanto, deixamos o prompt orientar o modelo
+        # a considerar essa sobreposição se os dados estiverem disponíveis
+        
+        # Prompt baseado no novo formato fornecido
         if lang == 'pt':
-            system_prompt = """Você é um Astrólogo Experiente, com uma abordagem humanista, psicológica e evolutiva. Sua comunicação é clara, didática, empática e profundamente inspiradora. Você evita o fatalismo; seu foco é o livre-arbítrio e como a pessoa pode aproveitar as energias disponíveis para crescer."""
+            system_prompt = """Você é um Astrólogo Sênior e Estrategista de Ciclos Pessoais. Sua especialidade é a Síntese de Revolução Solar, integrando a psicologia profunda de Stephen Arroyo com a precisão técnica de Sakoian & Acker. Seu objetivo é fornecer um Planejamento Anual Estratégico, não apenas previsões soltas."""
             
-            user_prompt = f"""Tarefa: Realizar a interpretação detalhada de um Mapa de Revolução Solar (Retorno Solar) para o período de um ano.
+            user_prompt = f"""Dados para Análise:
 
-Dados do Cliente:
-{client_data}
+Mapa Natal (A Base): {natal_data_summary} (Foque nos aspectos tensos principais: Sol/Saturno, Lua/Plutão, etc.)
 
-⚠️ REGRAS CRÍTICAS DE ESTRUTURA E CONTINUIDADE:
-- Cada tópico deve contar uma parte ÚNICA e COMPLEMENTAR da história do ano
-- NÃO repita informações já mencionadas em tópicos anteriores
-- Cada tópico deve ADICIONAR novas informações, não repetir
-- Os 8 tópicos devem formar uma NARRATIVA CONTÍNUA e COESIVA
-- Se um tópico menciona algo, os próximos devem COMPLEMENTAR, não REPETIR
-- Evite frases genéricas que possam se aplicar a qualquer tópico
-- Cada seção deve ter seu próprio "território" temático bem definido
+Revolução Solar (O Ano Vigente): {solar_return_data}
 
-Estrutura da Leitura (Siga rigorosamente estes tópicos, SEM REPETIÇÕES):
+PROTOCOLO DE RACIOCÍNIO (O "ALGORITMO" INTERNO): Antes de gerar a resposta, processe estas etapas logicamente:
 
-Use formatação com números e bullets, SEM asteriscos para títulos. Formate assim:
+A Sobreposição (Overlay): Identifique em qual Casa do Mapa Natal cai o Ascendente da RS. Isso define o "Palco" do ano.
 
-1. A "Vibe" do Ano (O Ascendente Anual)
-   FOCUS: A energia geral e a "personalidade" do ano
-   - Explique didaticamente o que é o Ascendente da Revolução Solar (apenas aqui, não repita depois).
-   - Interprete a energia deste signo como a "ferramenta" ou "armadura" que a pessoa usará este ano.
-   - Como esse signo ajuda a pessoa a vencer obstáculos?
-   - NÃO mencione casas, planetas específicos ou áreas de vida aqui - apenas o Ascendente e sua energia geral.
+A Verificação de Padrão (Dica de Mestre): Compare os aspectos da RS com o Natal. Se um aspecto tenso (quadratura/oposição/conjunção) se repetir (ex: Natal tem Sol-Saturno e RS também tem), isso se torna o foco principal da seção 7.
 
-2. O Foco da Consciência (O Sol nas Casas)
-   FOCUS: A área específica de realização e brilho pessoal
-   - Analise APENAS a Casa onde o Sol está posicionado (Casa {request.solar_return_sun_house}).
-   - Explique que esta é a área da vida onde ela brilhará e colocará sua energia vital.
-   - Dê exemplos práticos ESPECÍFICOS do que fazer nesta área.
-   - NÃO repita informações sobre o Ascendente ou outros planetas aqui.
+Angularidade: Se houver planetas nos ângulos da RS (Casas 1, 4, 7, 10), aumente o peso deles na interpretação.
 
-3. O Mundo Emocional e a Família (A Lua)
-   FOCUS: Necessidades emocionais, família e nutrição interior
-   - Analise APENAS a Lua (signo {request.solar_return_moon_sign} e casa {request.solar_return_moon_house}).
-   - Onde a pessoa buscará nutrição emocional? (específico para esta Lua)
-   - Aborde questões familiares e o lar relacionadas a esta posição lunar.
-   - Dica Positiva: Como cuidar do coração neste ciclo? (baseado na Lua, não genérico)
-   - NÃO repita informações sobre o Sol ou outras áreas já mencionadas.
+ESTRUTURA DA LEITURA (OUTPUT FINAL):
 
-4. Amor, Relacionamentos e Vida Social (Vênus)
-   FOCUS: Relacionamentos, valores afetivos e harmonia social
-   - Interprete APENAS a posição de Vênus ({request.solar_return_venus_sign if request.solar_return_venus_sign else 'não disponível'}).
-   - O que esperar do amor e das parcerias baseado nesta posição específica de Vênus.
-   - Foque nos valores pessoais e na harmonia relacionada a Vênus.
-   - NÃO repita informações sobre Lua, Sol ou outras áreas.
+Siga rigorosamente a formatação e as restrições de conteúdo de cada seção para evitar redundância.
 
-5. Trabalho, Dinheiro e Carreira (Marte, Júpiter e Meio do Céu)
-   FOCUS: Ação profissional, expansão material e vocação
-   - Onde está a força de ação (Marte)? Onde está a sorte/expansão (Júpiter)?
-   - Qual a meta de vida para este ano (Meio do Céu)?
-   - Dê orientações ESPECÍFICAS para tomada de decisão profissional e financeira baseadas nestes planetas.
-   - NÃO repita informações sobre outras áreas ou planetas já mencionados.
+1. O Cenário do Ano (A Sobreposição do Ascendente)
+   FOCUS EXCLUSIVO: A atmosfera geral e a "roupa" que a pessoa vestirá.
+   - Explique a energia do Signo Ascendente da RS como a ferramenta comportamental do ano.
+   - A Conexão Natal: Explique especificamente como este Ascendente afeta a Casa Natal onde ele cai (Ex: "Sua atitude de Áries este ano ativará sua Casa 4 Natal de família...").
+   - Defina a postura mental necessária para este ciclo.
+   - Restrição: NÃO fale de eventos específicos, trabalho ou amor aqui. Fale de atitude.
 
-6. Saúde e Vitalidade
-   FOCUS: Bem-estar físico, rotinas e cuidados com o corpo
-   - Analise APENAS a Casa 6 e os planetas que estão nela (se houver).
-   - Considere como o Ascendente influencia a vitalidade (conexão específica, não repetição).
-   - Sugira práticas de bem-estar ESPECÍFICAS baseadas nos planetas na Casa 6.
-   - Seja específico sobre áreas do corpo ou sistemas baseado nos planetas presentes.
-   - NÃO repita informações sobre outras casas ou áreas já mencionadas.
+2. O Foco da Consciência (O Sol na Casa da RS)
+   FOCUS EXCLUSIVO: A área da vida que exige presença e vitalidade.
+   - Analise a Casa da RS onde o Sol está posicionado (Casa {request.solar_return_sun_house}). Esta é a "Missão do Ano".
+   - Explique por que essa área drenará mais energia e onde a pessoa brilhará mais.
+   - Dê uma estratégia de decisão: O que priorizar nesta área específica.
+   - Restrição: NÃO repita informações sobre o temperamento do Ascendente.
 
-7. Os Desafios como Oportunidades (Saturnos e Tensões)
-   FOCUS: Transformação de dificuldades em crescimento
-   - Identifique o maior desafio do ano baseado em Saturno e aspectos tensos.
-   - Reframe-o como uma oportunidade de amadurecimento ESPECÍFICA.
-   - Use linguagem encorajadora: "Onde Saturno toca, nós construímos mestria".
-   - NÃO repita desafios já mencionados em outros tópicos.
+3. O Clima Emocional (A Lua da RS)
+   FOCUS EXCLUSIVO: Nutrição, instabilidade e vida doméstica.
+   - Interprete o Signo e a Casa da Lua na RS ({request.solar_return_moon_sign} na Casa {request.solar_return_moon_house}).
+   - Identifique a área onde a pessoa estará mais irracional ou flutuante (visão de Arroyo).
+   - Indique onde ela encontrará refúgio emocional seguro.
+   - Restrição: NÃO mencione metas profissionais ou financeiras aqui.
 
-8. Síntese Inspiradora
-   FOCUS: Integração final e mensagem de esperança
-   - Crie um "Mantra do Ano" curto que sintetize os temas principais (sem repetir tudo).
-   - Resuma as 3 grandes bênçãos que estão chegando (seja específico, não genérico).
-   - Termine com uma mensagem de esperança e empoderamento que integre os temas principais.
-   - NÃO repita detalhes já mencionados - apenas sintetize e inspire.
+4. Relacionamentos e Valores (Vênus na RS)
+   FOCUS EXCLUSIVO: Trocas afetivas, prazer e magnetismo social.
+   - Interprete a posição de Vênus ({request.solar_return_venus_sign if request.solar_return_venus_sign else 'não disponível'}{f' na Casa {request.solar_return_venus_house}' if request.solar_return_venus_house else ''}) para definir o "sabor" das interações sociais.
+   - O que a pessoa valorizará mais nas parcerias este ano? (Liberdade? Segurança? Status?).
+   - Se Vênus estiver retrógrado, adicione um alerta sobre revisões afetivas.
+   - Restrição: NÃO misture com as necessidades emocionais lunares (tópico 3).
 
-Estilo de Escrita e Formatação:
-- Use números (1., 2., 3., etc.) para os títulos dos 8 tópicos principais, SEM asteriscos.
-- Use bullets (- ou •) para listar pontos dentro de cada tópico quando apropriado.
-- Use metáforas para facilitar o entendimento.
-- Divida em parágrafos curtos.
-- Cada tópico deve ter 2-4 parágrafos bem desenvolvidos.
-- Garanta que cada parágrafo adicione informação nova, não repetida.
-- NÃO use asteriscos (**) para títulos - use apenas números.
-- NÃO use formatações como "A pessoa pode esperar:" seguido de listas - integre as informações em parágrafos narrativos.
-- NÃO repita o mesmo texto ou ideias em diferentes tópicos.
-- Formate os títulos assim: "1. Título do Tópico" (sem asteriscos, sem negrito)."""
+5. Estratégia Profissional e Financeira (Marte, Júpiter e MC)
+   FOCUS EXCLUSIVO: Ação, expansão, dinheiro e metas públicas.
+   - Use Marte ({request.solar_return_mars_sign if request.solar_return_mars_sign else 'não disponível'}{f' na Casa {request.solar_return_mars_house}' if request.solar_return_mars_house else ''}) para indicar onde aplicar força e coragem.
+   - Use Júpiter ({request.solar_return_jupiter_sign if request.solar_return_jupiter_sign else 'não disponível'}{f' na Casa {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''}) para indicar onde haverá sorte ou facilidade de expansão.
+   - Analise o Meio do Céu da RS ({request.solar_return_midheaven if request.solar_return_midheaven else 'não disponível'}) para definir a meta pública do ano.
+   - Restrição: Se Marte/Júpiter estiverem na Casa 6 ou 7, foque apenas no impacto deles na carreira/ação, não na saúde ou casamento.
+
+6. Saúde e Rotina (Casa 6 da RS)
+   FOCUS EXCLUSIVO: Manutenção do corpo e organização diária.
+   - Analise o signo da cúspide da Casa 6 e planetas ali presentes.
+   - Conecte a vitalidade física com a demanda energética do ano.
+   - Sugira um hábito ou ajuste de rotina específico para este ciclo.
+   - Restrição: Não fale de doenças graves (tema de Saturno/Casa 8), fale de manutenção e rotina.
+
+7. O Grande Teste e a Dica de Mestre (Saturno e Repetições)
+   FOCUS EXCLUSIVO: O maior desafio, a lição kármica e a maturação.
+   - Localize Saturno na RS ({request.solar_return_saturn_sign if request.solar_return_saturn_sign else 'não disponível'}): Onde a vida vai pedir paciência, restrição e estrutura?
+   - ALERTA DE REPETIÇÃO (CRÍTICO): Verifique se algum aspecto difícil do Mapa Natal se repete na RS. Se sim, escreva: "Alerta de Padrão Ativado: Este é um ano crítico para resolver seu problema crônico de [tema], pois o padrão natal foi reativado."
+   - Transforme o desafio em uma oportunidade de mestria.
+   - Restrição: Não repita os pequenos desafios do dia a dia (Casa 6), foque no grande aprendizado.
+
+8. Síntese Estratégica
+   FOCUS EXCLUSIVO: Resumo executivo para tomada de decisão.
+   - Crie um "Mantra do Ano" em uma frase curta.
+   - Liste as 3 Janelas de Oportunidade (resumo dos pontos fortes).
+   - Finalize com uma mensagem curta de empoderamento.
+   - Restrição: Não explique conceitos astrológicos aqui, apenas entregue o resumo prático.
+
+IMPORTANTE:
+- Use números (1., 2., 3., etc.) para os títulos, SEM asteriscos.
+- Use parágrafos narrativos, não listas genéricas.
+- Cada seção deve ter seu próprio "território" temático bem definido.
+- NÃO repita informações entre seções.
+- Use português brasileiro, linguagem terapêutica e empoderadora."""
         else:
-            system_prompt = """You are an Experienced Astrologer, with a humanistic, psychological and evolutionary approach. Your communication is clear, didactic, empathetic and deeply inspiring. You avoid fatalism; your focus is free will and how the person can take advantage of available energies to grow."""
+            # English version - similar structure but adapted
+            system_prompt = """You are a Senior Astrologer and Personal Cycles Strategist. Your specialty is Solar Return Synthesis, integrating Stephen Arroyo's deep psychology with Sakoian & Acker's technical precision. Your goal is to provide Strategic Annual Planning, not just loose predictions."""
             
-            user_prompt = f"""Task: Perform a detailed interpretation of a Solar Return Chart for a one-year period.
+            user_prompt = f"""Data for Analysis:
 
-Client Data:
-{client_data}
+Natal Chart (The Base): {natal_data_summary} (Focus on main tense aspects: Sun/Saturn, Moon/Pluto, etc.)
 
-⚠️ CRITICAL STRUCTURE AND CONTINUITY RULES:
-- Each topic must tell a UNIQUE and COMPLEMENTARY part of the year's story
-- DO NOT repeat information already mentioned in previous topics
-- Each topic must ADD new information, not repeat
-- The 8 topics must form a CONTINUOUS and COHESIVE narrative
-- If a topic mentions something, the next ones must COMPLEMENT, not REPEAT
-- Avoid generic phrases that could apply to any topic
-- Each section must have its own well-defined thematic "territory"
+Solar Return (The Current Year): {solar_return_data}
 
-Reading Structure (Follow these topics strictly, WITHOUT REPETITIONS):
+REASONING PROTOCOL (The Internal "ALGORITHM"): Before generating the response, process these steps logically:
 
-Use formatting with numbers and bullets, WITHOUT asterisks for titles. Format like this:
+The Overlay: Identify which House of the Natal Chart the Solar Return Ascendant falls into. This defines the "Stage" of the year.
 
-1. The Year's "Vibe" (The Annual Ascendant)
-   FOCUS: The general energy and "personality" of the year
-   - Explain what the Solar Return Ascendant is (only here, don't repeat later).
-   - Interpret this sign's energy as the "tool" or "armor" the person will use this year.
-   - How does this sign help the person overcome obstacles?
-   - DO NOT mention houses, specific planets or life areas here - only the Ascendant and its general energy.
+Pattern Verification (Master Tip): Compare Solar Return aspects with Natal. If a tense aspect (square/opposition/conjunction) repeats (e.g., Natal has Sun-Saturn and SR also has it), this becomes the main focus of section 7.
 
-2. The Focus of Consciousness (The Sun in Houses)
-   FOCUS: The specific area of fulfillment and personal shine
-   - Analyze ONLY the House where the Sun is positioned (House {request.solar_return_sun_house}).
-   - Explain that this is the area of life where they will shine and place their vital energy.
-   - Give SPECIFIC practical examples of what to do in this area.
-   - DO NOT repeat information about the Ascendant or other planets here.
+Angularity: If there are planets in the angles of the SR (Houses 1, 4, 7, 10), increase their weight in the interpretation.
 
-3. The Emotional World and Family (The Moon)
-   FOCUS: Emotional needs, family and inner nourishment
-   - Analyze ONLY the Moon (sign {request.solar_return_moon_sign} and house {request.solar_return_moon_house}).
-   - Where will the person seek emotional nourishment? (specific to this Moon)
-   - Address family and home issues related to this lunar position.
-   - Positive Tip: How to take care of the heart in this cycle? (based on the Moon, not generic)
-   - DO NOT repeat information about the Sun or other areas already mentioned.
+READING STRUCTURE (FINAL OUTPUT):
 
-4. Love, Relationships and Social Life (Venus)
-   FOCUS: Relationships, emotional values and social harmony
-   - Interpret ONLY Venus's position ({request.solar_return_venus_sign if request.solar_return_venus_sign else 'not available'}).
-   - What to expect from love and partnerships based on this specific Venus position.
-   - Focus on personal values and harmony related to Venus.
-   - DO NOT repeat information about Moon, Sun or other areas.
+Follow strictly the formatting and content restrictions of each section to avoid redundancy.
 
-5. Work, Money and Career (Mars, Jupiter and Midheaven)
-   FOCUS: Professional action, material expansion and vocation
-   - Where is the force of action (Mars)? Where is luck/expansion (Jupiter)?
-   - What is the life goal for this year (Midheaven)?
-   - Give SPECIFIC guidance for professional and financial decision making based on these planets.
-   - DO NOT repeat information about other areas or planets already mentioned.
+1. The Year's Scenario (The Ascendant Overlay)
+   EXCLUSIVE FOCUS: The general atmosphere and the "clothing" the person will wear.
+   - Explain the Solar Return Ascendant sign's energy as the behavioral tool of the year.
+   - The Natal Connection: Explain specifically how this Ascendant affects the Natal House where it falls (e.g., "Your Aries attitude this year will activate your Natal House 4 of family...").
+   - Define the mental posture necessary for this cycle.
+   - Restriction: Do NOT talk about specific events, work or love here. Talk about attitude.
 
-6. Health and Vitality
-   FOCUS: Physical well-being, routines and body care
-   - Analyze ONLY House 6 and the planets in it (if any).
-   - Consider how the Ascendant influences vitality (specific connection, not repetition).
-   - Suggest SPECIFIC wellness practices based on planets in House 6.
-   - Be specific about body areas or systems based on present planets.
-   - DO NOT repeat information about other houses or areas already mentioned.
+2. The Focus of Consciousness (The Sun in the SR House)
+   EXCLUSIVE FOCUS: The life area that demands presence and vitality.
+   - Analyze the SR House where the Sun is positioned (House {request.solar_return_sun_house}). This is the "Mission of the Year".
+   - Explain why this area will drain more energy and where the person will shine most.
+   - Give a decision strategy: What to prioritize in this specific area.
+   - Restriction: Do NOT repeat information about the Ascendant's temperament.
 
-7. Challenges as Opportunities (Saturn and Tensions)
-   FOCUS: Transforming difficulties into growth
-   - Identify the year's greatest challenge based on Saturn and tense aspects.
-   - Reframe it as a SPECIFIC opportunity for maturation.
-   - Use encouraging language: "Where Saturn touches, we build mastery".
-   - DO NOT repeat challenges already mentioned in other topics.
+3. The Emotional Climate (The SR Moon)
+   EXCLUSIVE FOCUS: Nourishment, instability and domestic life.
+   - Interpret the Moon's Sign and House in the SR ({request.solar_return_moon_sign} in House {request.solar_return_moon_house}).
+   - Identify the area where the person will be more irrational or fluctuating (Arroyo's view).
+   - Indicate where they will find safe emotional refuge.
+   - Restriction: Do NOT mention professional or financial goals here.
 
-8. Inspiring Synthesis
-   FOCUS: Final integration and message of hope
-   - Create a short "Year's Mantra" that synthesizes the main themes (without repeating everything).
-   - Summarize the 3 great blessings that are coming (be specific, not generic).
-   - End with a message of hope and empowerment that integrates the main themes.
-   - DO NOT repeat details already mentioned - only synthesize and inspire.
+4. Relationships and Values (Venus in the SR)
+   EXCLUSIVE FOCUS: Affective exchanges, pleasure and social magnetism.
+   - Interpret Venus's position ({request.solar_return_venus_sign if request.solar_return_venus_sign else 'not available'}{f' in House {request.solar_return_venus_house}' if request.solar_return_venus_house else ''}) to define the "flavor" of social interactions.
+   - What will the person value most in partnerships this year? (Freedom? Security? Status?).
+   - If Venus is retrograde, add an alert about affective revisions.
+   - Restriction: Do NOT mix with lunar emotional needs (topic 3).
 
-Writing Style and Formatting:
-- Use numbers (1., 2., 3., etc.) for the 8 main topic titles, WITHOUT asterisks.
-- Use bullets (- or •) to list points within each topic when appropriate.
-- Use metaphors to facilitate understanding.
-- Divide into short paragraphs.
-- Each topic should have 2-4 well-developed paragraphs.
-- Ensure each paragraph adds new, non-repeated information.
-- DO NOT use asterisks (**) for titles - use only numbers.
-- DO NOT use formats like "The person can expect:" followed by lists - integrate information into narrative paragraphs.
-- DO NOT repeat the same text or ideas in different topics.
-- Format titles like this: "1. Topic Title" (no asterisks, no bold)."""
+5. Professional and Financial Strategy (Mars, Jupiter and MC)
+   EXCLUSIVE FOCUS: Action, expansion, money and public goals.
+   - Use Mars ({request.solar_return_mars_sign if request.solar_return_mars_sign else 'not available'}{f' in House {request.solar_return_mars_house}' if request.solar_return_mars_house else ''}) to indicate where to apply force and courage.
+   - Use Jupiter ({request.solar_return_jupiter_sign if request.solar_return_jupiter_sign else 'not available'}{f' in House {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''}) to indicate where there will be luck or ease of expansion.
+   - Analyze the SR Midheaven ({request.solar_return_midheaven if request.solar_return_midheaven else 'not available'}) to define the public goal of the year.
+   - Restriction: If Mars/Jupiter are in House 6 or 7, focus only on their impact on career/action, not health or marriage.
+
+6. Health and Routine (SR House 6)
+   EXCLUSIVE FOCUS: Body maintenance and daily organization.
+   - Analyze the cusp sign of House 6 and planets present there.
+   - Connect physical vitality with the year's energy demand.
+   - Suggest a specific habit or routine adjustment for this cycle.
+   - Restriction: Do NOT talk about serious diseases (Saturn/House 8 theme), talk about maintenance and routine.
+
+7. The Great Test and the Master Tip (Saturn and Repetitions)
+   EXCLUSIVE FOCUS: The greatest challenge, the karmic lesson and maturation.
+   - Locate Saturn in the SR ({request.solar_return_saturn_sign if request.solar_return_saturn_sign else 'not available'}): Where will life ask for patience, restriction and structure?
+   - REPETITION ALERT (CRITICAL): Check if any difficult aspect from the Natal Chart repeats in the SR. If yes, write: "Pattern Alert Activated: This is a critical year to resolve your chronic problem of [theme], as the natal pattern was reactivated."
+   - Transform the challenge into an opportunity for mastery.
+   - Restriction: Do NOT repeat the small daily challenges (House 6), focus on the great learning.
+
+8. Strategic Synthesis
+   EXCLUSIVE FOCUS: Executive summary for decision making.
+   - Create a "Year's Mantra" in a short sentence.
+   - List the 3 Windows of Opportunity (summary of strengths).
+   - End with a short message of empowerment.
+   - Restriction: Do NOT explain astrological concepts here, just deliver the practical summary.
+
+IMPORTANT:
+- Use numbers (1., 2., 3., etc.) for titles, WITHOUT asterisks.
+- Use narrative paragraphs, not generic lists.
+- Each section must have its own well-defined thematic "territory".
+- Do NOT repeat information between sections.
+- Use therapeutic and empowering language."""
         
         # Buscar contexto do RAG com múltiplas queries para obter mais informações
         queries = [
@@ -2375,44 +2541,8 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                         
                         interpretation_text = chat_completion.choices[0].message.content.strip()
                         
-                        # Limpeza: remover duplicações de texto comum
-                        # Remover duplicações de padrões como "A pessoa pode esperar:" e listas repetidas
-                        import re
-                        
-                        # Padrão para detectar e remover duplicações de "A pessoa pode esperar:" e similares
-                        patterns_to_deduplicate = [
-                            r'A pessoa pode esperar:.*?(?=\n\n|\*\*|$)',
-                            r'The person can expect:.*?(?=\n\n|\*\*|$)',
-                            r'Oportunidades de crescimento e expansão.*?(?=\n\n|\*\*|$)',
-                            r'Opportunities for growth and expansion.*?(?=\n\n|\*\*|$)',
-                        ]
-                        
-                        # Encontrar todas as ocorrências
-                        found_patterns = []
-                        for pattern in patterns_to_deduplicate:
-                            matches = list(re.finditer(pattern, interpretation_text, re.IGNORECASE | re.DOTALL))
-                            if len(matches) > 1:
-                                # Manter apenas a primeira ocorrência, remover as demais
-                                for match in matches[1:]:
-                                    interpretation_text = interpretation_text[:match.start()] + interpretation_text[match.end():]
-                        
-                        # Remover duplicações de parágrafos inteiros (mesmo texto aparecendo 2+ vezes)
-                        paragraphs = interpretation_text.split('\n\n')
-                        seen_paragraphs = set()
-                        unique_paragraphs = []
-                        for para in paragraphs:
-                            para_clean = para.strip()
-                            # Normalizar para comparação (remover espaços extras, case insensitive)
-                            para_key = re.sub(r'\s+', ' ', para_clean.lower())
-                            # Ignorar parágrafos muito curtos (provavelmente títulos ou separadores)
-                            if len(para_key) > 50 and para_key not in seen_paragraphs:
-                                seen_paragraphs.add(para_key)
-                                unique_paragraphs.append(para)
-                            elif len(para_key) <= 50:
-                                # Manter parágrafos curtos (títulos, etc)
-                                unique_paragraphs.append(para)
-                        
-                        interpretation_text = '\n\n'.join(unique_paragraphs)
+                        # Aplicar filtro de deduplicação
+                        interpretation_text = _deduplicate_text(interpretation_text)
                         
                         print(f"[SOLAR RETURN] Sucesso com modelo {model_name}: {len(interpretation_text)} chars (após limpeza)")
                         break
@@ -2432,6 +2562,9 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                         )
                         for r in unique_results[:5]
                     ]
+                    
+                    # Aplicar filtro de deduplicação
+                    interpretation_text = _deduplicate_text(interpretation_text)
                     
                     return InterpretationResponse(
                         interpretation=interpretation_text,
@@ -2482,8 +2615,11 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                                     relevance=src.get('relevance') or src.get('score')
                                 ))
                         
+                        # Aplicar filtro de deduplicação
+                        fallback_interpretation = _deduplicate_text(fallback_result['interpretation'])
+                        
                         return InterpretationResponse(
-                            interpretation=fallback_result['interpretation'],
+                            interpretation=fallback_interpretation,
                             sources=sources_list,
                             query_used=fallback_query,
                             generated_by=fallback_result.get('generated_by', 'rag_fallback')
@@ -2654,6 +2790,9 @@ Este ano oferece uma jornada única de autoconhecimento e realização. Cada ár
         
         # Construir query usada para o fallback
         fallback_query = f"revolução solar {request.solar_return_ascendant} casa {request.solar_return_sun_house} {request.solar_return_moon_sign}"
+        
+        # Aplicar filtro de deduplicação no fallback
+        fallback_text = _deduplicate_text(fallback_text)
         
         return InterpretationResponse(
             interpretation=fallback_text,

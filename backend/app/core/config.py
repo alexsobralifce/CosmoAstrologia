@@ -75,12 +75,25 @@ settings = Settings()
 
 # Warn if using default SECRET_KEY in what looks like production
 if settings.SECRET_KEY == "your-secret-key-change-in-production":
-    # Check if we're likely in production (has DATABASE_URL with postgresql)
-    if "postgresql" in settings.DATABASE_URL.lower():
+    # Check if we're likely in production (has DATABASE_URL with postgresql or railway/vercel env)
+    is_production = (
+        "postgresql" in settings.DATABASE_URL.lower() or
+        os.getenv("RAILWAY_ENVIRONMENT") is not None or
+        os.getenv("VERCEL") is not None or
+        os.getenv("PRODUCTION") == "true"
+    )
+    if is_production:
         import warnings
+        import sys
         warnings.warn(
             "⚠️ SECURITY WARNING: Using default SECRET_KEY in production! "
-            "Please set a secure SECRET_KEY in your environment variables.",
+            "Please set a secure SECRET_KEY in your environment variables. "
+            "Generate with: python -c \"import secrets; print(secrets.token_urlsafe(32))\"",
             UserWarning
         )
+        # Em produção, também logar como erro crítico
+        print("=" * 80, file=sys.stderr)
+        print("🚨 CRITICAL SECURITY ERROR: Default SECRET_KEY detected in production!", file=sys.stderr)
+        print("   The application may not work correctly. Set SECRET_KEY immediately!", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
 

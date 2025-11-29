@@ -12,6 +12,7 @@ from app.core.database import get_db
 from app.services.rag_service_wrapper import get_rag_service
 from app.services.transits_calculator import calculate_future_transits
 from app.services.astrology_calculator import calculate_solar_return
+from app.services.numerology_calculator import NumerologyCalculator
 from app.api.auth import get_current_user
 from app.models.database import BirthChart
 
@@ -181,7 +182,8 @@ def get_interpretation(
             house=request.house,
             aspect=request.aspect,
             custom_query=request.custom_query,
-            use_groq=request.use_groq
+            use_groq=request.use_groq,
+            category='astrology'  # Garantir que use apenas documentos de astrologia
         )
         
         # Converter sources para o formato correto
@@ -1059,7 +1061,8 @@ Formate a resposta de forma didática, usando quebras de linha e estruturação 
         interpretation = rag_service.get_interpretation(
             custom_query=query,
             use_groq=True,
-            top_k=12  # Aumentar top_k no fallback também
+            top_k=12,  # Aumentar top_k no fallback também
+            category='astrology'  # Garantir que use apenas documentos de astrologia
         )
         
         # Aplicar filtro de deduplicação na interpretação
@@ -1121,7 +1124,8 @@ def get_planet_house_interpretation(
         interpretation = rag_service.get_interpretation(
             planet=planet,
             house=house,
-            use_groq=True
+            use_groq=True,
+            category='astrology'  # Garantir que use apenas documentos de astrologia
         )
         
         # Aplicar filtro de deduplicação na interpretação
@@ -1188,7 +1192,8 @@ def get_aspect_interpretation(
         # Buscar no RAG e gerar com Groq
         interpretation = rag_service.get_interpretation(
             custom_query=query,
-            use_groq=True
+            use_groq=True,
+            category='astrology'  # Garantir que use apenas documentos de astrologia
         )
         
         # Aplicar filtro de deduplicação na interpretação
@@ -1299,7 +1304,8 @@ def get_daily_advice(
         # Buscar interpretação usando RAG + Groq
         interpretation = rag_service.get_interpretation(
             custom_query=query,
-            use_groq=True
+            use_groq=True,
+            category='astrology'  # Garantir que use apenas documentos de astrologia
         )
         
         # Se Groq não estiver disponível ou falhar, usar fallback
@@ -2600,7 +2606,8 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                 try:
                     fallback_result = rag_service.get_interpretation(
                         custom_query=fallback_query,
-                        use_groq=True
+                        use_groq=True,
+                        category='astrology'  # Garantir que use apenas documentos de astrologia
                     )
                     
                     if fallback_result and fallback_result.get('interpretation') and len(fallback_result['interpretation']) > 200:
@@ -2810,4 +2817,642 @@ Este ano oferece uma jornada única de autoconhecimento e realização. Cada ár
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao obter interpretação da revolução solar: {str(e)}"
+        )
+
+
+# ============================================================================
+# NUMEROLOGY MAP ENDPOINT
+# ============================================================================
+
+class NumerologyMapRequest(BaseModel):
+    """Request para calcular mapa numerológico."""
+    pass  # Usa dados do usuário autenticado
+
+
+class NumerologyMapResponse(BaseModel):
+    """Response com mapa numerológico completo."""
+    full_name: str
+    birth_date: str
+    life_path: Dict[str, Any]
+    destiny: Dict[str, Any]
+    soul: Dict[str, Any]
+    personality: Dict[str, Any]
+    birthday: Dict[str, Any]
+    maturity: Dict[str, Any]
+    pinnacles: List[Dict[str, Any]]
+    challenges: List[Dict[str, Any]]
+    personal_year: Dict[str, Any]
+
+
+@router.get("/numerology/map", response_model=NumerologyMapResponse)
+def get_numerology_map(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Calcula o mapa numerológico completo do usuário autenticado.
+    Usa o nome completo e data de nascimento do mapa astral primário.
+    """
+    try:
+        # Obter usuário autenticado
+        user = get_current_user(authorization, db)
+        
+        # Buscar mapa astral primário do usuário
+        birth_chart = db.query(BirthChart).filter(
+            BirthChart.user_id == user.id,
+            BirthChart.is_primary == True
+        ).first()
+        
+        if not birth_chart:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mapa astral não encontrado. Complete o onboarding primeiro."
+            )
+        
+        # Calcular mapa numerológico
+        calculator = NumerologyCalculator()
+        numerology_map = calculator.calculate_full_numerology_map(
+            full_name=birth_chart.name,
+            birth_date=birth_chart.birth_date
+        )
+        
+        return NumerologyMapResponse(**numerology_map)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao calcular mapa numerológico: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao calcular mapa numerológico: {str(e)}"
+        )
+
+
+class NumerologyInterpretationRequest(BaseModel):
+    """Request para interpretação numerológica."""
+    language: Optional[str] = 'pt'
+
+
+class NumerologyInterpretationResponse(BaseModel):
+    """Response com interpretação numerológica completa."""
+    interpretation: str
+    sources: List[SourceItem]
+    query_used: str
+    generated_by: Optional[str] = None
+
+
+@router.post("/numerology/interpretation", response_model=NumerologyInterpretationResponse)
+def get_numerology_interpretation(
+    request: NumerologyInterpretationRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Gera interpretação numerológica completa usando RAG e Groq.
+    Usa o prompt estruturado fornecido pelo usuário.
+    """
+    try:
+        # Obter usuário autenticado
+        user = get_current_user(authorization, db)
+        
+        # Buscar mapa astral primário
+        birth_chart = db.query(BirthChart).filter(
+            BirthChart.user_id == user.id,
+            BirthChart.is_primary == True
+        ).first()
+        
+        if not birth_chart:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mapa astral não encontrado. Complete o onboarding primeiro."
+            )
+        
+        # Calcular mapa numerológico completo
+        calculator = NumerologyCalculator()
+        numerology_map = calculator.calculate_full_numerology_map(
+            full_name=birth_chart.name,
+            birth_date=birth_chart.birth_date
+        )
+        
+        # Obter RAG service
+        rag_service = get_rag_service()
+        
+        # Construir queries específicas para cada número e conceito
+        queries = []
+        
+        # Query para Caminho de Vida - múltiplas variações
+        queries.append(f"life path number {numerology_map['life_path']['number']} numerologia pitagórica significado missão")
+        queries.append(f"caminho de vida {numerology_map['life_path']['number']} numerologia goodwin decoz")
+        if numerology_map['life_path']['is_master']:
+            queries.append(f"master number {numerology_map['life_path']['number']} numerologia")
+            queries.append(f"número mestre {numerology_map['life_path']['number']} caminho de vida")
+        
+        # Query para Expressão/Destino - múltiplas variações
+        queries.append(f"expression destiny number {numerology_map['destiny']['number']} numerologia talentos")
+        queries.append(f"expressão destino {numerology_map['destiny']['number']} numerologia goodwin")
+        if numerology_map['destiny']['is_master']:
+            queries.append(f"master number {numerology_map['destiny']['number']} expressão")
+            queries.append(f"número mestre {numerology_map['destiny']['number']} expressão destino")
+        
+        # Query para Desejo da Alma - múltiplas variações
+        queries.append(f"soul desire heart number {numerology_map['soul']['number']} numerologia motivação")
+        queries.append(f"desejo da alma {numerology_map['soul']['number']} numerologia decoz")
+        if numerology_map['soul']['is_master']:
+            queries.append(f"master number {numerology_map['soul']['number']} alma")
+            queries.append(f"número mestre {numerology_map['soul']['number']} desejo coração")
+        
+        # Query para Personalidade - múltiplas variações
+        queries.append(f"personality number {numerology_map['personality']['number']} numerologia máscara")
+        queries.append(f"personalidade {numerology_map['personality']['number']} numerologia decoz máscara")
+        if numerology_map['personality']['is_master']:
+            queries.append(f"número mestre {numerology_map['personality']['number']} personalidade")
+        
+        # Query para Dia de Nascimento - múltiplas variações
+        queries.append(f"birthday number {numerology_map['birthday']['number']} numerologia talento")
+        queries.append(f"dia nascimento {numerology_map['birthday']['number']} numerologia")
+        
+        # Query para Maturidade - múltiplas variações
+        queries.append(f"maturity number {numerology_map['maturity']['number']} numerologia segunda metade vida")
+        queries.append(f"maturidade {numerology_map['maturity']['number']} numerologia")
+        if numerology_map['maturity']['is_master']:
+            queries.append(f"número mestre {numerology_map['maturity']['number']} maturidade")
+        
+        # Query para Ano Pessoal - múltiplas variações
+        queries.append(f"personal year {numerology_map['personal_year']['number']} numerologia ciclo anual")
+        queries.append(f"ano pessoal {numerology_map['personal_year']['number']} numerologia decoz")
+        if numerology_map['personal_year']['is_master']:
+            queries.append(f"número mestre {numerology_map['personal_year']['number']} ano pessoal")
+        
+        # Query para Pináculos - mais específicas
+        for pinnacle in numerology_map['pinnacles']:
+            queries.append(f"pinnacle number {pinnacle['number']} numerologia período {pinnacle['period']}")
+            queries.append(f"pináculo {pinnacle['number']} goodwin numerologia significado")
+        
+        # Query para Desafios - mais específicas
+        for challenge in numerology_map['challenges']:
+            queries.append(f"challenge number {challenge['number']} numerologia obstáculo")
+            queries.append(f"desafio {challenge['number']} decoz numerologia lição")
+        
+        # Query para identificar pináculo e desafio atuais baseado na idade
+        current_age = numerology_map['life_cycle']['age']
+        for pinnacle in numerology_map['pinnacles']:
+            if pinnacle['start_age'] <= current_age and (pinnacle['end_age'] is None or current_age <= pinnacle['end_age']):
+                queries.append(f"pináculo atual número {pinnacle['number']} período {pinnacle['period']} numerologia")
+        for challenge in numerology_map['challenges']:
+            if challenge['start_age'] <= current_age and (challenge['end_age'] is None or current_age <= challenge['end_age']):
+                queries.append(f"desafio atual número {challenge['number']} período {challenge['period']} numerologia")
+        
+        # Query para Grade de Nascimento e Setas
+        if numerology_map['birth_grid']['arrows_strength'] or numerology_map['birth_grid']['arrows_weakness']:
+            queries.append("birth grid arrows numerologia setas força fraqueza")
+        
+        # Query para números faltantes (lições cármicas)
+        if numerology_map['birth_grid']['missing_numbers']:
+            for missing_num in numerology_map['birth_grid']['missing_numbers']:
+                queries.append(f"karmic lesson number {missing_num} numerologia lição cármica")
+        
+        # Query para dívidas cármicas
+        if numerology_map['karmic_debts']:
+            for debt in numerology_map['karmic_debts']:
+                queries.append(f"karmic debt number {debt} numerologia dívida cármica")
+        
+        # Query para ciclo de vida e Triângulo Divino
+        queries.append(f"life cycle {numerology_map['life_cycle']['cycle']} number {numerology_map['life_cycle']['cycle_number']} numerologia triângulo divino")
+        queries.append(f"triângulo divino javane bunker ciclo {numerology_map['life_cycle']['cycle']} número {numerology_map['life_cycle']['cycle_number']}")
+        queries.append(f"divine triangle javane bunker {numerology_map['life_cycle']['cycle']} cycle number {numerology_map['life_cycle']['cycle_number']}")
+        # Query específica para conexão Tarot/Planeta do ciclo
+        queries.append(f"tarot arcano número {numerology_map['life_cycle']['cycle_number']} planeta regente numerologia")
+        
+        # Buscar contexto do RAG (apenas numerologia) - fazer múltiplas buscas
+        context_documents = []
+        seen_texts = set()  # Evitar duplicatas
+        
+        print(f"[NUMEROLOGY] Buscando no RAG com {len(queries)} queries específicas...")
+        
+        for query in queries:
+            try:
+                results = rag_service.search(
+                    query=query,
+                    top_k=3,  # Menos resultados por query, mas mais queries
+                    expand_query=False,  # Não expandir para manter foco
+                    category='numerology'
+                )
+                
+                for doc in results:
+                    doc_text = doc.get('text', '').strip()
+                    if doc_text and doc_text not in seen_texts:
+                        seen_texts.add(doc_text)
+                        context_documents.append(doc)
+                        
+            except Exception as e:
+                print(f"[WARNING] Erro ao buscar query '{query}': {e}")
+                continue
+        
+        # Ordenar por relevância (score) e limitar
+        context_documents = sorted(
+            context_documents,
+            key=lambda x: x.get('score', 0),
+            reverse=True
+        )[:20]  # Top 20 documentos mais relevantes
+        
+        print(f"[NUMEROLOGY] Encontrados {len(context_documents)} documentos únicos do RAG")
+        
+        # Preparar contexto para o prompt
+        context_text = "\n\n".join([
+            f"[Fonte: {doc.get('source', 'unknown')} - Página {doc.get('page', 1)}]\n{doc.get('text', '')}"
+            for doc in context_documents
+            if doc.get('text')
+        ])
+        
+        # Se não houver contexto, avisar e tentar busca mais genérica
+        if not context_text or len(context_text.strip()) < 100:
+            print("[WARNING] Pouco ou nenhum contexto numerológico encontrado no RAG!")
+            print("[INFO] Tentando busca mais genérica...")
+            
+            # Tentar busca genérica de numerologia
+            try:
+                generic_results = rag_service.search(
+                    query="numerologia pitagórica significado números",
+                    top_k=10,
+                    expand_query=True,
+                    category='numerology'
+                )
+                
+                if generic_results:
+                    context_text = "\n\n".join([
+                        f"[Fonte: {doc.get('source', 'unknown')} - Página {doc.get('page', 1)}]\n{doc.get('text', '')}"
+                        for doc in generic_results[:5]
+                        if doc.get('text')
+                    ])
+                    print(f"[INFO] Busca genérica retornou {len(generic_results)} resultados")
+            except Exception as e:
+                print(f"[WARNING] Erro na busca genérica: {e}")
+            
+            if not context_text or len(context_text.strip()) < 100:
+                context_text = context_text or "Informações numerológicas básicas disponíveis. Para interpretações mais profundas, reconstrua o índice RAG executando: python3 backend/scripts/rebuild_rag_index.py"
+                print("[WARNING] Ainda sem contexto suficiente. O índice RAG pode precisar ser reconstruído.")
+        
+        # Construir prompt completo
+        lang = request.language or 'pt'
+        
+        if lang == 'pt':
+            system_prompt = """Papel e Contexto: Aja como um Numerólogo Pitagórico experiente e também Astrólogo. Sua abordagem deve sintetizar as melhores referências mundiais: a precisão técnica e síntese de Matthew Oliver Goodwin, a profundidade psicológica e terapêutica de Hans Decoz, a visão holística de saúde de David A. Phillips e a geometria sagrada/ciclos de vida de Faith Javane & Dusty Bunker.
+
+IMPORTANTE CRÍTICO:
+- Use APENAS conhecimento NUMEROLÓGICO fornecido no contexto
+- NÃO mencione planetas, signos, casas ou qualquer conceito astrológico (exceto quando explicitamente solicitado para conexão com Tarot/Planetas)
+- Foque em números, cálculos numerológicos, significados dos números e ciclos numerológicos
+- Se o contexto não contiver informações numerológicas suficientes, informe isso claramente
+- Linguagem simples, prática e esclarecedora (evite "numerologês" excessivo sem explicação)
+- Tom de empoderamento e autoconhecimento
+- Os números são ferramentas de livre arbítrio, não sentença imutável"""
+            
+            user_prompt = f"""Objetivo: Realizar uma consulta de numerologia completa, profunda e acolhedora para o cliente abaixo. A linguagem deve ser simples, prática e esclarecedora (evite o "numerologês" excessivo sem explicação). O tom deve ser de empoderamento e autoconhecimento.
+
+Dados do Cliente:
+• Nome Completo (Certidão): {numerology_map['full_name']}
+• Data de Nascimento: {datetime.fromisoformat(numerology_map['birth_date']).strftime('%d/%m/%Y')}
+
+Números Calculados:
+• Caminho de Vida: {numerology_map['life_path']['number']} {'(Número Mestre)' if numerology_map['life_path']['is_master'] else ''}
+• Expressão/Destino: {numerology_map['destiny']['number']} {'(Número Mestre)' if numerology_map['destiny']['is_master'] else ''}
+• Desejo da Alma: {numerology_map['soul']['number']} {'(Número Mestre)' if numerology_map['soul']['is_master'] else ''}
+• Personalidade: {numerology_map['personality']['number']} {'(Número Mestre)' if numerology_map['personality']['is_master'] else ''}
+• Dia de Nascimento: {numerology_map['birthday']['number']}
+• Número da Maturidade: {numerology_map['maturity']['number']} {'(Número Mestre)' if numerology_map['maturity']['is_master'] else ''}
+• Ano Pessoal Atual ({numerology_map['personal_year']['year']}): {numerology_map['personal_year']['number']} {'(Número Mestre)' if numerology_map['personal_year']['is_master'] else ''}
+
+Pináculos:
+{f''.join([f"• Pináculo {i+1} ({p['period']}): {p['number']}\n" for i, p in enumerate(numerology_map['pinnacles'])])}
+
+Desafios:
+{f''.join([f"• Desafio {i+1} ({c['period']}): {c['number']}\n" for i, c in enumerate(numerology_map['challenges'])])}
+
+Grade de Nascimento:
+• Setas de Força: {', '.join(numerology_map['birth_grid']['arrows_strength']) if numerology_map['birth_grid']['arrows_strength'] else 'Nenhuma'}
+• Setas de Fraqueza: {', '.join(numerology_map['birth_grid']['arrows_weakness']) if numerology_map['birth_grid']['arrows_weakness'] else 'Nenhuma'}
+• Números Faltantes (Lições Cármicas): {', '.join(map(str, numerology_map['birth_grid']['missing_numbers'])) if numerology_map['birth_grid']['missing_numbers'] else 'Nenhum'}
+
+Dívidas Cármicas: {', '.join(map(str, numerology_map['karmic_debts'])) if numerology_map['karmic_debts'] else 'Nenhuma'}
+
+Ciclo de Vida Atual: {numerology_map['life_cycle']['cycle']} (Número: {numerology_map['life_cycle']['cycle_number']}, Idade: {numerology_map['life_cycle']['age']} anos)
+
+CONHECIMENTO NUMEROLÓGICO DE REFERÊNCIA (Use estas informações como base para sua interpretação):
+{context_text}
+
+IMPORTANTE: Use as informações acima do RAG para fundamentar sua interpretação. Se houver informações específicas sobre os números calculados, incorpore-as naturalmente na resposta. Se não houver informações suficientes sobre algum número específico, use seu conhecimento geral de numerologia, mas sempre priorize as informações do contexto fornecido.
+
+---
+
+Roteiro da Consulta (Siga estritamente esta ordem incremental):
+
+PARTE 1: A ESSÊNCIA (QUEM VOCÊ É)
+
+Baseado na "Síntese dos Elementos Nucleares" de Goodwin e Decoz. Não leia os números isoladamente. Analise a relação entre eles.
+
+Caminho de Vida (A Missão): Qual é a estrada principal desta pessoa? O que ela veio aprender?
+
+Expressão (A Bagagem): Quais talentos naturais e ferramentas ela trouxe para percorrer essa estrada?
+
+Análise de Conflito (Goodwin): Verifique se a Expressão apoia ou conflita com o Caminho de Vida (Ex: Um Caminho de Líder com Expressão de Seguidor). Explique como harmonizar isso.
+
+Desejo da Alma (O Motor Interno): O que a motiva profundamente? O que ela deseja quando ninguém está olhando?
+
+Personalidade (A Máscara): Como os outros a veem na primeira impressão?
+
+Comparação (Decoz): A "Máscara" é muito diferente da "Alma"? Se sim, explique se isso gera sentimentos de incompreensão.
+
+Dia de Nascimento (O Modificador): Qual talento específico do dia ajuda no Caminho de Vida?
+
+PARTE 2: VIRTUDES, DEFEITOS E PADRÕES (COMO VOCÊ FUNCIONA)
+
+Baseado nas Grades de Phillips e Psicologia de Decoz.
+
+A Grade de Nascimento (Setas de Individualidade):
+
+Identifique na grade 3x3 se há Setas de Força (linhas cheias) ou Setas de Fraqueza (linhas vazias).
+
+Traduza isso em comportamento: Ela tem determinação? Procrastinação? Sensibilidade excessiva? Dê uma dica prática para equilibrar.
+
+Lições e Dívidas Cármicas:
+
+Há números de Dívida Cármica (13, 14, 16, 19) nos números principais? Se sim, explique o obstáculo repetitivo e como superá-lo (visão terapêutica, não punitiva).
+
+Lições Cármicas: Quais números faltam no nome? O que ela precisa aprender "na raça" nesta vida?
+
+Saúde e Temperamento (Phillips):
+
+Analise brevemente os Planos de Expressão (Mental, Físico, Emocional, Intuitivo). Onde está o foco de energia? Dê uma recomendação breve de bem-estar baseada nisso.
+
+PARTE 3: O MAPA DA JORNADA (PARA ONDE VOCÊ VAI)
+
+Baseado no Triângulo Divino de Javane & Bunker.
+
+O Grande Cenário (Triângulo Divino):
+
+Descreva o ciclo de vida atual da pessoa (Juventude, Poder ou Sabedoria).
+
+Conexão Astrológica/Tarot: Associe o número do ciclo atual ao Arcano Maior do Tarot correspondente e ao Planeta regente. Explique o que isso significa para o momento de vida dela (Ex: Ciclo 7 = O Carro/Vitória pelo controle mental e espiritualidade).
+
+PARTE 4: PREVISÃO E MOMENTO ATUAL (CLIMA METEOROLÓGICO)
+
+Baseado nos Pináculos de Goodwin e Ciclos de Decoz.
+
+Pináculos e Desafios Atuais:
+
+Identifique o Pináculo e o Desafio atuais baseado na idade da pessoa ({numerology_map['life_cycle']['age']} anos).
+
+Qual é o cenário externo atual (Pináculo)? O que a vida está oferecendo neste momento?
+
+Qual é o obstáculo atual (Desafio)? O que está testando a pessoa agora?
+
+Síntese: Como aproveitar o Pináculo apesar do Desafio? Dê orientações práticas e específicas.
+
+Ano Pessoal (O Agora):
+
+A pessoa está no Ano Pessoal {numerology_map['personal_year']['number']} ({numerology_map['personal_year']['year']}).
+
+Dê 3 conselhos práticos e específicos para este ano (Ex: "É hora de plantar", ou "É hora de finalizar", ou "Cuidado com contratos"). Seja concreto e acionável.
+
+CONCLUSÃO TERAPÊUTICA
+
+Finalize com uma mensagem de síntese positiva. Reforce que os números são ferramentas de livre arbítrio e não uma sentença imutável.
+
+IMPORTANTE:
+- Use formatação com títulos em negrito (formato: **PARTE 1: A ESSÊNCIA**)
+- Separe parágrafos com quebras de linha duplas
+- Seja específico e prático, não genérico
+- Use linguagem acolhedora e empoderadora
+- Cada parte deve ter conteúdo completo e detalhado
+- Para cada número, explique tanto suas qualidades positivas quanto os desafios a serem trabalhados (análise equilibrada)
+- Organize as informações de forma clara, evitando repetições"""
+        else:
+            # English version
+            system_prompt = """Role and Context: Act as an experienced Pythagorean Numerologist and also an Astrologer. Your approach must synthesize the best world references: the technical precision and synthesis of Matthew Oliver Goodwin, the psychological and therapeutic depth of Hans Decoz, the holistic health vision of David A. Phillips, and the sacred geometry/life cycles of Faith Javane & Dusty Bunker.
+
+CRITICAL IMPORTANT:
+- Use ONLY NUMEROLOGICAL knowledge provided in the context
+- DO NOT mention planets, signs, houses or any astrological concepts (except when explicitly requested for Tarot/Planet connections)
+- Focus on numbers, numerological calculations, number meanings and numerological cycles
+- If the context does not contain sufficient numerological information, clearly state this
+- Simple, practical and clarifying language (avoid excessive "numerologese" without explanation)
+- Tone of empowerment and self-knowledge
+- Numbers are tools of free will, not an immutable sentence"""
+            
+            user_prompt = f"""Objective: Perform a complete, deep and welcoming numerology consultation for the client below. The language should be simple, practical and clarifying (avoid excessive "numerologese" without explanation). The tone should be empowering and focused on self-knowledge.
+
+Client Data:
+• Full Name (Certificate): {numerology_map['full_name']}
+• Birth Date: {datetime.fromisoformat(numerology_map['birth_date']).strftime('%m/%d/%Y')}
+
+Calculated Numbers:
+• Life Path: {numerology_map['life_path']['number']} {'(Master Number)' if numerology_map['life_path']['is_master'] else ''}
+• Expression/Destiny: {numerology_map['destiny']['number']} {'(Master Number)' if numerology_map['destiny']['is_master'] else ''}
+• Soul's Desire: {numerology_map['soul']['number']} {'(Master Number)' if numerology_map['soul']['is_master'] else ''}
+• Personality: {numerology_map['personality']['number']} {'(Master Number)' if numerology_map['personality']['is_master'] else ''}
+• Birthday: {numerology_map['birthday']['number']}
+• Maturity Number: {numerology_map['maturity']['number']} {'(Master Number)' if numerology_map['maturity']['is_master'] else ''}
+• Current Personal Year ({numerology_map['personal_year']['year']}): {numerology_map['personal_year']['number']} {'(Master Number)' if numerology_map['personal_year']['is_master'] else ''}
+
+Pinnacles:
+{f''.join([f"• Pinnacle {i+1} ({p['period']}): {p['number']}\n" for i, p in enumerate(numerology_map['pinnacles'])])}
+
+Challenges:
+{f''.join([f"• Challenge {i+1} ({c['period']}): {c['number']}\n" for i, c in enumerate(numerology_map['challenges'])])}
+
+Birth Grid:
+• Strength Arrows: {', '.join(numerology_map['birth_grid']['arrows_strength']) if numerology_map['birth_grid']['arrows_strength'] else 'None'}
+• Weakness Arrows: {', '.join(numerology_map['birth_grid']['arrows_weakness']) if numerology_map['birth_grid']['arrows_weakness'] else 'None'}
+• Missing Numbers (Karmic Lessons): {', '.join(map(str, numerology_map['birth_grid']['missing_numbers'])) if numerology_map['birth_grid']['missing_numbers'] else 'None'}
+
+Karmic Debts: {', '.join(map(str, numerology_map['karmic_debts'])) if numerology_map['karmic_debts'] else 'None'}
+
+Current Life Cycle: {numerology_map['life_cycle']['cycle']} (Number: {numerology_map['life_cycle']['cycle_number']}, Age: {numerology_map['life_cycle']['age']} years)
+
+NUMEROLOGICAL KNOWLEDGE REFERENCE (Use this information as the basis for your interpretation):
+{context_text}
+
+IMPORTANT: Use the RAG information above to support your interpretation. If there is specific information about the calculated numbers, incorporate it naturally into the response. If there is not enough information about a specific number, use your general knowledge of numerology, but always prioritize the information from the provided context.
+
+---
+
+Consultation Script (Follow this incremental order strictly):
+
+PART 1: THE ESSENCE (WHO YOU ARE)
+
+Based on the "Synthesis of Nuclear Elements" by Goodwin and Decoz. Do not read the numbers in isolation. Analyze the relationship between them.
+
+Life Path (The Mission): What is this person's main road? What did they come to learn?
+
+Expression (The Baggage): What natural talents and tools did they bring to walk this road?
+
+Conflict Analysis (Goodwin): Check if the Expression supports or conflicts with the Life Path (Ex: A Leader's Path with a Follower's Expression). Explain how to harmonize this.
+
+Soul's Desire (The Internal Engine): What motivates them deeply? What do they desire when no one is looking?
+
+Personality (The Mask): How do others see them at first impression?
+
+Comparison (Decoz): Is the "Mask" very different from the "Soul"? If so, explain if this generates feelings of misunderstanding.
+
+Birthday (The Modifier): What specific talent of the day helps in the Life Path?
+
+PART 2: VIRTUES, DEFECTS AND PATTERNS (HOW YOU FUNCTION)
+
+Based on Phillips' Grids and Decoz's Psychology.
+
+The Birth Grid (Arrows of Individuality):
+
+Identify in the 3x3 grid if there are Strength Arrows (full lines) or Weakness Arrows (empty lines).
+
+Translate this into behavior: Does she have determination? Procrastination? Excessive sensitivity? Give a practical tip to balance.
+
+Lessons and Karmic Debts:
+
+Are there Karmic Debt numbers (13, 14, 16, 19) in the main numbers? If so, explain the repetitive obstacle and how to overcome it (therapeutic view, not punitive).
+
+Karmic Lessons: Which numbers are missing in the name? What does she need to learn "the hard way" in this life?
+
+Health and Temperament (Phillips):
+
+Briefly analyze the Expression Planes (Mental, Physical, Emotional, Intuitive). Where is the energy focus? Give a brief wellness recommendation based on this.
+
+PART 3: THE JOURNEY MAP (WHERE YOU'RE GOING)
+
+Based on the Divine Triangle by Javane & Bunker.
+
+The Great Scenario (Divine Triangle):
+
+Describe the person's current life cycle (Youth, Power or Wisdom).
+
+Astrological/Tarot Connection: Associate the current cycle number with the corresponding Major Arcana of Tarot and the ruling Planet. Explain what this means for her life moment (Ex: Cycle 7 = The Chariot/Victory through mental control and spirituality).
+
+PART 4: FORECAST AND CURRENT MOMENT (WEATHER FORECAST)
+
+Based on Goodwin's Pinnacles and Decoz's Cycles.
+
+Current Pinnacles and Challenges:
+
+What is the current external scenario (Pinnacle)? What is life offering?
+
+What is the current obstacle (Challenge)? What is testing the person?
+
+Synthesis: How to take advantage of the Pinnacle despite the Challenge?
+
+Personal Year (The Now):
+
+What Personal Year is she in? ({numerology_map['personal_year']['number']})
+
+Give 3 practical pieces of advice for this year (Ex: "It's time to plant", or "It's time to finalize", or "Be careful with contracts").
+
+THERAPEUTIC CONCLUSION
+
+End with a positive synthesis message. Reinforce that numbers are tools of free will and not an immutable sentence.
+
+IMPORTANT:
+- Use formatting with bold titles (format: **PART 1: THE ESSENCE**)
+- Separate paragraphs with double line breaks
+- Be specific and practical, not generic
+- Use welcoming and empowering language
+- Each part must have complete and detailed content
+- For each number, explain both its positive qualities and the challenges to be worked on (balanced analysis)
+- Organize information clearly, avoiding repetitions"""
+        
+        # Gerar interpretação com Groq usando prompts customizados
+        if rag_service.groq_client and context_documents:
+            try:
+                # Chamar Groq diretamente com prompts customizados
+                chat_completion = rag_service.groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    model="llama-3.1-8b-instant",
+                    temperature=0.7,
+                    max_tokens=4000,  # Aumentado para interpretações completas
+                    top_p=0.9,
+                )
+                
+                interpretation_text = chat_completion.choices[0].message.content
+                
+                if interpretation_text:
+                    interpretation_text = interpretation_text.strip()
+                    # Remover referências explícitas a fontes
+                    interpretation_text = re.sub(r'\[Fonte:[^\]]+\]', '', interpretation_text)
+                    interpretation_text = re.sub(r'Página \d+', '', interpretation_text)
+                    
+                    # Aplicar filtro de deduplicação
+                    interpretation_text = _deduplicate_text(interpretation_text)
+                
+                # Converter sources
+                sources_list = [
+                    SourceItem(
+                        source=doc.get('source', 'knowledge_base'),
+                        page=doc.get('page', 1),
+                        relevance=doc.get('score', 0.5)
+                    )
+                    for doc in context_documents[:5]
+                ]
+                
+                return NumerologyInterpretationResponse(
+                    interpretation=interpretation_text or "Não foi possível gerar a interpretação.",
+                    sources=sources_list,
+                    query_used=f"numerologia completa para {numerology_map['full_name']}",
+                    generated_by='groq'
+                )
+            except Exception as e:
+                print(f"[ERROR] Erro ao gerar interpretação com Groq: {e}")
+                import traceback
+                print(traceback.format_exc())
+                # Continuar para o fallback em caso de erro
+        
+        # Fallback: gerar interpretação básica (se não houver Groq ou contexto)
+        if not context_text or len(context_text.strip()) < 100:
+            print("[WARNING] Usando fallback básico - RAG não retornou contexto suficiente")
+        
+        fallback_text = f"""PARTE 1: A ESSÊNCIA (QUEM VOCÊ É)
+
+1. Caminho de Vida ({numerology_map['life_path']['number']}): Este é o número mais importante da numerologia, representando a missão principal desta vida.
+
+2. Expressão ({numerology_map['destiny']['number']}): Revela os talentos naturais e ferramentas disponíveis.
+
+3. Desejo da Alma ({numerology_map['soul']['number']}): O que motiva profundamente esta pessoa.
+
+4. Personalidade ({numerology_map['personality']['number']}): Como os outros a percebem.
+
+5. Dia de Nascimento ({numerology_map['birthday']['number']}): Talento específico do dia.
+
+PARTE 2: VIRTUDES, DEFEITOS E PADRÕES
+
+Grade de Nascimento: Analise as setas de força e fraqueza para entender padrões comportamentais.
+
+PARTE 3: O MAPA DA JORNADA
+
+Ciclo Atual: {numerology_map['life_cycle']['cycle']} (Número: {numerology_map['life_cycle']['cycle_number']})
+
+PARTE 4: PREVISÃO E MOMENTO ATUAL
+
+Ano Pessoal {numerology_map['personal_year']['number']}: Este ano traz energias específicas para crescimento e desenvolvimento.
+
+CONCLUSÃO TERAPÊUTICA
+
+Os números são ferramentas de autoconhecimento e livre arbítrio. Use estas informações para crescer e evoluir."""
+        
+        return NumerologyInterpretationResponse(
+            interpretation=fallback_text,
+            sources=[],
+            query_used=f"numerologia completa para {numerology_map['full_name']}",
+            generated_by="fallback"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao gerar interpretação numerológica: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao gerar interpretação numerológica: {str(e)}"
         )

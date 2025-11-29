@@ -4,7 +4,7 @@ API endpoints para interpretação astrológica usando RAG.
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 import re
@@ -36,10 +36,17 @@ class InterpretationRequest(BaseModel):
     use_groq: Optional[bool] = True  # Por padrão, usar Groq se disponível
 
 
+class SourceItem(BaseModel):
+    """Item de fonte da interpretação."""
+    source: str
+    page: int
+    relevance: Optional[float] = None
+
+
 class InterpretationResponse(BaseModel):
     """Response com interpretação astrológica."""
     interpretation: str
-    sources: list
+    sources: List[SourceItem]
     query_used: str
     generated_by: Optional[str] = None  # 'groq', 'rag_only', ou 'none'
 
@@ -80,9 +87,19 @@ def get_interpretation(
             use_groq=request.use_groq
         )
         
+        # Converter sources para o formato correto
+        sources_list = []
+        for src in interpretation.get('sources', []):
+            if isinstance(src, dict):
+                sources_list.append(SourceItem(
+                    source=src.get('source', 'unknown'),
+                    page=src.get('page', 1),
+                    relevance=src.get('relevance') or src.get('score')
+                ))
+        
         return InterpretationResponse(
             interpretation=interpretation['interpretation'],
-            sources=interpretation['sources'],
+            sources=sources_list,
             query_used=interpretation['query_used'],
             generated_by=interpretation.get('generated_by', 'unknown')
         )
@@ -1411,7 +1428,7 @@ COMPLETE BIRTH CHART OF {request.name.upper()}:
 - Chiron in {request.chironSign or 'not calculated'}{f' in House {request.chironHouse}' if request.chironHouse else ''} (Wound/Healing Gift){lilith_str}"""
 
 
-def _generate_section_prompt(request: FullBirthChartRequest, section: str) -> tuple[str, str]:
+def _generate_section_prompt(request: FullBirthChartRequest, section: str) -> Tuple[str, str]:
     """Gera o prompt específico para cada seção do mapa baseado na nova estrutura fornecida."""
     lang = request.language or 'pt'
     
@@ -2025,7 +2042,7 @@ def calculate_solar_return_chart(
         )
 
 
-@router.post("/solar-return/interpretation")
+@router.post("/solar-return/interpretation", response_model=InterpretationResponse)
 def get_solar_return_interpretation(
     request: SolarReturnInterpretationRequest,
     authorization: Optional[str] = Header(None)
@@ -2406,19 +2423,22 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                         continue
                 
                 if interpretation_text and len(interpretation_text) > 100:
-                    return {
-                        "interpretation": interpretation_text,
-                        "sources": [
-                            {
-                                "source": r.get('source', 'knowledge_base'),
-                                "page": r.get('page', 1),
-                                "relevance": r.get('score', 0.5)
-                            }
-                            for r in unique_results[:5]
-                        ],
-                        "query_used": f"Múltiplas queries: {', '.join(queries[:3])}...",
-                        "generated_by": "groq"
-                    }
+                    # Converter sources para o formato correto
+                    sources_list = [
+                        SourceItem(
+                            source=r.get('source', 'knowledge_base'),
+                            page=r.get('page', 1),
+                            relevance=r.get('score', 0.5)
+                        )
+                        for r in unique_results[:5]
+                    ]
+                    
+                    return InterpretationResponse(
+                        interpretation=interpretation_text,
+                        sources=sources_list,
+                        query_used=f"Múltiplas queries: {', '.join(queries[:3])}...",
+                        generated_by="groq"
+                    )
                 elif interpretation_text:
                     print(f"[SOLAR RETURN] Interpretação muito curta ({len(interpretation_text)} chars), usando fallback")
                 else:
@@ -2452,12 +2472,22 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                     
                     if fallback_result and fallback_result.get('interpretation') and len(fallback_result['interpretation']) > 200:
                         print(f"[SOLAR RETURN] Fallback com RAG service funcionou: {len(fallback_result['interpretation'])} chars")
-                        return {
-                            "interpretation": fallback_result['interpretation'],
-                            "sources": fallback_result.get('sources', []),
-                            "query_used": fallback_query,
-                            "generated_by": fallback_result.get('generated_by', 'rag_fallback')
-                        }
+                        # Converter sources para o formato correto
+                        sources_list = []
+                        for src in fallback_result.get('sources', []):
+                            if isinstance(src, dict):
+                                sources_list.append(SourceItem(
+                                    source=src.get('source', 'unknown'),
+                                    page=src.get('page', 1),
+                                    relevance=src.get('relevance') or src.get('score')
+                                ))
+                        
+                        return InterpretationResponse(
+                            interpretation=fallback_result['interpretation'],
+                            sources=sources_list,
+                            query_used=fallback_query,
+                            generated_by=fallback_result.get('generated_by', 'rag_fallback')
+                        )
                 except Exception as query_error:
                     print(f"[SOLAR RETURN] Erro com query '{fallback_query}': {query_error}")
                     continue
@@ -2622,12 +2652,15 @@ Este ano oferece uma jornada única de autoconhecimento e realização. Cada ár
         
         fallback_text = "\n\n".join(fallback_parts)
         
-        return {
-            "interpretation": fallback_text,
-            "sources": [],
-            "query_used": query,
-            "generated_by": "fallback"
-        }
+        # Construir query usada para o fallback
+        fallback_query = f"revolução solar {request.solar_return_ascendant} casa {request.solar_return_sun_house} {request.solar_return_moon_sign}"
+        
+        return InterpretationResponse(
+            interpretation=fallback_text,
+            sources=[],
+            query_used=fallback_query,
+            generated_by="fallback"
+        )
         
     except ValueError as e:
         raise HTTPException(

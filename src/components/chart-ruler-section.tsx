@@ -4,6 +4,7 @@ import { zodiacSigns } from './zodiac-icons';
 import { planets } from './planet-icons';
 import { apiService } from '../services/api';
 import { UIIcons } from './ui-icons';
+import { formatGroqText } from '../utils/formatGroqText';
 
 interface ChartRulerSectionProps {
   ascendant: string;
@@ -279,7 +280,7 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
               </button>
             </div>
             <div className="prose prose-sm max-w-none text-foreground/90">
-              {formatTextByTopics(detailedInterpretation)}
+              {formatGroqText(detailedInterpretation)}
             </div>
           </div>
         )}

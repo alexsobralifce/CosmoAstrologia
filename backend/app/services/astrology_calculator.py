@@ -429,3 +429,223 @@ def calculate_birth_chart(
         "chiron_degree": chiron_data["degree"],
     }
 
+
+def calculate_solar_return(
+    birth_date: datetime,
+    birth_time: str,
+    latitude: float,
+    longitude: float,
+    target_year: Optional[int] = None
+) -> Dict[str, any]:
+    """
+    Calcula o mapa de Revolução Solar (Solar Return).
+    
+    A Revolução Solar é calculada para o momento exato em que o Sol retorna
+    à mesma posição do nascimento, mas no ano especificado (ou ano atual).
+    
+    Args:
+        birth_date: Data de nascimento
+        birth_time: Hora de nascimento no formato "HH:MM"
+        latitude: Latitude do local de nascimento
+        longitude: Longitude do local de nascimento
+        target_year: Ano para calcular a revolução (padrão: ano atual)
+    
+    Returns:
+        Dicionário com o mapa de revolução solar
+    """
+    from datetime import timedelta
+    
+    # Usar ano atual se não especificado
+    if target_year is None:
+        target_year = datetime.now().year
+    
+    # Calcular posição do Sol no nascimento
+    time_parts = birth_time.split(":")
+    hour = int(time_parts[0]) if len(time_parts) > 0 else 0
+    minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+    
+    # Converter para UTC
+    utc_offset_hours = round(longitude / 15.0)
+    utc_offset_hours = max(-12, min(14, utc_offset_hours))
+    utc_hour = hour - utc_offset_hours
+    
+    adjusted_date = birth_date
+    if utc_hour < 0:
+        utc_hour += 24
+        adjusted_date = birth_date - timedelta(days=1)
+    elif utc_hour >= 24:
+        utc_hour -= 24
+        adjusted_date = birth_date + timedelta(days=1)
+    
+    birth_datetime = adjusted_date.replace(hour=utc_hour, minute=minute, second=0, microsecond=0)
+    
+    # Criar observador para o nascimento
+    birth_observer = ephem.Observer()
+    birth_observer.lat = str(latitude)
+    birth_observer.lon = str(longitude)
+    birth_observer.date = birth_datetime.strftime('%Y/%m/%d %H:%M:%S')
+    
+    # Calcular longitude do Sol no nascimento
+    natal_sun_longitude = calculate_planet_position(birth_observer, "sun")
+    natal_sun_data = get_zodiac_sign(natal_sun_longitude)
+    
+    # Encontrar o momento exato em que o Sol retorna à mesma posição no ano alvo
+    # Começar com uma data aproximada (aniversário)
+    solar_return_date = datetime(target_year, birth_date.month, birth_date.day, hour, minute, 0)
+    
+    # Ajustar para UTC
+    solar_return_utc_hour = hour - utc_offset_hours
+    solar_return_adjusted_date = solar_return_date
+    if solar_return_utc_hour < 0:
+        solar_return_utc_hour += 24
+        solar_return_adjusted_date = solar_return_date - timedelta(days=1)
+    elif solar_return_utc_hour >= 24:
+        solar_return_utc_hour -= 24
+        solar_return_adjusted_date = solar_return_date + timedelta(days=1)
+    
+    solar_return_datetime = solar_return_adjusted_date.replace(
+        hour=solar_return_utc_hour, 
+        minute=minute, 
+        second=0, 
+        microsecond=0
+    )
+    
+    # Refinar a data para encontrar o momento exato do retorno solar
+    # O Sol se move aproximadamente 1 grau por dia, então precisamos ajustar
+    best_date = solar_return_datetime
+    best_diff = 360.0
+    
+    # Buscar em um intervalo de ±2 dias
+    for day_offset in range(-2, 3):
+        test_date = solar_return_datetime + timedelta(days=day_offset)
+        
+        test_observer = ephem.Observer()
+        test_observer.lat = str(latitude)
+        test_observer.lon = str(longitude)
+        test_observer.date = test_date.strftime('%Y/%m/%d %H:%M:%S')
+        
+        test_sun_longitude = calculate_planet_position(test_observer, "sun")
+        
+        # Calcular diferença angular
+        diff = abs((test_sun_longitude - natal_sun_longitude + 180) % 360 - 180)
+        
+        if diff < best_diff:
+            best_diff = diff
+            best_date = test_date
+    
+    # Refinar ainda mais com horas
+    final_date = best_date
+    final_diff = best_diff
+    
+    for hour_offset in range(-12, 13):
+        test_date = best_date + timedelta(hours=hour_offset)
+        
+        test_observer = ephem.Observer()
+        test_observer.lat = str(latitude)
+        test_observer.lon = str(longitude)
+        test_observer.date = test_date.strftime('%Y/%m/%d %H:%M:%S')
+        
+        test_sun_longitude = calculate_planet_position(test_observer, "sun")
+        diff = abs((test_sun_longitude - natal_sun_longitude + 180) % 360 - 180)
+        
+        if diff < final_diff:
+            final_diff = diff
+            final_date = test_date
+    
+    # Criar observador final para o momento exato da revolução solar
+    solar_return_observer = ephem.Observer()
+    solar_return_observer.lat = str(latitude)
+    solar_return_observer.lon = str(longitude)
+    solar_return_observer.date = final_date.strftime('%Y/%m/%d %H:%M:%S')
+    
+    # Calcular todas as posições planetárias na revolução solar
+    sun_longitude = calculate_planet_position(solar_return_observer, "sun")
+    moon_longitude = calculate_planet_position(solar_return_observer, "moon")
+    ascendant_longitude = calculate_ascendant(solar_return_observer)
+    midheaven_longitude = calculate_midheaven(solar_return_observer)
+    
+    mercury_longitude = calculate_planet_position(solar_return_observer, "mercury")
+    venus_longitude = calculate_planet_position(solar_return_observer, "venus")
+    mars_longitude = calculate_planet_position(solar_return_observer, "mars")
+    jupiter_longitude = calculate_planet_position(solar_return_observer, "jupiter")
+    saturn_longitude = calculate_planet_position(solar_return_observer, "saturn")
+    
+    # Obter signos e casas (simplificado - para casas precisas seria necessário calcular)
+    sun_data = get_zodiac_sign(sun_longitude)
+    moon_data = get_zodiac_sign(moon_longitude)
+    ascendant_data = get_zodiac_sign(ascendant_longitude)
+    midheaven_data = get_zodiac_sign(midheaven_longitude)
+    
+    mercury_data = get_zodiac_sign(mercury_longitude)
+    venus_data = get_zodiac_sign(venus_longitude)
+    mars_data = get_zodiac_sign(mars_longitude)
+    jupiter_data = get_zodiac_sign(jupiter_longitude)
+    saturn_data = get_zodiac_sign(saturn_longitude)
+    
+    # Calcular casa do Sol (simplificado - baseado na diferença angular com o ascendente)
+    # Para cálculo preciso de casas, seria necessário usar uma biblioteca mais completa
+    sun_house = 1  # Default
+    if ascendant_longitude is not None:
+        diff = (sun_longitude - ascendant_longitude + 360) % 360
+        sun_house = int(diff / 30) + 1
+        if sun_house > 12:
+            sun_house = sun_house - 12
+    
+    # Calcular casa da Lua (simplificado)
+    moon_house = 1
+    if ascendant_longitude is not None:
+        diff = (moon_longitude - ascendant_longitude + 360) % 360
+        moon_house = int(diff / 30) + 1
+        if moon_house > 12:
+            moon_house = moon_house - 12
+    
+    # Calcular casa de Vênus
+    venus_house = 1
+    if ascendant_longitude is not None:
+        diff = (venus_longitude - ascendant_longitude + 360) % 360
+        venus_house = int(diff / 30) + 1
+        if venus_house > 12:
+            venus_house = venus_house - 12
+    
+    # Calcular casa de Marte
+    mars_house = 1
+    if ascendant_longitude is not None:
+        diff = (mars_longitude - ascendant_longitude + 360) % 360
+        mars_house = int(diff / 30) + 1
+        if mars_house > 12:
+            mars_house = mars_house - 12
+    
+    # Calcular casa de Júpiter
+    jupiter_house = 1
+    if ascendant_longitude is not None:
+        diff = (jupiter_longitude - ascendant_longitude + 360) % 360
+        jupiter_house = int(diff / 30) + 1
+        if jupiter_house > 12:
+            jupiter_house = jupiter_house - 12
+    
+    return {
+        "solar_return_date": final_date.isoformat(),
+        "target_year": target_year,
+        "ascendant_sign": ascendant_data["sign"],
+        "ascendant_degree": ascendant_data["degree"],
+        "sun_sign": sun_data["sign"],
+        "sun_degree": sun_data["degree"],
+        "sun_house": sun_house,
+        "moon_sign": moon_data["sign"],
+        "moon_degree": moon_data["degree"],
+        "moon_house": moon_house,
+        "venus_sign": venus_data["sign"],
+        "venus_degree": venus_data["degree"],
+        "venus_house": venus_house,
+        "mars_sign": mars_data["sign"],
+        "mars_degree": mars_data["degree"],
+        "mars_house": mars_house,
+        "jupiter_sign": jupiter_data["sign"],
+        "jupiter_degree": jupiter_data["degree"],
+        "jupiter_house": jupiter_house,
+        "saturn_sign": saturn_data["sign"],
+        "saturn_degree": saturn_data["degree"],
+        "midheaven_sign": midheaven_data["sign"],
+        "midheaven_degree": midheaven_data["degree"],
+    }
+

@@ -215,6 +215,10 @@ export const translations = {
       pt: 'Aspectos',
       en: 'Aspects',
     },
+    solarReturn: {
+      pt: 'Revolução Solar',
+      en: 'Solar Return',
+    },
     new: {
       pt: 'Novo',
       en: 'New',

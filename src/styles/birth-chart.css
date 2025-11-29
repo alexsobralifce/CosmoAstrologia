@@ -507,6 +507,39 @@
 .birth-chart-section-paragraph {
   margin-bottom: 1rem;
   font-size: 1rem;
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+/* ============================================================================
+ * FORMATAÇÃO DE TEXTOS DO GROQ
+ * ============================================================================ */
+.groq-formatted-container {
+  width: 100%;
+}
+
+.groq-formatted-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 1.5rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid hsl(var(--primary) / 0.2);
+  letter-spacing: 0.02em;
+}
+
+.groq-formatted-title:first-child {
+  margin-top: 0;
+}
+
+.groq-formatted-paragraph {
+  margin-bottom: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.75;
+  text-align: justify;
+  text-justify: inter-word;
+  color: hsl(var(--foreground) / 0.9);
 }
 
 .birth-chart-section-footer {

@@ -1385,6 +1385,8 @@
 }
 
 .planet-interpretation-subsection-content {
+  text-align: justify;
+  text-justify: inter-word;
   color: hsl(var(--foreground));
   line-height: 1.75;
   margin: 0;
@@ -2122,11 +2124,43 @@
   word-wrap: break-word;
 }
 
+/* ============================================================================
+ * FORMATAÇÃO DE TEXTOS DO GROQ
+ * ============================================================================ */
+.groq-formatted-container {
+  width: 100%;
+}
+
+.groq-formatted-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 1.5rem 0 1rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid hsl(var(--primary) / 0.2);
+  letter-spacing: 0.02em;
+}
+
+.groq-formatted-title:first-child {
+  margin-top: 0;
+}
+
+.groq-formatted-paragraph {
+  margin-bottom: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.75;
+  text-align: justify;
+  text-justify: inter-word;
+  color: hsl(var(--foreground) / 0.9);
+}
+
 .formatted-interpretation-paragraph {
   margin: 0;
   line-height: 1.75;
   color: hsl(var(--foreground) / 0.9);
-  text-align: left;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 .formatted-interpretation-strong {
@@ -2216,3 +2250,294 @@
   border-color: hsl(142, 76%, 36% / 0.3);
 }
 
+
+/* ============================================================================
+ * REVOLUÇÃO SOLAR
+ * ============================================================================ */
+.solar-return-year-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.solar-return-year-label {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  font-size: 1rem;
+}
+
+.solar-return-year-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.solar-return-year-input {
+  flex: 1;
+  max-width: 150px;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.solar-return-year-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.solar-return-year-button:hover:not(:disabled) {
+  background-color: hsl(var(--accent) / 0.1);
+  border-color: hsl(var(--accent));
+}
+
+.solar-return-year-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.solar-return-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+}
+
+.solar-return-data-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1.5rem 0;
+}
+
+.solar-return-data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.solar-return-data-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border));
+}
+
+.solar-return-data-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--accent) / 0.1);
+}
+
+.solar-return-data-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.solar-return-data-label {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+}
+
+.solar-return-data-value {
+  font-size: 1rem;
+  color: hsl(var(--foreground));
+  margin: 0;
+  font-weight: 600;
+}
+
+.solar-return-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 3rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.solar-return-interpretation-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1.5rem 0;
+}
+
+.solar-return-interpretation-content {
+  line-height: 1.8;
+  color: hsl(var(--foreground));
+}
+
+.solar-return-interpretation-content h2,
+.solar-return-interpretation-content h3,
+.solar-return-interpretation-content h4 {
+  font-family: var(--font-serif);
+  color: hsl(var(--foreground));
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.solar-return-interpretation-content h2 {
+  font-size: 1.5rem;
+}
+
+.solar-return-interpretation-content h3 {
+  font-size: 1.25rem;
+}
+
+.solar-return-interpretation-content h4 {
+  font-size: 1.125rem;
+}
+
+.solar-return-interpretation-content p {
+  margin-bottom: 1rem;
+}
+
+.solar-return-interpretation-content strong {
+  color: hsl(var(--accent));
+  font-weight: 600;
+}
+
+.solar-return-interpretation-content ul,
+.solar-return-interpretation-content ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.solar-return-interpretation-content li {
+  margin-bottom: 0.5rem;
+}
+
+/* ============================================================================
+ * CARD INFORMATIVO SOBRE REVOLUÇÃO SOLAR
+ * ============================================================================ */
+.solar-return-info-card {
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, hsl(var(--accent) / 0.05) 0%, hsl(var(--background)) 100%);
+  border: 1px solid hsl(var(--accent) / 0.2);
+}
+
+.solar-return-info-content {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.solar-return-info-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent));
+}
+
+.solar-return-info-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.solar-return-info-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.solar-return-info-description {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground));
+  margin: 0 0 1.5rem 0;
+}
+
+.solar-return-info-benefits,
+.solar-return-info-tips {
+  margin-top: 1.5rem;
+}
+
+.solar-return-info-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--accent));
+  margin: 0 0 0.75rem 0;
+}
+
+.solar-return-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.solar-return-info-list li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground));
+}
+
+.solar-return-info-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: hsl(var(--accent));
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .solar-return-info-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .solar-return-info-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .solar-return-info-title {
+    font-size: 1.125rem;
+  }
+
+  .solar-return-info-description {
+    font-size: 0.9375rem;
+  }
+}

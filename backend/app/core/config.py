@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     # API Keys
     GROQ_API_KEY: str = ""
     
+    # RAG Implementation
+    # Usando apenas LlamaIndex (legacy removido)
+    RAG_IMPLEMENTATION: str = "llamaindex"
+    
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):

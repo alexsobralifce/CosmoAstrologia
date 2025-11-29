@@ -1306,6 +1306,8 @@ Utilize uma abordagem de síntese. Não descreva posições isoladas (ex: "Sol n
 def _get_full_chart_context(request: FullBirthChartRequest, lang: str = 'pt') -> str:
     """Gera o contexto completo do mapa astral com todos os corpos celestes."""
     if lang == 'pt':
+        # Preparar string de Lilith para evitar backslash em f-string
+        lilith_str = f'\n- Lilith em {request.lilithSign}{f" na Casa {request.lilithHouse}" if request.lilithHouse else ""}' if request.lilithSign else ''
         return f"""
 MAPA ASTRAL COMPLETO DE {request.name.upper()}:
 
@@ -1335,8 +1337,10 @@ MAPA ASTRAL COMPLETO DE {request.name.upper()}:
 - Meio do Céu em {request.midheavenSign or 'não calculado'} (Vocação, Reputação)
 - Nodo Norte em {request.northNodeSign or 'não calculado'}{f' na Casa {request.northNodeHouse}' if request.northNodeHouse else ''} (Destino, Evolução)
 - Nodo Sul em {request.southNodeSign or 'não calculado'}{f' na Casa {request.southNodeHouse}' if request.southNodeHouse else ''} (Passado, Zona de Conforto)
-- Quíron em {request.chironSign or 'não calculado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''} (Ferida/Dom de Cura)""" + (f"\n- Lilith em {request.lilithSign}{f' na Casa {request.lilithHouse}' if request.lilithHouse else ''}" if request.lilithSign else "")
+- Quíron em {request.chironSign or 'não calculado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''} (Ferida/Dom de Cura){lilith_str}"""
     else:
+        # Preparar string de Lilith para evitar backslash em f-string
+        lilith_str = f'\n- Lilith in {request.lilithSign}{f" in House {request.lilithHouse}" if request.lilithHouse else ""}' if request.lilithSign else ''
         return f"""
 COMPLETE BIRTH CHART OF {request.name.upper()}:
 
@@ -1366,7 +1370,7 @@ COMPLETE BIRTH CHART OF {request.name.upper()}:
 - Midheaven in {request.midheavenSign or 'not calculated'} (Vocation, Reputation)
 - North Node in {request.northNodeSign or 'not calculated'}{f' in House {request.northNodeHouse}' if request.northNodeHouse else ''} (Destiny, Evolution)
 - South Node in {request.southNodeSign or 'not calculated'}{f' in House {request.southNodeHouse}' if request.southNodeHouse else ''} (Past, Comfort Zone)
-- Chiron in {request.chironSign or 'not calculated'}{f' in House {request.chironHouse}' if request.chironHouse else ''} (Wound/Healing Gift)""" + (f"\n- Lilith in {request.lilithSign}{f' in House {request.lilithHouse}' if request.lilithHouse else ''}" if request.lilithSign else "")
+- Chiron in {request.chironSign or 'not calculated'}{f' in House {request.chironHouse}' if request.chironHouse else ''} (Wound/Healing Gift){lilith_str}"""
 
 
 def _generate_section_prompt(request: FullBirthChartRequest, section: str) -> tuple[str, str]:
@@ -1564,6 +1568,8 @@ IMPORTANT:
     elif section == 'karma':
         title = "Expansão, Estrutura e Karma (Planetas Sociais e Transpessoais)" if lang == 'pt' else "Expansion, Structure and Karma (Social and Transpersonal Planets)"
         if lang == 'pt':
+            # Preparar string de Lilith para evitar backslash em f-string
+            lilith_str = f'\n- Lilith em {request.lilithSign} na Casa {request.lilithHouse}' if request.lilithSign and request.lilithHouse else ''
             prompt = f"""{full_context}
 
 **SEÇÃO 5: EXPANSÃO, ESTRUTURA E KARMA (PLANETAS SOCIAIS E TRANSPESSOAIS)**
@@ -1579,7 +1585,7 @@ DADOS:
 - Saturno em {request.saturnSign or 'não informado'}{f' na Casa {request.saturnHouse}' if request.saturnHouse else ''}
 - Nodo Norte em {request.northNodeSign or 'não informado'}{f' na Casa {request.northNodeHouse}' if request.northNodeHouse else ''}
 - Nodo Sul em {request.southNodeSign or 'não informado'}{f' na Casa {request.southNodeHouse}' if request.southNodeHouse else ''}
-- Quíron em {request.chironSign or 'não informado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''}{f"\n- Lilith em {request.lilithSign} na Casa {request.lilithHouse}" if request.lilithSign and request.lilithHouse else ""}
+- Quíron em {request.chironSign or 'não informado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''}{lilith_str}
 
 IMPORTANTE CRÍTICO:
 - USE APENAS OS DADOS FORNECIDOS ACIMA - se a casa não estiver disponível, OMITA completamente a menção à casa, não diga "Casa não informada" ou "na Casa não informada"
@@ -1590,6 +1596,8 @@ IMPORTANTE CRÍTICO:
 - Conecte os nodos lunares com propósito de vida e evolução da alma
 - Explique Quíron e Lilith como ferramentas de transformação"""
         else:
+            # Preparar string de Lilith para evitar backslash em f-string
+            lilith_str = f'\n- Lilith in {request.lilithSign} in House {request.lilithHouse}' if request.lilithSign and request.lilithHouse else ''
             prompt = f"""{full_context}
 
 **SECTION 5: EXPANSION, STRUCTURE AND KARMA (SOCIAL AND TRANSPERSONAL PLANETS)**
@@ -1605,7 +1613,7 @@ DATA:
 - Saturn in {request.saturnSign or 'not provided'}{f' in House {request.saturnHouse}' if request.saturnHouse else ''}
 - North Node in {request.northNodeSign or 'not provided'}{f' in House {request.northNodeHouse}' if request.northNodeHouse else ''}
 - South Node in {request.southNodeSign or 'not provided'}{f' in House {request.southNodeHouse}' if request.southNodeHouse else ''}
-- Chiron in {request.chironSign or 'not provided'}{f' in House {request.chironHouse}' if request.chironHouse else ''}{f"\n- Lilith in {request.lilithSign} in House {request.lilithHouse}" if request.lilithSign and request.lilithHouse else ""}
+- Chiron in {request.chironSign or 'not provided'}{f' in House {request.chironHouse}' if request.chironHouse else ''}{lilith_str}
 
 CRITICAL IMPORTANT:
 - USE ONLY THE DATA PROVIDED ABOVE - if the house is not available, COMPLETELY OMIT mentioning the house, do not say "House not provided" or "in House not provided"

@@ -9,7 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.services.rag_service import get_rag_service
+from app.services.rag_service_wrapper import get_rag_service
 
 def test_rag():
     print("=" * 60)
@@ -20,12 +20,12 @@ def test_rag():
         rag = get_rag_service()
         
         # Verificar se o índice está carregado
-        if not rag.embeddings or len(rag.documents) == 0:
+        if not hasattr(rag, 'index') or rag.index is None:
             print("\n✗ Índice não encontrado!")
-            print("Execute: python build_rag_index.py")
+            print("Execute: python scripts/build_rag_index_llamaindex.py")
             return False
         
-        print(f"\n✓ Índice carregado: {len(rag.documents)} documentos")
+        print(f"\n✓ Índice carregado (LlamaIndex)")
         
         # Teste 1: Busca simples
         print("\n" + "-" * 60)

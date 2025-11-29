@@ -99,60 +99,95 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
           const trimmed = section.trim();
           if (!trimmed) return null;
 
-          // Verificar se é um título (começa com **)
-          if (trimmed.startsWith('**') && trimmed.includes('**')) {
-            const titleMatch = trimmed.match(/\*\*(.+?)\*\*/);
-            if (titleMatch) {
-              const title = titleMatch[1];
-              const content = trimmed.replace(/\*\*(.+?)\*\*/, '').trim();
+          // Remover todos os asteriscos do texto primeiro
+          let cleanedText = trimmed
+            .replace(/\*\*([^*]+?)\*\*/g, '$1') // Remove **texto**
+            .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1') // Remove *texto* (itálico)
+            .replace(/^\*+\s*|\s*\*+$/g, '') // Remove asteriscos no início/fim
+            .replace(/\*{2,}/g, '') // Remove asteriscos múltiplos
+            .trim();
+
+          // Verificar se começa com um título (primeira linha curta sem ponto)
+          const lines = cleanedText.split('\n');
+          const firstLine = lines[0]?.trim() || '';
+          const isTitle = firstLine.length < 80 && 
+                          !firstLine.includes('.') && 
+                          !firstLine.match(/^[a-záàâãéêíóôõúç]/) &&
+                          firstLine.length > 0 &&
+                          lines.length > 1;
+
+          if (isTitle) {
+            const title = firstLine;
+            let content = lines.slice(1).join('\n').trim();
+            
+            // Remover asteriscos do conteúdo também
+            content = content
+              .replace(/\*\*([^*]+?)\*\*/g, '$1')
+              .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1')
+              .replace(/^\*+\s*|\s*\*+$/g, '')
+              .replace(/\*{2,}/g, '')
+              .trim();
               
-              // Verificar se é seção de exemplos (case-insensitive)
-              const isExamples = title.toLowerCase().includes('exemplo') || title.toLowerCase().includes('prático');
-              
-              return (
-                <div key={index} className="transits-description-section">
-                  <h4 className={`transits-transit-description-title ${isExamples ? 'transits-examples-title' : ''}`}>
-                    {title}
-                  </h4>
-                  {content && (
-                    <div className={isExamples ? 'transits-examples-container' : ''}>
-                      {content.split('\n').map((line, lineIndex) => {
-                        const trimmedLine = line.trim();
-                        if (!trimmedLine) return null;
-                        
-                        // Se é seção de exemplos, sempre renderizar como exemplo
-                        if (isExamples) {
-                          // Remover o bullet point se existir
-                          const cleanLine = trimmedLine.replace(/^[•\-]\s*/, '');
-                          return (
-                            <div key={lineIndex} className="transits-example-item">
-                              <div className="transits-example-box">
-                                <p className="transits-example-text">{cleanLine}</p>
-                              </div>
-                            </div>
-                          );
-                        }
-                        
-                        // Verificar se é um bullet point (para outras seções)
-                        if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
-                          return (
-                            <p key={lineIndex} className="transits-transit-description-list-item" style={{ marginLeft: '1rem' }}>
-                              {trimmedLine}
-                            </p>
-                          );
-                        }
-                        
+            // Verificar se é seção de exemplos (case-insensitive)
+            const isExamples = title.toLowerCase().includes('exemplo') || title.toLowerCase().includes('prático');
+            
+            return (
+              <div key={index} className="transits-description-section">
+                <h4 className={`transits-transit-description-title ${isExamples ? 'transits-examples-title' : ''}`}>
+                  {title}
+                </h4>
+                {content && (
+                  <div className={isExamples ? 'transits-examples-container' : ''}>
+                    {content.split('\n').map((line, lineIndex) => {
+                      const trimmedLine = line.trim();
+                      if (!trimmedLine) return null;
+                      
+                      // Se é seção de exemplos, sempre renderizar como exemplo
+                      if (isExamples) {
+                        // Remover o bullet point se existir e asteriscos
+                        const cleanLine = trimmedLine
+                          .replace(/^[•\-]\s*/, '')
+                          .replace(/\*\*([^*]+?)\*\*/g, '$1')
+                          .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1')
+                          .replace(/^\*+\s*|\s*\*+$/g, '')
+                          .replace(/\*{2,}/g, '')
+                          .trim();
                         return (
-                          <p key={lineIndex} className="transits-transit-description-paragraph">
-                            {trimmedLine}
+                          <div key={lineIndex} className="transits-example-item">
+                            <div className="transits-example-box">
+                              <p className="transits-example-text">{cleanLine}</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      // Remover asteriscos da linha
+                      const cleanLine = trimmedLine
+                        .replace(/\*\*([^*]+?)\*\*/g, '$1')
+                        .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1')
+                        .replace(/^\*+\s*|\s*\*+$/g, '')
+                        .replace(/\*{2,}/g, '')
+                        .trim();
+                      
+                      // Verificar se é um bullet point (para outras seções)
+                      if (cleanLine.startsWith('•') || cleanLine.startsWith('-')) {
+                        return (
+                          <p key={lineIndex} className="transits-transit-description-list-item" style={{ marginLeft: '1rem' }}>
+                            {cleanLine}
                           </p>
                         );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            }
+                      }
+
+                      return (
+                        <p key={lineIndex} className="transits-transit-description-paragraph">
+                          {cleanLine}
+                        </p>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
           }
 
           // Parágrafo normal (sem título)
@@ -162,17 +197,25 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
                 const trimmedLine = line.trim();
                 if (!trimmedLine) return null;
                 
+                // Remover asteriscos da linha
+                const cleanLine = trimmedLine
+                  .replace(/\*\*([^*]+?)\*\*/g, '$1')
+                  .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '$1')
+                  .replace(/^\*+\s*|\s*\*+$/g, '')
+                  .replace(/\*{2,}/g, '')
+                  .trim();
+
                 // Verificar se é um bullet point
-                if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+                if (cleanLine.startsWith('•') || cleanLine.startsWith('-')) {
                   return (
                     <p key={lineIndex} className="transits-transit-description-list-item" style={{ marginLeft: '1rem' }}>
-                      {trimmedLine}
+                      {cleanLine}
                     </p>
                   );
                 }
                 return (
                   <p key={lineIndex} className="transits-transit-description-paragraph">
-                    {trimmedLine}
+                    {cleanLine}
                   </p>
                 );
               })}

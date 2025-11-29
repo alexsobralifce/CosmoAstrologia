@@ -15,7 +15,8 @@ import {
   AspectsSection,
   LunarNodesSection,
   BiorhythmsSection,
-  SynastrySection
+  SynastrySection,
+  SolarReturnSection
 } from './dashboard-sections';
 import { FullBirthChartSection } from './full-birth-chart-section';
 
@@ -221,6 +222,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
     { id: 'inicio', label: t('menu', 'home'), icon: UIIcons.Home },
     { id: 'mapa-completo', label: t('menu', 'fullChart'), icon: UIIcons.BookOpen, badge: t('menu', 'new'), highlight: true },
     { id: 'visao-geral', label: t('menu', 'overview'), icon: UIIcons.Eye },
+    { id: 'revolucao-solar', label: t('menu', 'solarReturn'), icon: UIIcons.Sun },
     { id: 'biorritmos', label: t('menu', 'biorhythms'), icon: UIIcons.Activity },
     { id: 'sinastria', label: t('menu', 'synastry'), icon: UIIcons.Heart },
     { id: 'guia-2026', label: t('menu', 'guide2026'), icon: UIIcons.Calendar },
@@ -599,6 +601,8 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
             <FullBirthChartSection userData={userData} onBack={() => setActiveSection('inicio')} />
           ) : activeSection === 'visao-geral' ? (
             <OverviewSection userData={userData} onBack={() => setActiveSection('inicio')} />
+          ) : activeSection === 'revolucao-solar' ? (
+            <SolarReturnSection userData={userData} onBack={() => setActiveSection('inicio')} />
           ) : activeSection === 'planetas' ? (
             <PlanetsSection userData={userData} onBack={() => setActiveSection('inicio')} />
           ) : activeSection === 'casas' ? (

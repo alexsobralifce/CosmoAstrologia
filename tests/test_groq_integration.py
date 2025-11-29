@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from app.services.rag_service import get_rag_service
+from app.services.rag_service_wrapper import get_rag_service
 from app.core.config import settings
 
 def test_groq_integration():

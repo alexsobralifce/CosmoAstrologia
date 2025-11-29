@@ -5,6 +5,7 @@ import { BirthChartWheel } from './birth-chart-wheel';
 import { apiService } from '../services/api';
 import { useLanguage } from '../i18n';
 import { OnboardingData } from './onboarding';
+import { formatGroqText } from '../utils/formatGroqText';
 
 // ===== TIPOS =====
 interface BirthChartSection {
@@ -227,26 +228,7 @@ const ChartSection = ({
             </div>
           ) : (
             <div className="birth-chart-section-text">
-              {formattedContent.split('\n\n').map((paragraph, idx) => {
-                // Limpeza adicional (caso ainda haja algo)
-                let cleaned = paragraph.trim();
-                cleaned = cleaned.replace(/##?\s*📞\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
-                cleaned = cleaned.replace(/##?\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
-                cleaned = cleaned.replace(/Para dúvidas sobre interpretação astrológica[\s\S]*?Consulta com astrólogo profissional[\s\S]*?(?=\n\n|$)/gi, '');
-                cleaned = cleaned.replace(/Livros de astrologia na pasta.*?/gi, '');
-                cleaned = cleaned.replace(/Análise com IA.*?/gi, '');
-                cleaned = cleaned.replace(/Consulta com astrólogo profissional.*?/gi, '');
-                cleaned = cleaned.replace(/Desenvolvido com.*?autoconhecimento profundo[\s\S]*?(?=\n\n|$)/gi, '');
-                cleaned = cleaned.replace(/^[-]{3,}$/gm, '');
-                
-                if (!cleaned.trim()) return null;
-                
-                return (
-                  <p key={idx} className="birth-chart-section-paragraph">
-                    {cleaned}
-                  </p>
-                );
-              })}
+              {formatGroqText(formattedContent)}
             </div>
           )}
           

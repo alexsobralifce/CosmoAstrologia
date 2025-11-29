@@ -21,4 +21,8 @@ groq>=0.4.1
 google-auth>=2.0.0
 google-auth-oauthlib>=1.0.0
 google-auth-httplib2>=0.2.0
+# LlamaIndex para nova estrutura RAG
+llama-index>=0.10.0
+llama-index-embeddings-huggingface>=0.1.0
+# BGE model via Hugging Face (sentence-transformers será instalado como dependência)
 

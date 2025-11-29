@@ -11,7 +11,7 @@ Esta pasta contém scripts de automação e utilitários do projeto.
 
 ### Utilitários
 
-- **build_rag_index.py** - Constrói o índice RAG
+- **build_rag_index_llamaindex.py** - Constrói o índice RAG usando LlamaIndex
 - **quick_backend_check.sh** - Verificação rápida do backend
 
 ## Uso

@@ -9,8 +9,9 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import re
 from app.core.database import get_db
-from app.services.rag_service import get_rag_service
+from app.services.rag_service_wrapper import get_rag_service
 from app.services.transits_calculator import calculate_future_transits
+from app.services.astrology_calculator import calculate_solar_return
 from app.api.auth import get_current_user
 from app.models.database import BirthChart
 
@@ -114,12 +115,19 @@ def search_documents(
         rag_service = get_rag_service()
         
         # Verificar se o índice está carregado
-        if rag_service.embeddings is None or len(rag_service.documents) == 0:
+        # Verificar se o índice está disponível
+        has_index = False
+        if hasattr(rag_service, 'index'):
+            has_index = rag_service.index is not None
+        elif hasattr(rag_service, 'embeddings'):
+            has_index = rag_service.embeddings is not None and hasattr(rag_service, 'documents') and len(rag_service.documents) > 0
+        
+        if not has_index:
             return {
                 "query": query,
                 "results": [],
                 "count": 0,
-                "error": "Índice RAG não carregado. Execute build_rag_index.py primeiro."
+                "error": "Índice RAG não carregado. Execute build_rag_index_llamaindex.py primeiro."
             }
         
         results = rag_service.search(query, top_k=top_k)
@@ -145,19 +153,46 @@ def get_rag_status():
     try:
         rag_service = get_rag_service()
         
-        has_index = rag_service.embeddings is not None and len(rag_service.documents) > 0
-        has_groq = rag_service.groq_client is not None
-        has_model = rag_service.model is not None
+        # Verificar se é LlamaIndex ou implementação antiga
+        has_llamaindex = hasattr(rag_service, 'index')
         
-        return {
-            "available": has_index and has_model,
-            "document_count": len(rag_service.documents) if has_index else 0,
-            "has_dependencies": has_model,
-            "has_groq": has_groq,
-            "model_loaded": has_model,
-            "index_loaded": has_index,
-            "error": None if (has_index and has_model) else "Índice não carregado ou modelo não disponível"
-        }
+        if has_llamaindex:
+            # Implementação LlamaIndex
+            has_index = rag_service.index is not None
+            has_groq = rag_service.groq_client is not None
+            # Para LlamaIndex, verificar se o índice foi carregado
+            try:
+                from llama_index.core import VectorStoreIndex
+                has_dependencies = True
+            except ImportError:
+                has_dependencies = False
+            
+            return {
+                "available": has_index and has_dependencies,
+                "document_count": 0,  # LlamaIndex não expõe contagem direta
+                "has_dependencies": has_dependencies,
+                "has_groq": has_groq,
+                "model_loaded": has_dependencies,
+                "index_loaded": has_index,
+                "implementation": "llamaindex",
+                "error": None if (has_index and has_dependencies) else "LlamaIndex não instalado ou índice não carregado"
+            }
+        else:
+            # Implementação antiga (não deveria acontecer, mas mantido para compatibilidade)
+            has_index = hasattr(rag_service, 'embeddings') and rag_service.embeddings is not None and hasattr(rag_service, 'documents') and len(rag_service.documents) > 0
+            has_groq = rag_service.groq_client is not None
+            has_model = hasattr(rag_service, 'model') and rag_service.model is not None
+            
+            return {
+                "available": has_index and has_model,
+                "document_count": len(rag_service.documents) if has_index else 0,
+                "has_dependencies": has_model,
+                "has_groq": has_groq,
+                "model_loaded": has_model,
+                "index_loaded": has_index,
+                "implementation": "legacy",
+                "error": None if (has_index and has_model) else "Índice não carregado ou modelo não disponível"
+            }
     except Exception as e:
         return {
             "available": False,
@@ -245,7 +280,10 @@ def get_future_transits(
                 
                 try:
                     # Verificar se o índice RAG está carregado
-                    if rag_service.embeddings is not None and len(rag_service.documents) > 0:
+                    has_index = (hasattr(rag_service, 'index') and rag_service.index is not None) or \
+                               (hasattr(rag_service, 'embeddings') and rag_service.embeddings is not None and 
+                                hasattr(rag_service, 'documents') and len(rag_service.documents) > 0)
+                    if has_index:
                         # A descrição base já é completa com exemplos práticos
                         # Não precisa enriquecer com RAG/Groq para não cortar o texto
                         print(f"[INFO] Usando descrição base completa: {transit.get('planet')} {transit.get('aspect_type')} com {natal_point_display}")
@@ -1704,10 +1742,19 @@ def generate_birth_chart_section(
             )
         
         # Tentar carregar índice se não estiver carregado
-        if not rag_service.documents or len(rag_service.documents) == 0:
+        has_index = False
+        if hasattr(rag_service, 'index'):
+            has_index = rag_service.index is not None
+        elif hasattr(rag_service, 'documents'):
+            has_index = len(rag_service.documents) > 0
+        
+        if not has_index:
             print("[WARNING] Índice RAG vazio, tentando carregar...")
-            if not rag_service.load_index():
-                print("[WARNING] Não foi possível carregar índice RAG. Continuando com base local.")
+            if hasattr(rag_service, 'load_index'):
+                if not rag_service.load_index():
+                    print("[WARNING] Não foi possível carregar índice RAG. Continuando com base local.")
+            else:
+                print("[WARNING] Método load_index não disponível. Continuando com base local.")
         
         # Obter prompt mestre e prompt da seção
         master_prompt = _get_master_prompt(lang)
@@ -1897,4 +1944,698 @@ def generate_full_birth_chart(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao gerar mapa astral completo: {str(e)}"
+        )
+
+
+# ===== REVOLUÇÃO SOLAR =====
+
+class SolarReturnRequest(BaseModel):
+    """Request para cálculo da Revolução Solar."""
+    birth_date: str  # ISO format
+    birth_time: str  # HH:MM
+    latitude: float
+    longitude: float
+    target_year: Optional[int] = None
+
+
+class SolarReturnInterpretationRequest(BaseModel):
+    """Request para interpretação da Revolução Solar."""
+    # Dados do mapa natal
+    natal_sun_sign: str
+    natal_ascendant: Optional[str] = None
+    
+    # Dados da revolução solar
+    solar_return_ascendant: str
+    solar_return_sun_house: int
+    solar_return_moon_sign: str
+    solar_return_moon_house: int
+    solar_return_venus_sign: Optional[str] = None
+    solar_return_venus_house: Optional[int] = None
+    solar_return_mars_sign: Optional[str] = None
+    solar_return_mars_house: Optional[int] = None
+    solar_return_jupiter_sign: Optional[str] = None
+    solar_return_jupiter_house: Optional[int] = None
+    solar_return_saturn_sign: Optional[str] = None
+    solar_return_midheaven: Optional[str] = None
+    target_year: Optional[int] = None
+    language: Optional[str] = 'pt'
+
+
+@router.post("/solar-return/calculate")
+def calculate_solar_return_chart(
+    request: SolarReturnRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Calcula o mapa de Revolução Solar.
+    
+    Body:
+    {
+        "birth_date": "1990-01-15T00:00:00",
+        "birth_time": "14:30",
+        "latitude": -23.5505,
+        "longitude": -46.6333,
+        "target_year": 2025
+    }
+    """
+    try:
+        from datetime import datetime
+        
+        birth_date = datetime.fromisoformat(request.birth_date.replace('Z', '+00:00'))
+        
+        solar_return = calculate_solar_return(
+            birth_date=birth_date,
+            birth_time=request.birth_time,
+            latitude=request.latitude,
+            longitude=request.longitude,
+            target_year=request.target_year
+        )
+        
+        return solar_return
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao calcular revolução solar: {str(e)}"
+        )
+
+
+@router.post("/solar-return/interpretation")
+def get_solar_return_interpretation(
+    request: SolarReturnInterpretationRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Obtém interpretação da Revolução Solar usando o prompt fornecido.
+    
+    Body:
+    {
+        "natal_sun_sign": "Áries",
+        "solar_return_ascendant": "Leão",
+        "solar_return_sun_house": 5,
+        "solar_return_moon_sign": "Câncer",
+        "solar_return_moon_house": 4,
+        "solar_return_venus_sign": "Libra",
+        "solar_return_venus_house": 7,
+        "solar_return_mars_sign": "Escorpião",
+        "solar_return_mars_house": 8,
+        "solar_return_jupiter_sign": "Sagitário",
+        "solar_return_jupiter_house": 9,
+        "solar_return_saturn_sign": "Capricórnio",
+        "solar_return_midheaven": "Áries",
+        "target_year": 2025,
+        "language": "pt"
+    }
+    """
+    try:
+        rag_service = get_rag_service()
+        lang = request.language or 'pt'
+        
+        # Verificar se o Groq está disponível
+        has_groq = rag_service.groq_client is not None
+        print(f"[SOLAR RETURN] Groq disponível: {has_groq}")
+        if not has_groq:
+            print(f"[SOLAR RETURN] AVISO: Groq client não está disponível.")
+            print(f"[SOLAR RETURN] Verificando configuração...")
+            from app.core.config import settings
+            groq_key_set = bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
+            print(f"[SOLAR RETURN] GROQ_API_KEY configurada: {groq_key_set}")
+            if groq_key_set:
+                print(f"[SOLAR RETURN] GROQ_API_KEY tem {len(settings.GROQ_API_KEY)} caracteres")
+                print(f"[SOLAR RETURN] Possível problema: RAG service não inicializou o Groq corretamente")
+        
+        # Construir dados do cliente para o prompt
+        client_data = f"""Signo Solar Natal: {request.natal_sun_sign}
+Ascendente da Revolução Solar (RS): {request.solar_return_ascendant}
+Casa onde cai o Sol na RS: Casa {request.solar_return_sun_house}
+Lua na RS (Signo e Casa): {request.solar_return_moon_sign} na Casa {request.solar_return_moon_house}"""
+        
+        if request.solar_return_venus_sign:
+            client_data += f"\nVênus na RS: {request.solar_return_venus_sign}{f' na Casa {request.solar_return_venus_house}' if request.solar_return_venus_house else ''}"
+        
+        if request.solar_return_mars_sign:
+            client_data += f"\nMarte na RS: {request.solar_return_mars_sign}{f' na Casa {request.solar_return_mars_house}' if request.solar_return_mars_house else ''}"
+        
+        if request.solar_return_jupiter_sign:
+            client_data += f"\nJúpiter na RS: {request.solar_return_jupiter_sign}{f' na Casa {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''}"
+        
+        if request.solar_return_midheaven:
+            client_data += f"\nMeio do Céu da RS: {request.solar_return_midheaven}"
+        
+        if request.solar_return_saturn_sign:
+            client_data += f"\nSaturno na RS: {request.solar_return_saturn_sign}"
+        
+        # Prompt baseado no fornecido pelo usuário
+        if lang == 'pt':
+            system_prompt = """Você é um Astrólogo Experiente, com uma abordagem humanista, psicológica e evolutiva. Sua comunicação é clara, didática, empática e profundamente inspiradora. Você evita o fatalismo; seu foco é o livre-arbítrio e como a pessoa pode aproveitar as energias disponíveis para crescer."""
+            
+            user_prompt = f"""Tarefa: Realizar a interpretação detalhada de um Mapa de Revolução Solar (Retorno Solar) para o período de um ano.
+
+Dados do Cliente:
+{client_data}
+
+⚠️ REGRAS CRÍTICAS DE ESTRUTURA E CONTINUIDADE:
+- Cada tópico deve contar uma parte ÚNICA e COMPLEMENTAR da história do ano
+- NÃO repita informações já mencionadas em tópicos anteriores
+- Cada tópico deve ADICIONAR novas informações, não repetir
+- Os 8 tópicos devem formar uma NARRATIVA CONTÍNUA e COESIVA
+- Se um tópico menciona algo, os próximos devem COMPLEMENTAR, não REPETIR
+- Evite frases genéricas que possam se aplicar a qualquer tópico
+- Cada seção deve ter seu próprio "território" temático bem definido
+
+Estrutura da Leitura (Siga rigorosamente estes tópicos, SEM REPETIÇÕES):
+
+Use formatação com números e bullets, SEM asteriscos para títulos. Formate assim:
+
+1. A "Vibe" do Ano (O Ascendente Anual)
+   FOCUS: A energia geral e a "personalidade" do ano
+   - Explique didaticamente o que é o Ascendente da Revolução Solar (apenas aqui, não repita depois).
+   - Interprete a energia deste signo como a "ferramenta" ou "armadura" que a pessoa usará este ano.
+   - Como esse signo ajuda a pessoa a vencer obstáculos?
+   - NÃO mencione casas, planetas específicos ou áreas de vida aqui - apenas o Ascendente e sua energia geral.
+
+2. O Foco da Consciência (O Sol nas Casas)
+   FOCUS: A área específica de realização e brilho pessoal
+   - Analise APENAS a Casa onde o Sol está posicionado (Casa {request.solar_return_sun_house}).
+   - Explique que esta é a área da vida onde ela brilhará e colocará sua energia vital.
+   - Dê exemplos práticos ESPECÍFICOS do que fazer nesta área.
+   - NÃO repita informações sobre o Ascendente ou outros planetas aqui.
+
+3. O Mundo Emocional e a Família (A Lua)
+   FOCUS: Necessidades emocionais, família e nutrição interior
+   - Analise APENAS a Lua (signo {request.solar_return_moon_sign} e casa {request.solar_return_moon_house}).
+   - Onde a pessoa buscará nutrição emocional? (específico para esta Lua)
+   - Aborde questões familiares e o lar relacionadas a esta posição lunar.
+   - Dica Positiva: Como cuidar do coração neste ciclo? (baseado na Lua, não genérico)
+   - NÃO repita informações sobre o Sol ou outras áreas já mencionadas.
+
+4. Amor, Relacionamentos e Vida Social (Vênus)
+   FOCUS: Relacionamentos, valores afetivos e harmonia social
+   - Interprete APENAS a posição de Vênus ({request.solar_return_venus_sign if request.solar_return_venus_sign else 'não disponível'}).
+   - O que esperar do amor e das parcerias baseado nesta posição específica de Vênus.
+   - Foque nos valores pessoais e na harmonia relacionada a Vênus.
+   - NÃO repita informações sobre Lua, Sol ou outras áreas.
+
+5. Trabalho, Dinheiro e Carreira (Marte, Júpiter e Meio do Céu)
+   FOCUS: Ação profissional, expansão material e vocação
+   - Onde está a força de ação (Marte)? Onde está a sorte/expansão (Júpiter)?
+   - Qual a meta de vida para este ano (Meio do Céu)?
+   - Dê orientações ESPECÍFICAS para tomada de decisão profissional e financeira baseadas nestes planetas.
+   - NÃO repita informações sobre outras áreas ou planetas já mencionados.
+
+6. Saúde e Vitalidade
+   FOCUS: Bem-estar físico, rotinas e cuidados com o corpo
+   - Analise APENAS a Casa 6 e os planetas que estão nela (se houver).
+   - Considere como o Ascendente influencia a vitalidade (conexão específica, não repetição).
+   - Sugira práticas de bem-estar ESPECÍFICAS baseadas nos planetas na Casa 6.
+   - Seja específico sobre áreas do corpo ou sistemas baseado nos planetas presentes.
+   - NÃO repita informações sobre outras casas ou áreas já mencionadas.
+
+7. Os Desafios como Oportunidades (Saturnos e Tensões)
+   FOCUS: Transformação de dificuldades em crescimento
+   - Identifique o maior desafio do ano baseado em Saturno e aspectos tensos.
+   - Reframe-o como uma oportunidade de amadurecimento ESPECÍFICA.
+   - Use linguagem encorajadora: "Onde Saturno toca, nós construímos mestria".
+   - NÃO repita desafios já mencionados em outros tópicos.
+
+8. Síntese Inspiradora
+   FOCUS: Integração final e mensagem de esperança
+   - Crie um "Mantra do Ano" curto que sintetize os temas principais (sem repetir tudo).
+   - Resuma as 3 grandes bênçãos que estão chegando (seja específico, não genérico).
+   - Termine com uma mensagem de esperança e empoderamento que integre os temas principais.
+   - NÃO repita detalhes já mencionados - apenas sintetize e inspire.
+
+Estilo de Escrita e Formatação:
+- Use números (1., 2., 3., etc.) para os títulos dos 8 tópicos principais, SEM asteriscos.
+- Use bullets (- ou •) para listar pontos dentro de cada tópico quando apropriado.
+- Use metáforas para facilitar o entendimento.
+- Divida em parágrafos curtos.
+- Cada tópico deve ter 2-4 parágrafos bem desenvolvidos.
+- Garanta que cada parágrafo adicione informação nova, não repetida.
+- NÃO use asteriscos (**) para títulos - use apenas números.
+- NÃO use formatações como "A pessoa pode esperar:" seguido de listas - integre as informações em parágrafos narrativos.
+- NÃO repita o mesmo texto ou ideias em diferentes tópicos.
+- Formate os títulos assim: "1. Título do Tópico" (sem asteriscos, sem negrito)."""
+        else:
+            system_prompt = """You are an Experienced Astrologer, with a humanistic, psychological and evolutionary approach. Your communication is clear, didactic, empathetic and deeply inspiring. You avoid fatalism; your focus is free will and how the person can take advantage of available energies to grow."""
+            
+            user_prompt = f"""Task: Perform a detailed interpretation of a Solar Return Chart for a one-year period.
+
+Client Data:
+{client_data}
+
+⚠️ CRITICAL STRUCTURE AND CONTINUITY RULES:
+- Each topic must tell a UNIQUE and COMPLEMENTARY part of the year's story
+- DO NOT repeat information already mentioned in previous topics
+- Each topic must ADD new information, not repeat
+- The 8 topics must form a CONTINUOUS and COHESIVE narrative
+- If a topic mentions something, the next ones must COMPLEMENT, not REPEAT
+- Avoid generic phrases that could apply to any topic
+- Each section must have its own well-defined thematic "territory"
+
+Reading Structure (Follow these topics strictly, WITHOUT REPETITIONS):
+
+Use formatting with numbers and bullets, WITHOUT asterisks for titles. Format like this:
+
+1. The Year's "Vibe" (The Annual Ascendant)
+   FOCUS: The general energy and "personality" of the year
+   - Explain what the Solar Return Ascendant is (only here, don't repeat later).
+   - Interpret this sign's energy as the "tool" or "armor" the person will use this year.
+   - How does this sign help the person overcome obstacles?
+   - DO NOT mention houses, specific planets or life areas here - only the Ascendant and its general energy.
+
+2. The Focus of Consciousness (The Sun in Houses)
+   FOCUS: The specific area of fulfillment and personal shine
+   - Analyze ONLY the House where the Sun is positioned (House {request.solar_return_sun_house}).
+   - Explain that this is the area of life where they will shine and place their vital energy.
+   - Give SPECIFIC practical examples of what to do in this area.
+   - DO NOT repeat information about the Ascendant or other planets here.
+
+3. The Emotional World and Family (The Moon)
+   FOCUS: Emotional needs, family and inner nourishment
+   - Analyze ONLY the Moon (sign {request.solar_return_moon_sign} and house {request.solar_return_moon_house}).
+   - Where will the person seek emotional nourishment? (specific to this Moon)
+   - Address family and home issues related to this lunar position.
+   - Positive Tip: How to take care of the heart in this cycle? (based on the Moon, not generic)
+   - DO NOT repeat information about the Sun or other areas already mentioned.
+
+4. Love, Relationships and Social Life (Venus)
+   FOCUS: Relationships, emotional values and social harmony
+   - Interpret ONLY Venus's position ({request.solar_return_venus_sign if request.solar_return_venus_sign else 'not available'}).
+   - What to expect from love and partnerships based on this specific Venus position.
+   - Focus on personal values and harmony related to Venus.
+   - DO NOT repeat information about Moon, Sun or other areas.
+
+5. Work, Money and Career (Mars, Jupiter and Midheaven)
+   FOCUS: Professional action, material expansion and vocation
+   - Where is the force of action (Mars)? Where is luck/expansion (Jupiter)?
+   - What is the life goal for this year (Midheaven)?
+   - Give SPECIFIC guidance for professional and financial decision making based on these planets.
+   - DO NOT repeat information about other areas or planets already mentioned.
+
+6. Health and Vitality
+   FOCUS: Physical well-being, routines and body care
+   - Analyze ONLY House 6 and the planets in it (if any).
+   - Consider how the Ascendant influences vitality (specific connection, not repetition).
+   - Suggest SPECIFIC wellness practices based on planets in House 6.
+   - Be specific about body areas or systems based on present planets.
+   - DO NOT repeat information about other houses or areas already mentioned.
+
+7. Challenges as Opportunities (Saturn and Tensions)
+   FOCUS: Transforming difficulties into growth
+   - Identify the year's greatest challenge based on Saturn and tense aspects.
+   - Reframe it as a SPECIFIC opportunity for maturation.
+   - Use encouraging language: "Where Saturn touches, we build mastery".
+   - DO NOT repeat challenges already mentioned in other topics.
+
+8. Inspiring Synthesis
+   FOCUS: Final integration and message of hope
+   - Create a short "Year's Mantra" that synthesizes the main themes (without repeating everything).
+   - Summarize the 3 great blessings that are coming (be specific, not generic).
+   - End with a message of hope and empowerment that integrates the main themes.
+   - DO NOT repeat details already mentioned - only synthesize and inspire.
+
+Writing Style and Formatting:
+- Use numbers (1., 2., 3., etc.) for the 8 main topic titles, WITHOUT asterisks.
+- Use bullets (- or •) to list points within each topic when appropriate.
+- Use metaphors to facilitate understanding.
+- Divide into short paragraphs.
+- Each topic should have 2-4 well-developed paragraphs.
+- Ensure each paragraph adds new, non-repeated information.
+- DO NOT use asterisks (**) for titles - use only numbers.
+- DO NOT use formats like "The person can expect:" followed by lists - integrate information into narrative paragraphs.
+- DO NOT repeat the same text or ideas in different topics.
+- Format titles like this: "1. Topic Title" (no asterisks, no bold)."""
+        
+        # Buscar contexto do RAG com múltiplas queries para obter mais informações
+        queries = [
+            f"revolução solar retorno solar mapa anual interpretação {request.solar_return_ascendant} casa {request.solar_return_sun_house}",
+            f"casa 6 saúde vitalidade bem-estar astrologia revolução solar",
+            f"casa 6 planetas saúde corpo físico astrologia",
+            f"ascendente {request.solar_return_ascendant} vitalidade saúde revolução solar"
+        ]
+        
+        # Adicionar query específica sobre a casa 6 se houver planetas nela
+        if request.solar_return_sun_house == 6:
+            queries.append(f"Sol casa 6 saúde vitalidade energia física revolução solar")
+        if request.solar_return_moon_house == 6:
+            queries.append(f"Lua casa 6 saúde emocional bem-estar revolução solar")
+        if request.solar_return_venus_house == 6:
+            queries.append(f"Vênus casa 6 saúde beleza bem-estar revolução solar")
+        if request.solar_return_mars_house == 6:
+            queries.append(f"Marte casa 6 saúde energia física atividade revolução solar")
+        if request.solar_return_jupiter_house == 6:
+            queries.append(f"Júpiter casa 6 saúde expansão bem-estar revolução solar")
+        
+        # Buscar com todas as queries
+        all_rag_results = []
+        for q in queries:
+            try:
+                results = rag_service.search(q, top_k=5)
+                all_rag_results.extend(results)
+            except Exception as e:
+                print(f"[WARNING] Erro ao buscar no RAG com query '{q}': {e}")
+        
+        # Remover duplicatas mantendo os mais relevantes
+        seen_texts = set()
+        unique_results = []
+        for result in sorted(all_rag_results, key=lambda x: x.get('score', 0), reverse=True):
+            text_key = result.get('text', '')[:100]
+            if text_key not in seen_texts:
+                seen_texts.add(text_key)
+                unique_results.append(result)
+                if len(unique_results) >= 15:  # Limitar a 15 documentos únicos
+                    break
+        
+        context_text = "\n\n".join([doc.get('text', '') for doc in unique_results[:12] if doc.get('text')])
+        print(f"[SOLAR RETURN] Contexto RAG coletado: {len(context_text)} chars de {len(unique_results)} documentos")
+        
+        # Gerar interpretação com Groq
+        if rag_service.groq_client:
+            try:
+                print(f"[SOLAR RETURN] Tentando gerar interpretação com Groq...")
+                context_snippet = context_text[:3000] if context_text else "Informações gerais sobre revolução solar."
+                
+                full_user_prompt = f"""{user_prompt}
+
+---
+
+CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
+{context_snippet}"""
+                
+                print(f"[SOLAR RETURN] Prompt length: {len(full_user_prompt)} chars")
+                print(f"[SOLAR RETURN] System prompt length: {len(system_prompt)} chars")
+                print(f"[SOLAR RETURN] Model: llama-3.1-70b-versatile")
+                
+                # Tentar chamar Groq com modelo principal
+                models_to_try = [
+                    "llama-3.1-70b-versatile",
+                    "llama-3.1-8b-instant",
+                    "mixtral-8x7b-32768"
+                ]
+                
+                interpretation_text = None
+                last_error = None
+                
+                for model_name in models_to_try:
+                    try:
+                        print(f"[SOLAR RETURN] Tentando modelo: {model_name}")
+                        chat_completion = rag_service.groq_client.chat.completions.create(
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": full_user_prompt}
+                            ],
+                            model=model_name,
+                            temperature=0.7,
+                            max_tokens=4000,
+                            top_p=0.9,
+                        )
+                        
+                        interpretation_text = chat_completion.choices[0].message.content.strip()
+                        
+                        # Limpeza: remover duplicações de texto comum
+                        # Remover duplicações de padrões como "A pessoa pode esperar:" e listas repetidas
+                        import re
+                        
+                        # Padrão para detectar e remover duplicações de "A pessoa pode esperar:" e similares
+                        patterns_to_deduplicate = [
+                            r'A pessoa pode esperar:.*?(?=\n\n|\*\*|$)',
+                            r'The person can expect:.*?(?=\n\n|\*\*|$)',
+                            r'Oportunidades de crescimento e expansão.*?(?=\n\n|\*\*|$)',
+                            r'Opportunities for growth and expansion.*?(?=\n\n|\*\*|$)',
+                        ]
+                        
+                        # Encontrar todas as ocorrências
+                        found_patterns = []
+                        for pattern in patterns_to_deduplicate:
+                            matches = list(re.finditer(pattern, interpretation_text, re.IGNORECASE | re.DOTALL))
+                            if len(matches) > 1:
+                                # Manter apenas a primeira ocorrência, remover as demais
+                                for match in matches[1:]:
+                                    interpretation_text = interpretation_text[:match.start()] + interpretation_text[match.end():]
+                        
+                        # Remover duplicações de parágrafos inteiros (mesmo texto aparecendo 2+ vezes)
+                        paragraphs = interpretation_text.split('\n\n')
+                        seen_paragraphs = set()
+                        unique_paragraphs = []
+                        for para in paragraphs:
+                            para_clean = para.strip()
+                            # Normalizar para comparação (remover espaços extras, case insensitive)
+                            para_key = re.sub(r'\s+', ' ', para_clean.lower())
+                            # Ignorar parágrafos muito curtos (provavelmente títulos ou separadores)
+                            if len(para_key) > 50 and para_key not in seen_paragraphs:
+                                seen_paragraphs.add(para_key)
+                                unique_paragraphs.append(para)
+                            elif len(para_key) <= 50:
+                                # Manter parágrafos curtos (títulos, etc)
+                                unique_paragraphs.append(para)
+                        
+                        interpretation_text = '\n\n'.join(unique_paragraphs)
+                        
+                        print(f"[SOLAR RETURN] Sucesso com modelo {model_name}: {len(interpretation_text)} chars (após limpeza)")
+                        break
+                        
+                    except Exception as model_error:
+                        print(f"[SOLAR RETURN] Erro com modelo {model_name}: {model_error}")
+                        last_error = model_error
+                        continue
+                
+                if interpretation_text and len(interpretation_text) > 100:
+                    return {
+                        "interpretation": interpretation_text,
+                        "sources": [
+                            {
+                                "source": r.get('source', 'knowledge_base'),
+                                "page": r.get('page', 1),
+                                "relevance": r.get('score', 0.5)
+                            }
+                            for r in unique_results[:5]
+                        ],
+                        "query_used": f"Múltiplas queries: {', '.join(queries[:3])}...",
+                        "generated_by": "groq"
+                    }
+                elif interpretation_text:
+                    print(f"[SOLAR RETURN] Interpretação muito curta ({len(interpretation_text)} chars), usando fallback")
+                else:
+                    print(f"[SOLAR RETURN] Todos os modelos falharam. Último erro: {last_error}")
+                    if last_error:
+                        raise last_error
+                
+            except Exception as e:
+                print(f"[ERROR] Erro geral ao gerar interpretação com Groq: {e}")
+                import traceback
+                print(f"[ERROR] Traceback: {traceback.format_exc()}")
+        else:
+            print(f"[SOLAR RETURN] Groq client não disponível")
+        
+        # Fallback: tentar usar o método get_interpretation do RAG service
+        print(f"[SOLAR RETURN] Usando fallback - tentando método get_interpretation do RAG service")
+        try:
+            # Construir query mais completa incluindo informações sobre casa 6
+            fallback_queries = [
+                f"revolução solar retorno solar {request.solar_return_ascendant} casa {request.solar_return_sun_house} {request.solar_return_moon_sign} interpretação anual",
+                f"casa 6 saúde vitalidade {request.solar_return_ascendant} revolução solar"
+            ]
+            
+            # Tentar cada query
+            for fallback_query in fallback_queries:
+                try:
+                    fallback_result = rag_service.get_interpretation(
+                        custom_query=fallback_query,
+                        use_groq=True
+                    )
+                    
+                    if fallback_result and fallback_result.get('interpretation') and len(fallback_result['interpretation']) > 200:
+                        print(f"[SOLAR RETURN] Fallback com RAG service funcionou: {len(fallback_result['interpretation'])} chars")
+                        return {
+                            "interpretation": fallback_result['interpretation'],
+                            "sources": fallback_result.get('sources', []),
+                            "query_used": fallback_query,
+                            "generated_by": fallback_result.get('generated_by', 'rag_fallback')
+                        }
+                except Exception as query_error:
+                    print(f"[SOLAR RETURN] Erro com query '{fallback_query}': {query_error}")
+                    continue
+        except Exception as e:
+            print(f"[ERROR] Erro no fallback RAG service: {e}")
+        
+        # Último fallback: interpretação básica melhorada
+        print(f"[SOLAR RETURN] Usando último fallback - interpretação básica")
+        
+        # Construir texto de fallback mais completo
+        fallback_parts = []
+        
+        fallback_parts.append(f"""**1. A "Vibe" do Ano (O Ascendente Anual):**
+
+O Ascendente da Revolução Solar em **{request.solar_return_ascendant}** define a energia geral que permeará todo o seu ano. Este signo funciona como uma "armadura" ou "lente" através da qual você experimentará e responderá aos eventos do período. As características de {request.solar_return_ascendant} serão suas ferramentas naturais para navegar pelos desafios e oportunidades que surgirem.
+
+Este posicionamento indica que você terá a oportunidade de desenvolver e expressar as qualidades típicas de {request.solar_return_ascendant} de forma mais consciente. Esta energia será especialmente útil quando você precisar tomar decisões importantes ou enfrentar situações que exijam as características deste signo.""")
+        
+        # Descrições das casas
+        house_descriptions = {
+            1: "identidade, autoconfiança e novos começos",
+            2: "valores, recursos financeiros e segurança material",
+            3: "comunicação, aprendizado e relações próximas",
+            4: "lar, família e raízes",
+            5: "criatividade, romance e expressão pessoal",
+            6: "rotina, saúde e trabalho diário",
+            7: "parcerias, relacionamentos e compromissos",
+            8: "transformação, intimidade e recursos compartilhados",
+            9: "filosofia, viagens e expansão de horizontes",
+            10: "carreira, reconhecimento público e vocação",
+            11: "amizades, grupos e projetos futuros",
+            12: "introspecção, espiritualidade e processos inconscientes"
+        }
+        
+        sun_house_desc = house_descriptions.get(request.solar_return_sun_house, "uma área importante da sua vida")
+        
+        fallback_parts.append(f"""**2. O Foco da Consciência (O Sol nas Casas):**
+
+Enquanto o Ascendente define a energia geral, o Sol na **Casa {request.solar_return_sun_house}** indica especificamente onde você direcionará sua atenção e energia vital durante este ano. A Casa {request.solar_return_sun_house} está relacionada a {sun_house_desc}, e é neste setor que você encontrará suas maiores oportunidades de realização pessoal.
+
+Este posicionamento sugere que seus esforços conscientes devem ser direcionados para esta área. É aqui que você poderá expressar sua autenticidade e alcançar resultados significativos. Considere projetos, iniciativas ou mudanças relacionadas a este setor da vida.""")
+        
+        moon_house_desc = house_descriptions.get(request.solar_return_moon_house, "uma área emocional importante")
+        
+        fallback_parts.append(f"""**3. O Mundo Emocional e a Família (A Lua):**
+
+Complementando o foco do Sol, a Lua em **{request.solar_return_moon_sign}** na **Casa {request.solar_return_moon_house}** revela suas necessidades emocionais e como você buscará segurança e nutrição interior. A Casa {request.solar_return_moon_house} está relacionada a {moon_house_desc}, indicando onde você encontrará conforto emocional.
+
+Este posicionamento mostra que suas reações emocionais e necessidades de cuidado estarão especialmente conectadas a esta área. Preste atenção aos seus sentimentos e intuições relacionadas a este setor, pois eles serão guias importantes para seu bem-estar. Atividades e conexões relacionadas a esta casa serão especialmente nutritivas para sua alma.""")
+        
+        if request.solar_return_venus_sign:
+            venus_house_info = f' na Casa {request.solar_return_venus_house}' if request.solar_return_venus_house else ''
+            fallback_parts.append(f"""**4. Amor, Relacionamentos e Vida Social (Vênus):**
+
+Vênus em **{request.solar_return_venus_sign}**{venus_house_info} traz uma perspectiva específica sobre como você buscará harmonia e conexões afetivas este ano. Este posicionamento revela seus valores relacionais e como você expressa e recebe amor, complementando as áreas já mencionadas pelo Sol e pela Lua.
+
+Este ano, suas relações serão influenciadas pelas características de {request.solar_return_venus_sign}, indicando o tipo de energia que você atrairá e oferecerá nos relacionamentos. Preste atenção aos valores que você prioriza nas conexões humanas.""")
+        
+        # Construir seção de trabalho/carreira de forma integrada
+        career_section = "**5. Trabalho, Dinheiro e Carreira (Marte, Júpiter e Meio do Céu):**\n\n"
+        
+        if request.solar_return_mars_sign:
+            mars_house_info = f' na Casa {request.solar_return_mars_house}' if request.solar_return_mars_house else ''
+            career_section += f"Marte em **{request.solar_return_mars_sign}**{mars_house_info} indica onde você colocará sua força de ação e iniciativa. Este é o setor onde você terá energia para trabalhar ativamente e conquistar objetivos práticos.\n\n"
+        
+        if request.solar_return_jupiter_sign:
+            jupiter_house_info = f' na Casa {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''
+            career_section += f"Júpiter em **{request.solar_return_jupiter_sign}**{jupiter_house_info} mostra onde você encontrará expansão, sorte e oportunidades de crescimento. Este setor oferece potencial para desenvolvimento e prosperidade.\n\n"
+        
+        if request.solar_return_midheaven:
+            career_section += f"O **Meio do Céu em {request.solar_return_midheaven}** representa sua meta de vida e vocação para este ano. Esta direção profissional indica o caminho de realização pessoal que você deve seguir, integrando as energias de Marte e Júpiter mencionadas acima."
+        
+        if request.solar_return_mars_sign or request.solar_return_jupiter_sign or request.solar_return_midheaven:
+            fallback_parts.append(career_section)
+        
+        # Análise específica da Casa 6 e Saúde
+        planets_in_6 = []
+        planet_details_6 = []
+        
+        if request.solar_return_sun_house == 6:
+            planets_in_6.append("Sol")
+            planet_details_6.append(f"O **Sol na Casa 6** indica que sua energia vital e identidade estarão focadas em saúde, rotinas e bem-estar físico. Este é um ano para investir conscientemente em hábitos saudáveis e criar rotinas que fortaleçam sua vitalidade.")
+        
+        if request.solar_return_moon_house == 6:
+            planets_in_6.append("Lua")
+            planet_details_6.append(f"A **Lua na Casa 6** mostra que suas necessidades emocionais estarão conectadas à sua saúde física e rotinas diárias. Preste atenção à conexão entre seu bem-estar emocional e físico. Cuidar da alimentação e do descanso será especialmente importante.")
+        
+        if request.solar_return_venus_house == 6:
+            planets_in_6.append("Vênus")
+            planet_details_6.append(f"**Vênus na Casa 6** indica que você buscará harmonia e beleza através de práticas de bem-estar. Considere atividades que combinem estética e saúde, como dança, yoga ou cuidados com a alimentação equilibrada.")
+        
+        if request.solar_return_mars_house == 6:
+            planets_in_6.append("Marte")
+            planet_details_6.append(f"**Marte na Casa 6** traz energia ativa para sua saúde e rotinas. Este é um ano ideal para iniciar ou intensificar atividades físicas. Use essa energia para criar disciplina em seus hábitos de saúde, mas evite exageros.")
+        
+        if request.solar_return_jupiter_house == 6:
+            planets_in_6.append("Júpiter")
+            planet_details_6.append(f"**Júpiter na Casa 6** traz expansão e oportunidades para melhorar sua saúde e bem-estar. Este é um ano favorável para explorar novas práticas de saúde, expandir seus conhecimentos sobre bem-estar ou encontrar profissionais que possam ajudar em sua jornada de saúde.")
+        
+        # Construir seção de Saúde e Vitalidade
+        health_section = f"""**6. Saúde e Vitalidade:**
+
+Além das áreas já mencionadas, a Casa 6 da sua Revolução Solar traz atenção especial para saúde física, rotinas diárias e bem-estar geral. Este setor complementa as energias do Sol, Lua e outros planetas, focando especificamente nos cuidados práticos com o corpo e na manutenção da vitalidade."""
+
+        if planets_in_6:
+            health_section += f"\n\nA Casa 6 está ativada com {', '.join(planets_in_6)} presente(s), indicando que esta será uma área de atenção especial neste ano:\n\n"
+            health_section += "\n\n".join(planet_details_6)
+            health_section += f"\n\nCom múltiplos planetas na Casa 6, você terá oportunidades significativas de transformar seus hábitos de saúde e criar rotinas mais equilibradas e benéficas."
+        else:
+            # Buscar informações sobre o regente da Casa 6
+            # Para simplificar, vamos focar no Ascendente e na energia geral
+            health_section += f"\n\nCom o Ascendente em **{request.solar_return_ascendant}**, você naturalmente buscará equilíbrio e harmonia, o que se reflete também na sua abordagem à saúde. Este é um ano para criar rotinas que integrem bem-estar físico, mental e emocional de forma harmoniosa."
+        
+        health_section += f"\n\n**Sugestões Práticas de Bem-estar:**\n"
+        health_section += f"- Pratique atividades que promovam equilíbrio e harmonia (yoga, tai chi, meditação)\n"
+        health_section += f"- Crie rotinas diárias que incluam momentos de autocuidado\n"
+        health_section += f"- Preste atenção à conexão entre suas emoções e sua saúde física\n"
+        health_section += f"- Considere práticas que integrem movimento, respiração e consciência corporal\n"
+        health_section += f"- Mantenha um ritmo equilibrado, evitando extremos ou exageros"
+        
+        fallback_parts.append(health_section)
+        
+        # Seção de Desafios como Oportunidades
+        if request.solar_return_saturn_sign:
+            fallback_parts.append(f"""**7. Os Desafios como Oportunidades (Saturnos e Tensões):**
+
+Integrando todas as áreas mencionadas, Saturno em **{request.solar_return_saturn_sign}** indica onde você encontrará os principais desafios deste ano. Estes desafios, quando encarados com consciência, se transformam em oportunidades de amadurecimento e construção de mestria.
+
+Onde Saturno toca, nós construímos. Este posicionamento oferece a chance de desenvolver disciplina, responsabilidade e estrutura em áreas específicas, complementando as oportunidades de crescimento já identificadas nas seções anteriores.""")
+        
+        # Síntese que integra sem repetir
+        synthesis_blessings = []
+        if request.solar_return_ascendant:
+            synthesis_blessings.append(f"A energia de **{request.solar_return_ascendant}** como guia para suas ações")
+        if request.solar_return_sun_house:
+            sun_house_name = house_descriptions.get(request.solar_return_sun_house, "área de foco")
+            synthesis_blessings.append(f"O desenvolvimento na área de {sun_house_name} (Casa {request.solar_return_sun_house})")
+        if request.solar_return_moon_sign:
+            synthesis_blessings.append(f"A nutrição emocional através de **{request.solar_return_moon_sign}**")
+        
+        # Se não houver bênçãos suficientes, adicionar genéricas
+        while len(synthesis_blessings) < 3:
+            if len(synthesis_blessings) == 0:
+                synthesis_blessings.append("Oportunidades de crescimento pessoal e espiritual")
+            elif len(synthesis_blessings) == 1:
+                synthesis_blessings.append("A capacidade de transformar desafios em aprendizados")
+            else:
+                synthesis_blessings.append("A integração harmoniosa de todas as áreas da vida")
+        
+        fallback_parts.append(f"""**8. Síntese Inspiradora:**
+
+**Mantra do Ano:** "Crescimento consciente através da integração das energias disponíveis"
+
+**As 3 Grandes Bênçãos que Estão Chegando:**
+1. {synthesis_blessings[0]}
+2. {synthesis_blessings[1]}
+3. {synthesis_blessings[2]}
+
+Este ano oferece uma jornada única de autoconhecimento e realização. Cada área mencionada trabalha em conjunto para criar uma experiência completa e transformadora. Use estas informações como um mapa, não como um destino fixo, e permita-se crescer através das oportunidades que surgirem.""")
+        
+        fallback_parts.append(f"""*Nota: Esta é uma interpretação básica. Para uma análise completa e personalizada, recomenda-se consultar um astrólogo profissional ou aguardar a disponibilidade do serviço de interpretação avançada.*""")
+        
+        fallback_text = "\n\n".join(fallback_parts)
+        
+        return {
+            "interpretation": fallback_text,
+            "sources": [],
+            "query_used": query,
+            "generated_by": "fallback"
+        }
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter interpretação da revolução solar: {str(e)}"
         )

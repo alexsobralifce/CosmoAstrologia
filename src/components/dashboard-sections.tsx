@@ -3264,3 +3264,6 @@ The combination between ${userSunSign} and ${partnerSign} brings unique dynamics
   );
 };
 
+
+// Exportar SolarReturnSection
+export { SolarReturnSection } from './solar-return-section';

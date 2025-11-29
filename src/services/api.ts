@@ -94,7 +94,10 @@ class ApiService {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     const url = `${API_BASE_URL}${endpoint}`;
-    console.log(`[API] Requisição: ${options.method || 'GET'} ${url}`);
+    // Log apenas em desenvolvimento
+    if (import.meta.env.DEV) {
+      console.log(`[API] Requisição: ${options.method || 'GET'} ${url}`);
+    }
 
     let response: Response;
     
@@ -128,7 +131,10 @@ class ApiService {
       clearTimeout(timeoutId);
     }
 
-    console.log(`[API] Resposta: ${response.status} ${response.statusText}`);
+      // Log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log(`[API] Resposta: ${response.status} ${response.statusText}`);
+      }
 
     // Clonar a resposta para poder ler o body com segurança
     const clonedResponse = response.clone();
@@ -164,12 +170,18 @@ class ApiService {
         }
       }
       
-      console.error('[API] Erro:', errorMessage);
+      // Log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.error('[API] Erro:', errorMessage);
+      }
       throw new Error(errorMessage);
     }
 
     if (data !== null) {
-      console.log('[API] Dados recebidos');
+      // Log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.log('[API] Dados recebidos');
+      }
       return data;
     }
 
@@ -668,6 +680,101 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(params),
     }, 90000);
+  }
+
+  // ===== NUMEROLOGY MAP =====
+  
+  async getNumerologyMap(): Promise<{
+    full_name: string;
+    birth_date: string;
+    life_path: {
+      number: number;
+      raw_total: number;
+      is_master: boolean;
+      day: number;
+      day_reduced: number;
+      month: number;
+      month_reduced: number;
+      year: number;
+      year_reduced: number;
+    };
+    destiny: {
+      number: number;
+      raw_total: number;
+      is_master: boolean;
+    };
+    soul: {
+      number: number;
+      raw_total: number;
+      is_master: boolean;
+    };
+    personality: {
+      number: number;
+      raw_total: number;
+      is_master: boolean;
+    };
+    birthday: {
+      number: number;
+      day: number;
+      is_master: boolean;
+    };
+    maturity: {
+      number: number;
+      raw_total: number;
+      is_master: boolean;
+    };
+    pinnacles: Array<{
+      number: number;
+      period: string;
+      start_age: number;
+      end_age: number | null;
+    }>;
+    challenges: Array<{
+      number: number;
+      period: string;
+      start_age: number;
+      end_age: number | null;
+    }>;
+    personal_year: {
+      number: number;
+      year: number;
+      raw_total: number;
+      is_master: boolean;
+    };
+    birth_grid: {
+      grid: Record<number, number>;
+      arrows_strength: string[];
+      arrows_weakness: string[];
+      missing_numbers: number[];
+    };
+    karmic_debts: number[];
+    life_cycle: {
+      cycle: string;
+      cycle_number: number;
+      age: number;
+    };
+  }> {
+    return await this.request('/api/numerology/map', {
+      method: 'GET',
+    });
+  }
+
+  async getNumerologyInterpretation(params: {
+    language?: string;
+  }): Promise<{
+    interpretation: string;
+    sources: Array<{
+      source: string;
+      page: number;
+      relevance: number;
+    }>;
+    query_used: string;
+    generated_by?: string;
+  }> {
+    return await this.request('/api/numerology/interpretation', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 120000); // Timeout maior para interpretações completas
   }
 }
 

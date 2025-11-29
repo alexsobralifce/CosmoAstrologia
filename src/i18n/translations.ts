@@ -219,6 +219,10 @@ export const translations = {
       pt: 'Revolução Solar',
       en: 'Solar Return',
     },
+    numerologyMap: {
+      pt: 'Mapa Numerológico',
+      en: 'Numerology Map',
+    },
     new: {
       pt: 'Novo',
       en: 'New',

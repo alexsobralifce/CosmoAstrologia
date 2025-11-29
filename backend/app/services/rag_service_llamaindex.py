@@ -15,8 +15,8 @@ try:
         StorageContext,
         load_index_from_storage,
         Settings,
-        Document,
     )
+    from llama_index.core.schema import Document
     from llama_index.core.node_parser import SentenceSplitter
     from llama_index.embeddings.huggingface import HuggingFaceEmbedding
     HAS_LLAMAINDEX = True
@@ -143,9 +143,126 @@ class RAGServiceLlamaIndex:
         
         return text.strip()
     
+    def _detect_category(self, filename: str, folder_path: Path) -> str:
+        """
+        Detecta a categoria do documento pelo prefixo do arquivo ou pela pasta.
+        
+        Args:
+            filename: Nome do arquivo
+            folder_path: Caminho da pasta onde o arquivo está
+            
+        Returns:
+            'astrology' ou 'numerology'
+        """
+        filename_lower = filename.lower()
+        folder_str = str(folder_path).lower()
+        
+        # Prioridade 1: Verificar prefixo do arquivo
+        if filename_lower.startswith('num_'):
+            return 'numerology'
+        elif filename_lower.startswith('ast_'):
+            return 'astrology'
+        
+        # Prioridade 2: Verificar se está na pasta numerologia
+        if 'numerologia' in folder_str:
+            return 'numerology'
+        
+        # Default: astrologia (pasta docs)
+        return 'astrology'
+    
+    def _process_folder(
+        self, 
+        folder_path: Path, 
+        node_parser: SentenceSplitter,
+        documents: List
+    ) -> None:
+        """
+        Processa todos os documentos (PDFs e Markdowns) de uma pasta específica.
+        
+        Args:
+            folder_path: Caminho da pasta a processar
+            node_parser: Parser de nós para chunking
+            documents: Lista de documentos para adicionar os processados
+        """
+        if not folder_path.exists():
+            print(f"[RAG-LlamaIndex] Pasta não encontrada: {folder_path}")
+            return
+        
+        folder_name = folder_path.name
+        print(f"[RAG-LlamaIndex] Processando pasta: {folder_name}...")
+        
+        # Processar PDFs
+        pdf_files = list(folder_path.glob("*.pdf"))
+        print(f"[RAG-LlamaIndex] Encontrados {len(pdf_files)} arquivos PDF em {folder_name}")
+        
+        for pdf_path in pdf_files:
+            print(f"[RAG-LlamaIndex] Processando PDF: {pdf_path.name}...")
+            try:
+                category = self._detect_category(pdf_path.name, folder_path)
+                
+                reader = SimpleDirectoryReader(
+                    input_files=[str(pdf_path)],
+                    file_metadata=lambda filename: {
+                        'source': Path(filename).name,
+                        'file_type': 'pdf',
+                        'category': category
+                    }
+                )
+                pdf_docs = reader.load_data()
+                
+                # Limpar texto e garantir categoria nos metadados
+                # Criar novos documentos com texto limpo (Document.text é read-only)
+                cleaned_docs = []
+                for doc in pdf_docs:
+                    cleaned_text = self._clean_text(doc.text if hasattr(doc, 'text') else str(doc))
+                    
+                    # Criar novo documento com texto limpo
+                    new_doc = Document(
+                        text=cleaned_text,
+                        metadata={
+                            'source': pdf_path.name,
+                            'file_type': 'pdf',
+                            'category': category,
+                            **(doc.metadata if hasattr(doc, 'metadata') and doc.metadata else {})
+                        }
+                    )
+                    cleaned_docs.append(new_doc)
+                
+                documents.extend(cleaned_docs)
+                print(f"  → {len(pdf_docs)} documentos extraídos (categoria: {category})")
+            except Exception as e:
+                print(f"[ERROR] Erro ao processar {pdf_path.name}: {e}")
+        
+        # Processar Markdowns
+        md_files = list(folder_path.glob("*.md"))
+        print(f"[RAG-LlamaIndex] Encontrados {len(md_files)} arquivos Markdown em {folder_name}")
+        
+        for md_path in md_files:
+            print(f"[RAG-LlamaIndex] Processando MD: {md_path.name}...")
+            try:
+                with open(md_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                if content.strip():
+                    category = self._detect_category(md_path.name, folder_path)
+                    
+                    doc = Document(
+                        text=content,
+                        metadata={
+                            'source': md_path.name,
+                            'file_type': 'markdown',
+                            'category': category
+                        }
+                    )
+                    documents.append(doc)
+                    print(f"  → 1 documento extraído (categoria: {category})")
+            except Exception as e:
+                print(f"[ERROR] Erro ao processar {md_path.name}: {e}")
+    
     def process_all_documents(self) -> int:
         """
-        Processa todos os documentos (PDFs e Markdowns) e cria o índice.
+        Processa todos os documentos (PDFs e Markdowns) de ambas as pastas
+        (docs para astrologia e numerologia para numerologia) e cria o índice.
         
         Returns:
             Número de chunks processados
@@ -156,7 +273,11 @@ class RAGServiceLlamaIndex:
         if not self.docs_path.exists():
             raise FileNotFoundError(f"Pasta de documentos não encontrada: {self.docs_path}")
         
-        print(f"[RAG-LlamaIndex] Processando documentos em {self.docs_path}...")
+        # Definir pastas
+        docs_path = Path(self.docs_path)  # Pasta docs (astrologia)
+        numerologia_path = docs_path.parent / "numerologia"  # Pasta numerologia
+        
+        print(f"[RAG-LlamaIndex] Processando documentos em {docs_path} e {numerologia_path}...")
         
         # Configurar parser de nós com chunking otimizado
         node_parser = SentenceSplitter(
@@ -167,63 +288,29 @@ class RAGServiceLlamaIndex:
         # Ler documentos
         documents = []
         
-        # Processar PDFs
-        pdf_files = list(self.docs_path.glob("*.pdf"))
-        print(f"[RAG-LlamaIndex] Encontrados {len(pdf_files)} arquivos PDF")
+        # Processar pasta docs (astrologia)
+        self._process_folder(docs_path, node_parser, documents)
         
-        for pdf_path in pdf_files:
-            print(f"[RAG-LlamaIndex] Processando PDF: {pdf_path.name}...")
-            try:
-                # LlamaIndex tem suporte nativo para PDFs
-                reader = SimpleDirectoryReader(
-                    input_files=[str(pdf_path)],
-                    file_metadata=lambda filename: {
-                        'source': Path(filename).name,
-                        'file_type': 'pdf'
-                    }
-                )
-                pdf_docs = reader.load_data()
-                
-                # Limpar texto dos documentos
-                for doc in pdf_docs:
-                    doc.text = self._clean_text(doc.text)
-                    if doc.metadata:
-                        doc.metadata['source'] = pdf_path.name
-                
-                documents.extend(pdf_docs)
-                print(f"  → {len(pdf_docs)} documentos extraídos")
-            except Exception as e:
-                print(f"[ERROR] Erro ao processar {pdf_path.name}: {e}")
-        
-        # Processar Markdowns
-        md_files = list(self.docs_path.glob("*.md"))
-        print(f"[RAG-LlamaIndex] Encontrados {len(md_files)} arquivos Markdown")
-        
-        for md_path in md_files:
-            print(f"[RAG-LlamaIndex] Processando MD: {md_path.name}...")
-            try:
-                with open(md_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                
-                if content.strip():
-                    # Criar documento LlamaIndex
-                    doc = Document(
-                        text=content,
-                        metadata={
-                            'source': md_path.name,
-                            'file_type': 'markdown'
-                        }
-                    )
-                    documents.append(doc)
-                    print(f"  → 1 documento extraído")
-            except Exception as e:
-                print(f"[ERROR] Erro ao processar {md_path.name}: {e}")
+        # Processar pasta numerologia (se existir)
+        if numerologia_path.exists():
+            self._process_folder(numerologia_path, node_parser, documents)
+        else:
+            print(f"[RAG-LlamaIndex] Pasta numerologia não encontrada: {numerologia_path}")
         
         if not documents:
             print("[WARNING] Nenhum documento processado")
             return 0
         
+        # Estatísticas por categoria
+        categories_count = {}
+        for doc in documents:
+            category = doc.metadata.get('category', 'astrology') if hasattr(doc, 'metadata') and doc.metadata else 'astrology'
+            categories_count[category] = categories_count.get(category, 0) + 1
+        
         print(f"[RAG-LlamaIndex] Total de documentos: {len(documents)}")
+        for cat, count in categories_count.items():
+            print(f"  → {cat}: {count} documentos")
+        
         print(f"[RAG-LlamaIndex] Criando índice vetorial com LlamaIndex...")
         
         # Criar nós dos documentos
@@ -276,7 +363,13 @@ class RAGServiceLlamaIndex:
             print(f"[ERROR] Erro ao carregar índice: {e}")
             return False
     
-    def search(self, query: str, top_k: int = 5, expand_query: bool = False) -> List[Dict[str, Any]]:
+    def search(
+        self, 
+        query: str, 
+        top_k: int = 5, 
+        expand_query: bool = False,
+        category: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Busca documentos relevantes para a query.
         
@@ -284,6 +377,8 @@ class RAGServiceLlamaIndex:
             query: Texto da consulta
             top_k: Número de resultados a retornar
             expand_query: Se True, faz múltiplas buscas com variações da query
+            category: Filtrar por categoria ('astrology' ou 'numerology'). 
+                     Se None, retorna resultados de todas as categorias.
         
         Returns:
             Lista de documentos relevantes com metadados e score
@@ -357,12 +452,14 @@ class RAGServiceLlamaIndex:
         
         # Usar retriever para obter nós diretamente
         try:
-            retriever = self.index.as_retriever(similarity_top_k=top_k * 2 if expand_query else top_k)
+            # Buscar mais resultados se houver filtro de categoria (para garantir top_k após filtro)
+            search_top_k = top_k * 3 if category else (top_k * 2 if expand_query else top_k)
+            retriever = self.index.as_retriever(similarity_top_k=search_top_k)
             nodes = retriever.retrieve(query)
             
-            # Converter nós para formato esperado
+            # Converter nós para formato esperado e filtrar por categoria
             results = []
-            for node in nodes[:top_k]:
+            for node in nodes:
                 # Extrair score (similarity score)
                 score = node.score if hasattr(node, 'score') else 0.0
                 
@@ -370,13 +467,30 @@ class RAGServiceLlamaIndex:
                 metadata = node.metadata if hasattr(node, 'metadata') else {}
                 source = metadata.get('source', 'unknown')
                 page = metadata.get('page', 1)
+                node_category = metadata.get('category', 'astrology')  # Default para astrologia
+                
+                # Filtrar por categoria se especificada
+                if category and node_category != category:
+                    continue
                 
                 results.append({
                     'text': node.text if hasattr(node, 'text') else str(node),
                     'score': float(score),
                     'source': source,
                     'page': page,
+                    'category': node_category,
+                    'metadata': metadata
                 })
+                
+                # Limitar resultados após filtro
+                if len(results) >= top_k:
+                    break
+            
+            # Ordenar por score (caso não esteja ordenado) e limitar
+            results = sorted(results, key=lambda x: x['score'], reverse=True)[:top_k]
+            
+            if category:
+                print(f"[RAG-LlamaIndex] Busca filtrada por categoria '{category}': {len(results)} resultados")
             
             return results
         except Exception as e:
@@ -388,35 +502,106 @@ class RAGServiceLlamaIndex:
     def _generate_with_groq(
         self,
         query: str,
-        context_documents: List[Dict[str, Any]]
+        context_documents: List[Dict[str, Any]],
+        category: Optional[str] = None
     ) -> str:
         """
         Gera interpretação usando Groq baseada nos documentos recuperados.
-        (Reutiliza a mesma lógica da implementação antiga)
+        
+        Args:
+            query: Query de busca
+            context_documents: Documentos recuperados do RAG
+            category: 'astrology' ou 'numerology' para ajustar o prompt
         """
         if not self.groq_client:
             raise ValueError("Cliente Groq não disponível")
         
-        # Preparar contexto
+        # Determinar categoria se não especificada
+        if category is None:
+            # Detectar categoria pelos documentos ou pela query
+            doc_categories = [doc.get('category', 'astrology') for doc in context_documents if doc.get('category')]
+            if doc_categories:
+                category = doc_categories[0]  # Usar categoria do primeiro documento
+            else:
+                query_lower = query.lower()
+                if any(word in query_lower for word in ['numerologia', 'numerology', 'número', 'numero', 'caminho de vida', 'life path']):
+                    category = 'numerology'
+                else:
+                    category = 'astrology'
+        
+        # Preparar contexto - garantir que todos os documentos sejam da mesma categoria
+        filtered_docs = [
+            doc for doc in context_documents 
+            if doc.get('category', 'astrology') == category
+        ]
+        
+        # Se não houver documentos filtrados, usar todos (mas avisar)
+        if not filtered_docs:
+            print(f"[WARNING] Nenhum documento da categoria '{category}' encontrado. Usando todos os documentos.")
+            filtered_docs = context_documents
+        
         context_text = "\n\n".join([
             doc.get('text', '')
-            for doc in context_documents
+            for doc in filtered_docs
             if doc.get('text')
         ])
         
-        # Detectar tipo de consulta
-        is_synastry_query = any(phrase in query.lower() for phrase in [
-            'sinastria', 'synastry', 'compatibilidade', 'compatibility',
-            'relacionamento', 'relationship', 'casal', 'couple'
-        ])
+        # Detectar tipo de consulta (apenas para astrologia)
+        is_synastry_query = False
+        is_chart_ruler_query = False
         
-        is_chart_ruler_query = any(phrase in query.lower() for phrase in [
-            'regente do mapa', 'regente do ascendente', 'planeta regente',
-            'chart ruler', 'ruler of', 'ascendant ruler'
-        ])
+        if category == 'astrology':
+            is_synastry_query = any(phrase in query.lower() for phrase in [
+                'sinastria', 'synastry', 'compatibilidade', 'compatibility',
+                'relacionamento', 'relationship', 'casal', 'couple'
+            ])
+            
+            is_chart_ruler_query = any(phrase in query.lower() for phrase in [
+                'regente do mapa', 'regente do ascendente', 'planeta regente',
+                'chart ruler', 'ruler of', 'ascendant ruler'
+            ])
         
-        # Usar os mesmos prompts da implementação antiga
-        if is_synastry_query:
+        # Ajustar prompts baseado na categoria
+        if category == 'numerology':
+            # Prompt específico para numerologia
+            system_prompt = """Você é um Numerólogo Pitagórico experiente e também Astrólogo. Sua abordagem sintetiza as melhores referências mundiais: a precisão técnica e síntese de Matthew Oliver Goodwin, a profundidade psicológica e terapêutica de Hans Decoz, a visão holística de saúde de David A. Phillips e a geometria sagrada/ciclos de vida de Faith Javane & Dusty Bunker.
+
+IMPORTANTE CRÍTICO:
+- Use APENAS conhecimento NUMEROLÓGICO fornecido no contexto
+- NÃO mencione planetas, signos, casas ou qualquer conceito astrológico (exceto quando explicitamente solicitado para conexão com Tarot/Planetas)
+- Foque em números, cálculos numerológicos, significados dos números e ciclos numerológicos
+- Se o contexto não contiver informações numerológicas suficientes, informe isso claramente
+- Linguagem simples, prática e esclarecedora (evite "numerologês" excessivo)
+- Tom de empoderamento e autoconhecimento
+- Os números são ferramentas de livre arbítrio, não sentença imutável
+- PRIORIZE as informações do contexto fornecido - use-as como base principal da interpretação
+
+MISSÃO: Criar interpretações numerológicas PRECISAS, COMPLETAS e DIDÁTICAS baseadas nos documentos fornecidos."""
+            
+            user_prompt = f"""NUMEROLOGIA:
+
+Consulta: {query}
+
+CONHECIMENTO NUMEROLÓGICO DE REFERÊNCIA (Use estas informações como base principal):
+{context_text}
+
+---
+
+INSTRUÇÕES:
+Crie uma interpretação COMPLETA e DETALHADA sobre numerologia baseada nos documentos fornecidos acima.
+
+IMPORTANTE:
+- PRIORIZE e USE as informações do contexto fornecido - elas são a base da sua interpretação
+- Se o contexto mencionar informações específicas sobre os números, USE-AS na sua resposta
+- Se o contexto não tiver informações sobre algum número específico, use conhecimento geral, mas sempre mencione quando estiver usando conhecimento geral vs. informações do contexto
+- NÃO mencione astrologia, planetas ou signos (exceto conexões Tarot/Planetas quando solicitado)
+- Foque em números, significados numerológicos e ciclos pessoais
+- Seja específico e prático
+- Formate com títulos em negrito quando apropriado (formato: **TÍTULO:**)
+- Use parágrafos claros e separados por quebras de linha duplas
+- Incorpore naturalmente as informações do contexto na interpretação"""
+        
+        elif is_synastry_query:
             system_prompt = """Você é um astrólogo experiente especializado em sinastria e análise de compatibilidade entre signos. 
 Sua função é criar interpretações práticas, didáticas e atuais sobre relacionamentos, focando em dinâmicas reais e aplicáveis.
 
@@ -458,6 +643,11 @@ IMPORTANTE:
         elif is_chart_ruler_query:
             system_prompt = """Você é um astrólogo experiente especializado em interpretação de regentes do mapa astral. 
 Sua função é criar interpretações PROFUNDAS, DETALHADAS e DIDÁTICAS sobre o planeta regente do mapa, explicando sua importância fundamental para o autoconhecimento.
+
+IMPORTANTE CRÍTICO:
+- Use APENAS conhecimento ASTROLÓGICO fornecido no contexto
+- NÃO mencione numerologia, números ou cálculos numerológicos
+- Foque em planetas, signos, casas e aspectos astrológicos
 
 REGRAS DE FORMATAÇÃO:
 - Sempre escreva NO MÍNIMO 2 parágrafos completos e densos sobre o regente
@@ -521,14 +711,16 @@ CONHECIMENTO ASTROLÓGICO DISPONÍVEL:
 
 INSTRUÇÕES:
 1. Crie uma interpretação astrológica completa seguindo a estrutura PASSADO → PRESENTE → FUTURO
-2. Formate o texto de forma DIDÁTICA e ORGANIZADA:
+2. Use APENAS informações ASTROLÓGICAS do contexto fornecido
+3. NÃO mencione numerologia, números pessoais ou cálculos numerológicos
+4. Formate o texto de forma DIDÁTICA e ORGANIZADA:
    - Use títulos em negrito para cada seção principal (formato: **PASSADO/KARMA:**)
    - Separe parágrafos com quebras de linha duplas
    - Use listas com marcadores (- ou •) para múltiplos pontos
    - Cada seção deve ter pelo menos um parágrafo completo
-3. Seja preciso, profundo e útil para quem busca autoconhecimento e orientação
-4. NÃO repita o tema da consulta no início da resposta
-5. Comece diretamente com a interpretação do PASSADO/KARMA"""
+5. Seja preciso, profundo e útil para quem busca autoconhecimento e orientação
+6. NÃO repita o tema da consulta no início da resposta
+7. Comece diretamente com a interpretação do PASSADO/KARMA"""
         
         try:
             chat_completion = self.groq_client.chat.completions.create(
@@ -564,10 +756,15 @@ INSTRUÇÕES:
         aspect: Optional[str] = None,
         custom_query: Optional[str] = None,
         use_groq: bool = True,
-        top_k: int = 8
+        top_k: int = 8,
+        category: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Obtém interpretação astrológica (mesma interface da implementação antiga).
+        Obtém interpretação astrológica ou numerológica.
+        
+        Args:
+            category: 'astrology' ou 'numerology' para filtrar resultados.
+                     Se None, assume 'astrology' por padrão.
         """
         # Verificar se LlamaIndex está disponível
         if not HAS_LLAMAINDEX:
@@ -652,11 +849,20 @@ INSTRUÇÕES:
         else:
             top_k = 12
         
-        # Buscar documentos relevantes
+        # Determinar categoria se não especificada
+        if category is None:
+            # Detectar categoria pela query (padrão: astrologia)
+            query_lower = query.lower()
+            if any(word in query_lower for word in ['numerologia', 'numerology', 'número', 'numero', 'caminho de vida', 'life path']):
+                category = 'numerology'
+            else:
+                category = 'astrology'  # Default
+        
+        # Buscar documentos relevantes com filtro de categoria
         results = []
         try:
-            results = self.search(query, top_k=top_k, expand_query=True)
-            print(f"[RAG-LlamaIndex] Busca retornou {len(results)} resultados para query: {query[:100]}")
+            results = self.search(query, top_k=top_k, expand_query=True, category=category)
+            print(f"[RAG-LlamaIndex] Busca retornou {len(results)} resultados para query: {query[:100]} (categoria: {category})")
         except Exception as e:
             print(f"[RAG-LlamaIndex] Erro na busca: {e}")
         
@@ -674,7 +880,7 @@ INSTRUÇÕES:
         # Gerar interpretação com Groq se disponível
         if use_groq and self.groq_client and results:
             try:
-                interpretation_text = self._generate_with_groq(query, results)
+                interpretation_text = self._generate_with_groq(query, results, category=category)
                 if interpretation_text and len(interpretation_text.strip()) > 50:
                     return {
                         'interpretation': interpretation_text,

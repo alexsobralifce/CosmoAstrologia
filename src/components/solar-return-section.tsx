@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UIIcons } from './ui-icons';
 import { zodiacSigns } from './zodiac-icons';
 import { planets } from './planet-icons';
@@ -51,7 +51,10 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
       // Calcular interpretação automaticamente após o cálculo
       await fetchInterpretation(result);
     } catch (err: any) {
-      console.error('[Solar Return] Erro ao calcular:', err);
+      // Log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.error('[Solar Return] Erro ao calcular:', err);
+      }
       setError(err.message || (language === 'pt' 
         ? 'Erro ao calcular revolução solar' 
         : 'Error calculating solar return'));
@@ -94,7 +97,10 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
         setInterpretation(result.interpretation);
       }
     } catch (err: any) {
-      console.error('[Solar Return] Erro ao buscar interpretação:', err);
+      // Log apenas em desenvolvimento
+      if (import.meta.env.DEV) {
+        console.error('[Solar Return] Erro ao buscar interpretação:', err);
+      }
       setError(err.message || (language === 'pt' 
         ? 'Erro ao gerar interpretação' 
         : 'Error generating interpretation'));
@@ -102,11 +108,6 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
       setIsLoading(false);
     }
   };
-
-  // Calcular automaticamente ao montar o componente
-  useEffect(() => {
-    calculateSolarReturn();
-  }, [targetYear]);
 
   const SunIcon = planets.find(p => p.name === 'Sol')?.icon || UIIcons.Sun;
   const MoonIcon = planets.find(p => p.name === 'Lua')?.icon || UIIcons.Moon;

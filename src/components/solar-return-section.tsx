@@ -53,7 +53,7 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
     } catch (err: any) {
       // Log apenas em desenvolvimento
       if (import.meta.env.DEV) {
-        console.error('[Solar Return] Erro ao calcular:', err);
+      console.error('[Solar Return] Erro ao calcular:', err);
       }
       setError(err.message || (language === 'pt' 
         ? 'Erro ao calcular revolução solar' 
@@ -99,7 +99,7 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
     } catch (err: any) {
       // Log apenas em desenvolvimento
       if (import.meta.env.DEV) {
-        console.error('[Solar Return] Erro ao buscar interpretação:', err);
+      console.error('[Solar Return] Erro ao buscar interpretação:', err);
       }
       setError(err.message || (language === 'pt' 
         ? 'Erro ao gerar interpretação' 

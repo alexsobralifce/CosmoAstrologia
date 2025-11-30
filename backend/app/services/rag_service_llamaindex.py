@@ -5,8 +5,12 @@ Nova implementação que substituirá a estrutura antiga após validação.
 
 import os
 from pathlib import Path
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, TYPE_CHECKING
 import re
+
+if TYPE_CHECKING:
+    from llama_index.core.node_parser import SentenceSplitter
+    from llama_index.core.schema import Document
 
 try:
     from llama_index.core import (
@@ -22,6 +26,7 @@ try:
     HAS_LLAMAINDEX = True
 except ImportError as e:
     HAS_LLAMAINDEX = False
+    SentenceSplitter = None  # Define como None quando não disponível
     print(f"[DEBUG] ImportError ao carregar LlamaIndex: {e}")
 
 try:
@@ -173,7 +178,7 @@ class RAGServiceLlamaIndex:
     def _process_folder(
         self, 
         folder_path: Path, 
-        node_parser: SentenceSplitter,
+        node_parser: "SentenceSplitter",
         documents: List
     ) -> None:
         """

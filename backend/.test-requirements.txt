@@ -1,0 +1,7 @@
+# Arquivo de referência para dependências de teste
+# As dependências de teste estão em requirements.txt
+# Este arquivo serve apenas como documentação
+
+# Para instalar apenas dependências de teste:
+# pip install pytest pytest-asyncio pytest-cov pytest-mock httpx faker
+

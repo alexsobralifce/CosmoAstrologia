@@ -3109,6 +3109,10 @@ IMPORTANTE CRÍTICO:
 - Tom de empoderamento e autoconhecimento
 - Os números são ferramentas de livre arbítrio, não sentença imutável"""
             
+            # Preparar strings com backslashes antes do f-string para evitar erro de sintaxe
+            pinnacles_text = ''.join([f"• Pináculo {i+1} ({p['period']}): {p['number']}\n" for i, p in enumerate(numerology_map['pinnacles'])])
+            challenges_text = ''.join([f"• Desafio {i+1} ({c['period']}): {c['number']}\n" for i, c in enumerate(numerology_map['challenges'])])
+            
             user_prompt = f"""Objetivo: Realizar uma consulta de numerologia completa, profunda e acolhedora para o cliente abaixo. A linguagem deve ser simples, prática e esclarecedora (evite o "numerologês" excessivo sem explicação). O tom deve ser de empoderamento e autoconhecimento.
 
 Dados do Cliente:
@@ -3125,10 +3129,10 @@ Números Calculados:
 • Ano Pessoal Atual ({numerology_map['personal_year']['year']}): {numerology_map['personal_year']['number']} {'(Número Mestre)' if numerology_map['personal_year']['is_master'] else ''}
 
 Pináculos:
-{f''.join([f"• Pináculo {i+1} ({p['period']}): {p['number']}\n" for i, p in enumerate(numerology_map['pinnacles'])])}
+{pinnacles_text}
 
 Desafios:
-{f''.join([f"• Desafio {i+1} ({c['period']}): {c['number']}\n" for i, c in enumerate(numerology_map['challenges'])])}
+{challenges_text}
 
 Grade de Nascimento:
 • Setas de Força: {', '.join(numerology_map['birth_grid']['arrows_strength']) if numerology_map['birth_grid']['arrows_strength'] else 'Nenhuma'}
@@ -3241,6 +3245,10 @@ CRITICAL IMPORTANT:
 - Tone of empowerment and self-knowledge
 - Numbers are tools of free will, not an immutable sentence"""
             
+            # Preparar strings com backslashes antes do f-string para evitar erro de sintaxe
+            pinnacles_text = ''.join([f"• Pinnacle {i+1} ({p['period']}): {p['number']}\n" for i, p in enumerate(numerology_map['pinnacles'])])
+            challenges_text = ''.join([f"• Challenge {i+1} ({c['period']}): {c['number']}\n" for i, c in enumerate(numerology_map['challenges'])])
+            
             user_prompt = f"""Objective: Perform a complete, deep and welcoming numerology consultation for the client below. The language should be simple, practical and clarifying (avoid excessive "numerologese" without explanation). The tone should be empowering and focused on self-knowledge.
 
 Client Data:
@@ -3257,10 +3265,10 @@ Calculated Numbers:
 • Current Personal Year ({numerology_map['personal_year']['year']}): {numerology_map['personal_year']['number']} {'(Master Number)' if numerology_map['personal_year']['is_master'] else ''}
 
 Pinnacles:
-{f''.join([f"• Pinnacle {i+1} ({p['period']}): {p['number']}\n" for i, p in enumerate(numerology_map['pinnacles'])])}
+{pinnacles_text}
 
 Challenges:
-{f''.join([f"• Challenge {i+1} ({c['period']}): {c['number']}\n" for i, c in enumerate(numerology_map['challenges'])])}
+{challenges_text}
 
 Birth Grid:
 • Strength Arrows: {', '.join(numerology_map['birth_grid']['arrows_strength']) if numerology_map['birth_grid']['arrows_strength'] else 'None'}

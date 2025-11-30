@@ -14,6 +14,10 @@ Esta pasta contém scripts de automação e utilitários do projeto.
 - **build_rag_index_llamaindex.py** - Constrói o índice RAG usando LlamaIndex
 - **quick_backend_check.sh** - Verificação rápida do backend
 
+### Verificação de Qualidade
+
+- **backend/scripts/check_syntax.py** - Verifica a sintaxe de todos os arquivos Python antes do deploy
+
 ## Uso
 
 ### Linux/Mac
@@ -27,4 +31,11 @@ Esta pasta contém scripts de automação e utilitários do projeto.
 .\scripts\start-backend.ps1
 .\scripts\start-all.ps1
 ```
+
+### Verificação de Sintaxe (Antes do Deploy)
+```bash
+cd backend
+python3 scripts/check_syntax.py
+```
+Este script verifica todos os arquivos Python no diretório `app/` para garantir que não há erros de sintaxe antes do deploy.
 

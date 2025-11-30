@@ -176,6 +176,12 @@ def get_interpretation(
         
         rag_service = get_rag_service()
         
+        if not rag_service:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
+            )
+        
         interpretation = rag_service.get_interpretation(
             planet=request.planet,
             sign=request.sign,
@@ -235,6 +241,14 @@ def search_documents(
     try:
         rag_service = get_rag_service()
         
+        if not rag_service:
+            return {
+                "query": query,
+                "results": [],
+                "count": 0,
+                "error": "Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
+            }
+        
         # Verificar se o índice está carregado
         # Verificar se o índice está disponível
         has_index = False
@@ -273,6 +287,14 @@ def get_rag_status():
     """Retorna o status do sistema RAG."""
     try:
         rag_service = get_rag_service()
+        
+        if not rag_service:
+            return {
+                "status": "unavailable",
+                "message": "Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas.",
+                "has_index": False,
+                "implementation": "none"
+            }
         
         # Verificar se é LlamaIndex ou implementação antiga
         has_llamaindex = hasattr(rag_service, 'index')

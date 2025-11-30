@@ -231,6 +231,7 @@ def get_user_birth_chart(
         )
     
     # Recalcular o mapa astral para garantir que está usando as fórmulas mais recentes
+    chart_data = None
     try:
         chart_data = calculate_birth_chart(
             birth_date=birth_chart.birth_date,
@@ -240,37 +241,50 @@ def get_user_birth_chart(
         )
         
         # Atualizar os signos recalculados (apenas os que estão no banco)
-        birth_chart.sun_sign = chart_data["sun_sign"]
-        birth_chart.moon_sign = chart_data["moon_sign"]
-        birth_chart.ascendant_sign = chart_data["ascendant_sign"]
-        birth_chart.sun_degree = chart_data.get("sun_degree")
-        birth_chart.moon_degree = chart_data.get("moon_degree")
-        birth_chart.ascendant_degree = chart_data.get("ascendant_degree")
-        
-        db.commit()
-        db.refresh(birth_chart)
-        
-        # Adicionar dados dos planetas calculados ao objeto de retorno
-        # (mesmo que não estejam no banco, retornamos para o frontend)
-        birth_chart_dict = {
-            "id": birth_chart.id,
-            "user_id": birth_chart.user_id,
-            "name": birth_chart.name,
-            "birth_date": birth_chart.birth_date,
-            "birth_time": birth_chart.birth_time,
-            "birth_place": birth_chart.birth_place,
-            "latitude": birth_chart.latitude,
-            "longitude": birth_chart.longitude,
-            "sun_sign": birth_chart.sun_sign,
-            "moon_sign": birth_chart.moon_sign,
-            "ascendant_sign": birth_chart.ascendant_sign,
-            "sun_degree": birth_chart.sun_degree,
-            "moon_degree": birth_chart.moon_degree,
-            "ascendant_degree": birth_chart.ascendant_degree,
-            "is_primary": birth_chart.is_primary,
-            "created_at": birth_chart.created_at,
-            "updated_at": birth_chart.updated_at,
-            # Adicionar planetas calculados
+        if chart_data:
+            birth_chart.sun_sign = chart_data.get("sun_sign") or birth_chart.sun_sign
+            birth_chart.moon_sign = chart_data.get("moon_sign") or birth_chart.moon_sign
+            birth_chart.ascendant_sign = chart_data.get("ascendant_sign") or birth_chart.ascendant_sign
+            birth_chart.sun_degree = chart_data.get("sun_degree") or birth_chart.sun_degree
+            birth_chart.moon_degree = chart_data.get("moon_degree") or birth_chart.moon_degree
+            birth_chart.ascendant_degree = chart_data.get("ascendant_degree") or birth_chart.ascendant_degree
+            
+            db.commit()
+            db.refresh(birth_chart)
+    except Exception as e:
+        # Se houver erro no recálculo, usar dados existentes no banco
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[ERROR] Erro ao recalcular mapa astral: {str(e)}")
+        print(f"[ERROR] Traceback: {error_trace}")
+        # Fazer rollback da transação em caso de erro
+        db.rollback()
+        # Continuar com dados existentes do banco
+    
+    # Sempre retornar um dicionário válido (nunca retornar objeto ORM diretamente)
+    birth_chart_dict = {
+        "id": birth_chart.id,
+        "user_id": birth_chart.user_id,
+        "name": birth_chart.name,
+        "birth_date": birth_chart.birth_date,
+        "birth_time": birth_chart.birth_time,
+        "birth_place": birth_chart.birth_place,
+        "latitude": birth_chart.latitude,
+        "longitude": birth_chart.longitude,
+        "sun_sign": birth_chart.sun_sign,
+        "moon_sign": birth_chart.moon_sign,
+        "ascendant_sign": birth_chart.ascendant_sign,
+        "sun_degree": birth_chart.sun_degree,
+        "moon_degree": birth_chart.moon_degree,
+        "ascendant_degree": birth_chart.ascendant_degree,
+        "is_primary": birth_chart.is_primary,
+        "created_at": birth_chart.created_at,
+        "updated_at": birth_chart.updated_at,
+    }
+    
+    # Adicionar planetas calculados se disponíveis
+    if chart_data:
+        birth_chart_dict.update({
             "mercury_sign": chart_data.get("mercury_sign"),
             "venus_sign": chart_data.get("venus_sign"),
             "mars_sign": chart_data.get("mars_sign"),
@@ -300,18 +314,9 @@ def get_user_birth_chart(
             "uranus_degree": chart_data.get("uranus_degree"),
             "neptune_degree": chart_data.get("neptune_degree"),
             "pluto_degree": chart_data.get("pluto_degree"),
-        }
-        
-        return birth_chart_dict
-    except Exception as e:
-        # Se houver erro no recálculo, retornar dados existentes
-        print(f"[WARNING] Erro ao recalcular mapa astral: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        # Retornar dados do banco mesmo em caso de erro
-        pass
+        })
     
-    return birth_chart
+    return birth_chart_dict
 
 
 class GoogleVerifyRequest(BaseModel):

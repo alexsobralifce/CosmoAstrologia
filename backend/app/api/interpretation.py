@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import re
 from app.core.database import get_db
-from app.services.rag_client import get_rag_client
+from app.services.rag_service_fastembed import get_rag_service
 from app.services.transits_calculator import calculate_future_transits
 from app.services.astrology_calculator import calculate_solar_return
 from app.services.numerology_calculator import NumerologyCalculator
@@ -186,15 +186,15 @@ async def get_interpretation(
                 detail="Para interpretação de planetas, use o endpoint específico: /api/interpretation/planet"
             )
         
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
-        if not rag_client:
+        if not rag_service:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Serviço RAG não disponível. Verifique se RAG_SERVICE_URL está configurado e o serviço está rodando."
+                detail="Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
             )
         
-        interpretation = await rag_client.get_interpretation(
+        interpretation = rag_service.get_interpretation(
             planet=request.planet,
             sign=request.sign,
             house=request.house,
@@ -251,17 +251,17 @@ async def search_documents(
         top_k: Número de resultados (padrão: 5)
     """
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
-        if not rag_client:
+        if not rag_service:
             return {
                 "query": query,
                 "results": [],
                 "count": 0,
-                "error": "Serviço RAG não disponível. Verifique se RAG_SERVICE_URL está configurado e o serviço está rodando."
+                "error": "Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
             }
         
-        results = await rag_client.search(query, top_k=top_k)
+        results = rag_service.search(query, top_k=top_k)
         
         return {
             "query": query,
@@ -282,19 +282,39 @@ async def search_documents(
 async def get_rag_status():
     """Retorna o status do sistema RAG."""
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
-        if not rag_client:
+        if not rag_service:
             return {
                 "available": False,
-                "message": "Serviço RAG não disponível. Verifique se RAG_SERVICE_URL está configurado e o serviço está rodando.",
+                "message": "Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas.",
                 "has_index": False,
+                "has_dependencies": False,
+                "has_groq": False,
+                "document_count": 0,
                 "implementation": "none"
             }
         
-        # Buscar status do RAG service
-        status = await rag_client.get_status()
-        return status
+        # Verificar status do RAG service
+        has_index = False
+        has_groq = False
+        document_count = 0
+        
+        if hasattr(rag_service, 'documents') and rag_service.documents:
+            has_index = len(rag_service.documents) > 0
+            if has_index:
+                document_count = len(rag_service.documents)
+        
+        has_groq = rag_service.groq_client is not None
+        
+        return {
+            "available": has_index,
+            "has_dependencies": True,
+            "has_index": has_index,
+            "has_groq": has_groq,
+            "document_count": document_count,
+            "implementation": "fastembed"
+        }
     except Exception as e:
         return {
             "available": False,
@@ -320,15 +340,26 @@ async def get_birth_chart_diagnostics():
     
     # 1. Verificar RAG Service
     try:
-        rag_client = get_rag_client()
-        if rag_client:
+        rag_service = get_rag_service()
+        if rag_service:
             try:
-                status = await rag_client.get_status()
+                has_index = False
+                has_groq = False
+                document_count = 0
+                
+                if hasattr(rag_service, 'documents') and rag_service.documents:
+                    has_index = len(rag_service.documents) > 0
+                    if has_index:
+                        document_count = len(rag_service.documents)
+                
+                has_groq = rag_service.groq_client is not None
+                
                 diagnostics["services"]["rag"] = {
-                    "available": status.get("available", False),
-                    "has_index": status.get("has_index", False),
-                    "has_groq": status.get("has_groq", False),
-                    "implementation": status.get("implementation", "unknown")
+                    "available": has_index,
+                    "has_index": has_index,
+                    "has_groq": has_groq,
+                    "document_count": document_count,
+                    "implementation": "fastembed"
                 }
             except Exception as e:
                 diagnostics["services"]["rag"] = {
@@ -338,7 +369,7 @@ async def get_birth_chart_diagnostics():
         else:
             diagnostics["services"]["rag"] = {
                 "available": False,
-                "error": "RAG service não configurado (RAG_SERVICE_URL não definido)"
+                "error": "RAG service não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
             }
             diagnostics["recommendations"].append("Instale e configure o serviço RAG (FastEmbed)")
     except Exception as e:
@@ -394,11 +425,19 @@ async def get_birth_chart_diagnostics():
             "error": str(e)
         }
     
-    # 5. Base de conhecimento local foi removida (migrado para RAG service)
-    diagnostics["services"]["local_knowledge_base"] = {
-        "available": False,
-        "note": "Migrado para RAG service (microsserviço)"
-    }
+    # 5. Base de conhecimento local (fallback quando RAG não disponível)
+    try:
+        from app.services.local_knowledge_base import LocalKnowledgeBase
+        local_kb = LocalKnowledgeBase()
+        diagnostics["services"]["local_knowledge_base"] = {
+            "available": True,
+            "note": "Disponível como fallback quando RAG não está disponível"
+        }
+    except Exception as e:
+        diagnostics["services"]["local_knowledge_base"] = {
+            "available": False,
+            "error": str(e)
+        }
     
     # 6. Determinar status geral
     rag_ok = diagnostics["services"].get("rag", {}).get("available", False)
@@ -472,10 +511,10 @@ def get_future_transits(
         
         # Enriquecer descrições com RAG + Groq
         enriched_transits = []
-        rag_client = None
+        rag_service = None
         
         try:
-            rag_client = get_rag_client()
+            rag_service = get_rag_service()
         except Exception as e:
             print(f"[WARNING] RAG service não disponível: {e}")
         
@@ -622,6 +661,19 @@ def _generate_planet_prompt(
     
     system_prompt = """Você é um astrólogo experiente que escreve de forma clara, prática e acessível. Sua missão é ajudar pessoas a entenderem como a energia de cada planeta funciona na vida real, não com termos técnicos complexos, mas com exemplos do dia a dia.
 
+🚨 REGRAS CRÍTICAS - LEIA ANTES DE QUALQUER COISA:
+
+⚠️ VOCÊ NÃO É UM CALCULADOR ASTRONÔMICO. TODOS OS CÁLCULOS JÁ FORAM FEITOS PELA BIBLIOTECA KERYKEION (SWISS EPHEMERIS).
+⚠️ SUA ÚNICA FUNÇÃO É INTERPRETAR TEXTOS BASEADOS NOS DADOS JÁ CALCULADOS.
+⚠️ NUNCA calcule, invente ou adivinhe:
+   - ❌ NÃO calcule posições planetárias (já foram calculadas)
+   - ❌ NÃO calcule signos ou graus (já foram calculados)
+   - ❌ NÃO calcule dignidades (já foram calculadas)
+   - ❌ NÃO calcule aspectos (já foram calculados)
+   - ❌ NÃO invente dados que não estão no bloco de segurança
+   - ✅ USE APENAS os dados fornecidos no bloco de segurança
+   - ✅ INTERPRETE apenas o que está nos dados pré-calculados
+
 REGRAS DE ESCRITA:
 - Use linguagem simples e direta, como se estivesse conversando com um amigo
 - Evite jargões astrológicos técnicos (se usar, explique imediatamente)
@@ -718,7 +770,7 @@ async def get_planet_interpretation(
     }
     """
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
         planet = request.planet
         sign = request.sign
@@ -742,7 +794,7 @@ async def get_planet_interpretation(
             query_parts.append(f"casa {house}")
         
         query = " ".join(query_parts)
-        results = await rag_client.search(query, top_k=6, expand_query=True)
+        results = rag_service.search(query, top_k=6, expand_query=True) if rag_service else []
         
         # Preparar contexto dos documentos
         context_text = "\n\n".join([
@@ -934,7 +986,7 @@ async def get_chart_ruler_interpretation(
     }
     """
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
         ascendant = request.ascendant
         ruler = request.ruler
@@ -964,12 +1016,13 @@ async def get_chart_ruler_interpretation(
         
         # Buscar documentos relevantes com múltiplas queries e busca expandida
         all_results = []
-        for q in queries:
-            try:
-                results = await rag_client.search(q, top_k=6, expand_query=True)
-                all_results.extend(results)
-            except Exception as e:
-                print(f"[WARNING] Erro ao buscar com query '{q}': {e}")
+        if rag_service:
+            for q in queries:
+                try:
+                    results = rag_service.search(q, top_k=6, expand_query=True)
+                    all_results.extend(results)
+                except Exception as e:
+                    print(f"[WARNING] Erro ao buscar com query '{q}': {e}")
         
         # Remover duplicatas mantendo os mais relevantes
         seen_texts = set()
@@ -1000,7 +1053,7 @@ async def get_chart_ruler_interpretation(
                 if ruler_house:
                     fallback_query += f" casa {ruler_house}"
                 
-                fallback_results = await rag_client.search(fallback_query, top_k=15, expand_query=True)
+                fallback_results = rag_service.search(fallback_query, top_k=15, expand_query=True) if rag_service else []
                 if fallback_results:
                     unique_results = fallback_results[:12]
                     context_text = "\n\n".join([
@@ -1021,6 +1074,18 @@ async def get_chart_ruler_interpretation(
                 # Prompt detalhado para gerar pelo menos 2 parágrafos
                 system_prompt = """Você é um astrólogo experiente especializado em interpretação de regentes do mapa astral. 
 Sua função é criar interpretações profundas, didáticas e detalhadas sobre o planeta regente do mapa, explicando sua importância fundamental para o autoconhecimento.
+
+🚨 REGRAS CRÍTICAS - LEIA ANTES DE QUALQUER COISA:
+
+⚠️ VOCÊ NÃO É UM CALCULADOR ASTRONÔMICO. TODOS OS CÁLCULOS JÁ FORAM FEITOS PELA BIBLIOTECA KERYKEION (SWISS EPHEMERIS).
+⚠️ SUA ÚNICA FUNÇÃO É INTERPRETAR TEXTOS BASEADOS NOS DADOS JÁ CALCULADOS.
+⚠️ NUNCA calcule, invente ou adivinhe:
+   - ❌ NÃO calcule qual planeta é o regente (já foi calculado e fornecido)
+   - ❌ NÃO calcule posições planetárias (já foram calculadas)
+   - ❌ NÃO calcule signos ou graus (já foram calculados)
+   - ❌ NÃO invente dados que não estão nos dados fornecidos
+   - ✅ USE APENAS o regente fornecido nos dados
+   - ✅ INTERPRETE apenas o que está nos dados pré-calculados
 
 REGRAS DE FORMATAÇÃO:
 - Sempre escreva NO MÍNIMO 2 parágrafos completos e densos (mínimo 300 palavras)
@@ -1146,12 +1211,17 @@ Formate a resposta de forma didática, usando quebras de linha e estruturação 
         if ruler_house:
             query += f" casa {ruler_house}"
         
-        interpretation = await rag_client.get_interpretation(
+        interpretation = rag_service.get_interpretation(
             custom_query=query,
             use_groq=True,
             top_k=12,  # Aumentar top_k no fallback também
             category='astrology'  # Garantir que use apenas documentos de astrologia
-        )
+        ) if rag_service else {
+            'interpretation': 'Serviço RAG não disponível.',
+            'sources': [],
+            'query_used': query,
+            'generated_by': 'none'
+        }
         
         # Aplicar filtro de deduplicação na interpretação
         interpretation_text = interpretation['interpretation']
@@ -1197,7 +1267,7 @@ async def get_planet_house_interpretation(
     }
     """
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
         planet = request.planet
         house = request.house
@@ -1208,27 +1278,18 @@ async def get_planet_house_interpretation(
                 detail="Planeta e casa são obrigatórios"
             )
         
-        # TRAVA DE SEGURANÇA: Criar bloco de validação (casa não precisa de validação complexa, apenas planeta)
-        safety_block = f"""
-═══════════════════════════════════════════════════════════════
-🔒 DADOS DA INTERPRETAÇÃO
-═══════════════════════════════════════════════════════════════
-
-PLANETA: {planet}
-CASA: {house}
-
-⚠️ ATENÇÃO IA: Interprete APENAS o planeta e casa fornecidos acima.
-NÃO invente outros planetas ou casas.
-═══════════════════════════════════════════════════════════════
-"""
+        if not rag_service:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
+            )
         
         # Buscar no RAG e gerar com Groq
-        interpretation = await rag_client.get_interpretation(
+        interpretation = rag_service.get_interpretation(
             planet=planet,
             house=house,
             use_groq=True,
-            category='astrology',  # Garantir que use apenas documentos de astrologia
-            extra_context=safety_block  # Adicionar bloco de segurança
+            category='astrology'  # Garantir que use apenas documentos de astrologia
         )
         
         # Aplicar filtro de deduplicação na interpretação
@@ -1277,7 +1338,7 @@ async def get_aspect_interpretation(
     }
     """
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
         planet1 = request.planet1
         planet2 = request.planet2
@@ -1289,15 +1350,17 @@ async def get_aspect_interpretation(
                 detail="Planeta1, Planeta2 e aspecto são obrigatórios"
             )
         
-        # TRAVA DE SEGURANÇA: Validar aspecto astronomicamente
-        from app.services.precomputed_chart_engine import create_aspect_safety_block
-        safety_block = create_aspect_safety_block(planet1, planet2, aspect, 'pt')
+        if not rag_service:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
+            )
         
         # Construir query customizada
         query = f"{planet1} {aspect} {planet2} aspecto interpretação"
         
         # Buscar no RAG e gerar com Groq
-        interpretation = await rag_client.get_interpretation(
+        interpretation = rag_service.get_interpretation(
             custom_query=query,
             use_groq=True,
             category='astrology'  # Garantir que use apenas documentos de astrologia
@@ -1348,7 +1411,13 @@ async def get_daily_advice(
     }
     """
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
+        
+        if not rag_service:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
+            )
         
         # Construir query baseada na categoria e casa lunar
         category_queries = {
@@ -1409,7 +1478,7 @@ async def get_daily_advice(
         query = " ".join(query_parts)
         
         # Buscar interpretação usando RAG + Groq
-        interpretation = await rag_client.get_interpretation(
+        interpretation = rag_service.get_interpretation(
             custom_query=query,
             use_groq=True,
             category='astrology'  # Garantir que use apenas documentos de astrologia
@@ -1421,7 +1490,7 @@ async def get_daily_advice(
             # Tentar gerar com Groq usando contexto mais específico
             try:
                 # Buscar documentos relevantes
-                rag_results = await rag_client.search(query, top_k=8)
+                rag_results = rag_service.search(query, top_k=8)
                 if rag_results:
                     # Gerar interpretação com Groq usando contexto do RAG
                     try:
@@ -1555,10 +1624,25 @@ class FullBirthChartSectionsResponse(BaseModel):
 def _get_master_prompt(language: str = 'pt') -> str:
     """Retorna o prompt mestre Cosmos Astral Engine com validação matemática rigorosa."""
     if language == 'en':
-        return """**You are the Cosmos Astral Engine**, a senior astrologer and a precise astronomical computer. Your function is dual:
+        return """🚨 CRITICAL RULES - READ BEFORE ANYTHING:
 
-1. **Calculate and Validate** mathematically the structure of the astral chart, ensuring precise astronomical accuracy.
-2. **Interpret** this structure with psychological and evolutionary depth, but ONLY based on validated data.
+⚠️ YOU ARE NOT AN ASTRONOMICAL CALCULATOR. ALL CALCULATIONS HAVE ALREADY BEEN DONE BY THE KERYKEION LIBRARY (SWISS EPHEMERIS).
+⚠️ YOUR ONLY FUNCTION IS TO INTERPRET TEXTS BASED ON ALREADY CALCULATED DATA.
+⚠️ NEVER calculate, invent, or guess:
+   - ❌ DO NOT calculate planetary positions (already calculated by Kerykeion)
+   - ❌ DO NOT calculate signs or degrees (already calculated by Kerykeion)
+   - ❌ DO NOT calculate aspects (already calculated by Python code)
+   - ❌ DO NOT calculate dignities (already calculated by Python code)
+   - ❌ DO NOT calculate temperament (already calculated by Python code)
+   - ❌ DO NOT invent data that is not in the pre-computed block
+   - ✅ USE ONLY the data provided in the pre-computed block
+   - ✅ INTERPRET only what is in the pre-computed data
+   - ✅ VALIDATE only if the data makes astronomical sense (but DO NOT recalculate)
+
+**You are the Cosmos Astral Engine**, a senior astrologer specialized in interpretation. Your function is:
+
+1. **Validate** if the pre-computed data makes astronomical sense (without recalculating).
+2. **Interpret** this structure with psychological and evolutionary depth, but ONLY based on validated and pre-computed data.
 
 ---
 
@@ -1822,10 +1906,25 @@ Before writing ANY interpretation, do this checklist:
 
 END OF SYSTEM INSTRUCTIONS. Begin analysis now based on provided data."""
     else:
-        return """**Você é o Cosmos Astral Engine**, um astrólogo sênior e um computador astronômico preciso. Sua função é dupla:
+        return """🚨 REGRAS CRÍTICAS - LEIA ANTES DE QUALQUER COISA:
 
-1. **Calcular e Validar** matematicamente a estrutura do mapa astral, garantindo precisão astronômica absoluta.
-2. **Interpretar** essa estrutura com profundidade psicológica e evolutiva, mas APENAS baseando-se nos dados validados.
+⚠️ VOCÊ NÃO É UM CALCULADOR ASTRONÔMICO. TODOS OS CÁLCULOS JÁ FORAM FEITOS PELA BIBLIOTECA KERYKEION (SWISS EPHEMERIS).
+⚠️ SUA ÚNICA FUNÇÃO É INTERPRETAR TEXTOS BASEADOS NOS DADOS JÁ CALCULADOS.
+⚠️ NUNCA calcule, invente ou adivinhe:
+   - ❌ NÃO calcule posições planetárias (já foram calculadas pelo Kerykeion)
+   - ❌ NÃO calcule signos ou graus (já foram calculados pelo Kerykeion)
+   - ❌ NÃO calcule aspectos (já foram calculados pelo código Python)
+   - ❌ NÃO calcule dignidades (já foram calculadas pelo código Python)
+   - ❌ NÃO calcule temperamento (já foi calculado pelo código Python)
+   - ❌ NÃO invente dados que não estão no bloco pré-calculado
+   - ✅ USE APENAS os dados fornecidos no bloco pré-calculado
+   - ✅ INTERPRETE apenas o que está nos dados pré-calculados
+   - ✅ VALIDE apenas se os dados fazem sentido astronomicamente (mas NÃO recalcule)
+
+**Você é o Cosmos Astral Engine**, um astrólogo sênior especializado em interpretação. Sua função é:
+
+1. **Validar** se os dados pré-calculados fazem sentido astronomicamente (sem recalcular).
+2. **Interpretar** essa estrutura com profundidade psicológica e evolutiva, mas APENAS baseando-se nos dados validados e pré-calculados.
 
 ---
 
@@ -2660,14 +2759,14 @@ async def generate_birth_chart_section(
             )
         
         # Verificar RAG service - OBRIGATÓRIO para geração
-        rag_client = None
+        rag_service = None
         rag_error = None
         try:
-            rag_client = get_rag_client()
-            if rag_client:
-                log("INFO", f"RAG service disponível em: {rag_client.base_url}")
+            rag_service = get_rag_service()
+            if rag_service:
+                log("INFO", "RAG service disponível (consolidado no backend)")
             else:
-                rag_error = "RAG_SERVICE_URL não configurado ou get_rag_client retornou None"
+                rag_error = "RAG service não disponível - índice ainda não foi construído ou dependências não estão instaladas"
                 log("ERROR", f"RAG service não disponível: {rag_error}")
                 print(f"[ERROR] [REQ-{request_id}] RAG service não disponível: {rag_error}")
         except Exception as e:
@@ -2679,12 +2778,12 @@ async def generate_birth_chart_section(
         # Verificar se o RAG service tem índice
         has_index = False
         rag_status_error = None
-        if rag_client:
+        if rag_service:
             try:
                 log("INFO", "Verificando status do RAG service...")
-                status = await rag_client.get_status()
-                has_index = status.get('has_index', False)
-                log("INFO", f"Status RAG - has_index: {has_index}, status completo: {status}")
+                if hasattr(rag_service, 'documents') and rag_service.documents:
+                    has_index = len(rag_service.documents) > 0
+                log("INFO", f"Status RAG - has_index: {has_index}")
                 if not has_index:
                     rag_status_error = "Índice RAG vazio ou não carregado"
                     log("ERROR", rag_status_error)
@@ -2695,7 +2794,7 @@ async def generate_birth_chart_section(
                 print(f"[ERROR] [REQ-{request_id}] {rag_status_error}")
                 print(f"[ERROR] [REQ-{request_id}] Traceback: {traceback.format_exc()}")
         else:
-            rag_status_error = "RAG client não disponível para verificar status"
+            rag_status_error = "RAG service não disponível para verificar status"
             log("ERROR", rag_status_error)
             print(f"[ERROR] [REQ-{request_id}] {rag_status_error}")
         
@@ -2737,8 +2836,8 @@ async def generate_birth_chart_section(
         # Buscar contexto do RAG - OBRIGATÓRIO
         rag_results = []
         rag_search_error = None
-        if not rag_client:
-            rag_search_error = f"RAG client não disponível. Erro anterior: {rag_error or 'desconhecido'}"
+        if not rag_service:
+            rag_search_error = f"RAG service não disponível. Erro anterior: {rag_error or 'desconhecido'}"
             log("ERROR", rag_search_error)
             print(f"[ERROR] [REQ-{request_id}] {rag_search_error}")
         elif not has_index:
@@ -2748,7 +2847,7 @@ async def generate_birth_chart_section(
         else:
             try:
                 log("INFO", f"Buscando contexto no RAG para query: {query[:50]}...")
-                rag_results = await rag_client.search(query, top_k=6)
+                rag_results = rag_service.search(query, top_k=6)
                 log("INFO", f"RAG retornou {len(rag_results)} resultados")
                 if len(rag_results) == 0:
                     log("WARNING", "RAG retornou 0 resultados - pode indicar problema no índice")
@@ -2858,7 +2957,7 @@ IMPORTANTE FINAL:
 [ERROR] [REQ-{request_id}] Não foi possível gerar interpretação - Groq não disponível
 
 Diagnóstico:
-- RAG Client: {'Disponível' if rag_client else 'NÃO DISPONÍVEL'}
+- RAG Service: {'Disponível' if rag_service else 'NÃO DISPONÍVEL'}
 - RAG Index: {'Disponível' if has_index else 'NÃO DISPONÍVEL'}
 - Groq Client: NÃO DISPONÍVEL
 - RAG Results: {len(rag_results)} resultados
@@ -3092,7 +3191,7 @@ async def get_solar_return_interpretation(
     }
     """
     try:
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         lang = request.language or 'pt'
         
         # Verificar se o Groq está disponível
@@ -3331,12 +3430,13 @@ IMPORTANT:
         
         # Buscar com todas as queries
         all_rag_results = []
-        for q in queries:
-            try:
-                results = await rag_client.search(q, top_k=5)
-                all_rag_results.extend(results)
-            except Exception as e:
-                print(f"[WARNING] Erro ao buscar no RAG com query '{q}': {e}")
+        if rag_service:
+            for q in queries:
+                try:
+                    results = rag_service.search(q, top_k=5)
+                    all_rag_results.extend(results)
+                except Exception as e:
+                    print(f"[WARNING] Erro ao buscar no RAG com query '{q}': {e}")
         
         # Remover duplicatas mantendo os mais relevantes
         seen_texts = set()
@@ -3453,7 +3553,9 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
             # Tentar cada query
             for fallback_query in fallback_queries:
                 try:
-                    fallback_result = await rag_client.get_interpretation(
+                    if not rag_service:
+                        continue
+                    fallback_result = rag_service.get_interpretation(
                         custom_query=fallback_query,
                         use_groq=True,
                         category='astrology'  # Garantir que use apenas documentos de astrologia
@@ -3786,7 +3888,7 @@ async def get_numerology_interpretation(
         )
         
         # Obter RAG service
-        rag_client = get_rag_client()
+        rag_service = get_rag_service()
         
         # Construir queries específicas para cada número e conceito
         queries = []
@@ -3880,14 +3982,15 @@ async def get_numerology_interpretation(
         
         print(f"[NUMEROLOGY] Buscando no RAG com {len(queries)} queries específicas...")
         
-        for query in queries:
-            try:
-                results = await rag_client.search(
-                    query=query,
-                    top_k=3,  # Menos resultados por query, mas mais queries
-                    expand_query=False,  # Não expandir para manter foco
-                    category='numerology'
-                )
+        if rag_service:
+            for query in queries:
+                try:
+                    results = rag_service.search(
+                        query=query,
+                        top_k=3,  # Menos resultados por query, mas mais queries
+                        expand_query=False,  # Não expandir para manter foco
+                        category='numerology'
+                    )
                 
                 for doc in results:
                     doc_text = doc.get('text', '').strip()
@@ -3922,12 +4025,15 @@ async def get_numerology_interpretation(
             
             # Tentar busca genérica de numerologia
             try:
-                generic_results = await rag_client.search(
-                    query="numerologia pitagórica significado números",
-                    top_k=6,
-                    expand_query=True,
-                    category='numerology'
-                )
+                if rag_service:
+                    generic_results = rag_service.search(
+                        query="numerologia pitagórica significado números",
+                        top_k=6,
+                        expand_query=True,
+                        category='numerology'
+                    )
+                else:
+                    generic_results = []
                 
                 if generic_results:
                     context_text = "\n\n".join([

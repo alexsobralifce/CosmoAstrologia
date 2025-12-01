@@ -88,11 +88,14 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         print(f"[DEBUG] Calculando mapa astral para: {birth_data.birth_date}, {birth_data.birth_time}, lat: {birth_data.latitude}, lon: {birth_data.longitude}")
         
         try:
-            chart_data = calculate_birth_chart(
+            # Usar cache para garantir fonte única de verdade
+            from app.services.chart_data_cache import get_or_calculate_chart
+            chart_data = get_or_calculate_chart(
                 birth_date=birth_data.birth_date,
                 birth_time=birth_data.birth_time,
                 latitude=birth_data.latitude,
-                longitude=birth_data.longitude
+                longitude=birth_data.longitude,
+                calculate_func=calculate_birth_chart
             )
             print(f"[DEBUG] Mapa astral calculado: {chart_data}")
         except Exception as e:
@@ -233,11 +236,14 @@ def get_user_birth_chart(
     # Recalcular o mapa astral para garantir que está usando as fórmulas mais recentes
     chart_data = None
     try:
-        chart_data = calculate_birth_chart(
+        # Usar cache para garantir fonte única de verdade
+        from app.services.chart_data_cache import get_or_calculate_chart
+        chart_data = get_or_calculate_chart(
             birth_date=birth_chart.birth_date,
             birth_time=birth_chart.birth_time,
             latitude=birth_chart.latitude,
-            longitude=birth_chart.longitude
+            longitude=birth_chart.longitude,
+            calculate_func=calculate_birth_chart
         )
         
         # Atualizar os signos recalculados (apenas os que estão no banco)
@@ -248,9 +254,9 @@ def get_user_birth_chart(
             birth_chart.sun_degree = chart_data.get("sun_degree") or birth_chart.sun_degree
             birth_chart.moon_degree = chart_data.get("moon_degree") or birth_chart.moon_degree
             birth_chart.ascendant_degree = chart_data.get("ascendant_degree") or birth_chart.ascendant_degree
-            
-            db.commit()
-            db.refresh(birth_chart)
+        
+        db.commit()
+        db.refresh(birth_chart)
     except Exception as e:
         # Se houver erro no recálculo, usar dados existentes no banco
         import traceback
@@ -263,23 +269,23 @@ def get_user_birth_chart(
     
     # Sempre retornar um dicionário válido (nunca retornar objeto ORM diretamente)
     birth_chart_dict = {
-        "id": birth_chart.id,
-        "user_id": birth_chart.user_id,
-        "name": birth_chart.name,
-        "birth_date": birth_chart.birth_date,
-        "birth_time": birth_chart.birth_time,
-        "birth_place": birth_chart.birth_place,
-        "latitude": birth_chart.latitude,
-        "longitude": birth_chart.longitude,
-        "sun_sign": birth_chart.sun_sign,
-        "moon_sign": birth_chart.moon_sign,
-        "ascendant_sign": birth_chart.ascendant_sign,
-        "sun_degree": birth_chart.sun_degree,
-        "moon_degree": birth_chart.moon_degree,
-        "ascendant_degree": birth_chart.ascendant_degree,
-        "is_primary": birth_chart.is_primary,
-        "created_at": birth_chart.created_at,
-        "updated_at": birth_chart.updated_at,
+            "id": birth_chart.id,
+            "user_id": birth_chart.user_id,
+            "name": birth_chart.name,
+            "birth_date": birth_chart.birth_date,
+            "birth_time": birth_chart.birth_time,
+            "birth_place": birth_chart.birth_place,
+            "latitude": birth_chart.latitude,
+            "longitude": birth_chart.longitude,
+            "sun_sign": birth_chart.sun_sign,
+            "moon_sign": birth_chart.moon_sign,
+            "ascendant_sign": birth_chart.ascendant_sign,
+            "sun_degree": birth_chart.sun_degree,
+            "moon_degree": birth_chart.moon_degree,
+            "ascendant_degree": birth_chart.ascendant_degree,
+            "is_primary": birth_chart.is_primary,
+            "created_at": birth_chart.created_at,
+            "updated_at": birth_chart.updated_at,
     }
     
     # Adicionar planetas calculados se disponíveis
@@ -316,6 +322,7 @@ def get_user_birth_chart(
             "pluto_degree": chart_data.get("pluto_degree"),
         })
     
+    # Sempre retornar o dicionário (mesmo quando chart_data é None)
     return birth_chart_dict
 
 
@@ -564,12 +571,14 @@ def complete_onboarding(
         # Converter data de nascimento
         birth_date = datetime.fromisoformat(data.birth_date.replace('Z', '+00:00'))
         
-        # Calcular mapa astral
-        chart_data = calculate_birth_chart(
+        # Calcular mapa astral (usar cache para garantir fonte única)
+        from app.services.chart_data_cache import get_or_calculate_chart
+        chart_data = get_or_calculate_chart(
             birth_date=birth_date,
             birth_time=data.birth_time,
             latitude=data.latitude,
-            longitude=data.longitude
+            longitude=data.longitude,
+            calculate_func=calculate_birth_chart
         )
         
         # Criar mapa astral
@@ -688,13 +697,15 @@ def update_user(
                 detail="Mapa astral não encontrado"
             )
         
-        # Calcular novos signos
+        # Calcular novos signos (usar cache para garantir fonte única)
         try:
-            chart_data = calculate_birth_chart(
+            from app.services.chart_data_cache import get_or_calculate_chart
+            chart_data = get_or_calculate_chart(
                 birth_date=birth_data.birth_date,
                 birth_time=birth_data.birth_time,
                 latitude=birth_data.latitude,
-                longitude=birth_data.longitude
+                longitude=birth_data.longitude,
+                calculate_func=calculate_birth_chart
             )
         except Exception as e:
             raise HTTPException(

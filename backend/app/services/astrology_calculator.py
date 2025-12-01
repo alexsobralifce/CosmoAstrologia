@@ -282,20 +282,77 @@ def calculate_birth_chart(
     birth_date: datetime,
     birth_time: str,
     latitude: float,
-    longitude: float
+    longitude: float,
+    use_swiss_ephemeris: bool = True
 ) -> Dict[str, any]:
     """
     Calcula o mapa astral completo.
+    
+    IMPORTANTE: Por padrão, usa Swiss Ephemeris (via kerykeion) como fonte única de verdade.
+    Isso garante precisão e consistência em todos os cálculos, evitando "adivinhações" ou
+    estimativas que podem causar inconsistências.
     
     Args:
         birth_date: Data de nascimento
         birth_time: Hora de nascimento no formato "HH:MM" (hora local do local de nascimento)
         latitude: Latitude do local de nascimento
         longitude: Longitude do local de nascimento (positivo para leste, negativo para oeste)
+        use_swiss_ephemeris: Se True (padrão), usa Swiss Ephemeris. Se False, usa PyEphem (legado)
     
     Returns:
-        Dicionário com signos e graus calculados
+        Dicionário com signos e graus calculados (formato compatível com código existente)
     """
+    # Tentar usar Swiss Ephemeris por padrão (fonte única de verdade)
+    if use_swiss_ephemeris:
+        try:
+            from app.services.swiss_ephemeris_calculator import calculate_birth_chart as calculate_swiss
+            result = calculate_swiss(birth_date, birth_time, latitude, longitude)
+            
+            # Converter formato para compatibilidade com código existente
+            # O formato do Swiss Ephemeris já é compatível, mas garantimos remover campos extras
+            return {
+                "sun_sign": result.get("sun_sign"),
+                "sun_degree": result.get("sun_degree"),
+                "moon_sign": result.get("moon_sign"),
+                "moon_degree": result.get("moon_degree"),
+                "ascendant_sign": result.get("ascendant_sign"),
+                "ascendant_degree": result.get("ascendant_degree"),
+                "mercury_sign": result.get("mercury_sign"),
+                "mercury_degree": result.get("mercury_degree"),
+                "venus_sign": result.get("venus_sign"),
+                "venus_degree": result.get("venus_degree"),
+                "mars_sign": result.get("mars_sign"),
+                "mars_degree": result.get("mars_degree"),
+                "jupiter_sign": result.get("jupiter_sign"),
+                "jupiter_degree": result.get("jupiter_degree"),
+                "saturn_sign": result.get("saturn_sign"),
+                "saturn_degree": result.get("saturn_degree"),
+                "uranus_sign": result.get("uranus_sign"),
+                "uranus_degree": result.get("uranus_degree"),
+                "neptune_sign": result.get("neptune_sign"),
+                "neptune_degree": result.get("neptune_degree"),
+                "pluto_sign": result.get("pluto_sign"),
+                "pluto_degree": result.get("pluto_degree"),
+                "midheaven_sign": result.get("midheaven_sign"),
+                "midheaven_degree": result.get("midheaven_degree"),
+                "planets_conjunct_midheaven": result.get("planets_conjunct_midheaven", []),
+                "uranus_on_midheaven": result.get("uranus_on_midheaven", False),
+                "north_node_sign": result.get("north_node_sign"),
+                "north_node_degree": result.get("north_node_degree"),
+                "south_node_sign": result.get("south_node_sign"),
+                "south_node_degree": result.get("south_node_degree"),
+                "chiron_sign": result.get("chiron_sign"),
+                "chiron_degree": result.get("chiron_degree"),
+                "_source_longitudes": result.get("planet_longitudes", {}),
+            }
+        except ImportError as e:
+            print(f"[WARNING] Swiss Ephemeris não disponível: {e}. Usando PyEphem (legado).")
+        except Exception as e:
+            print(f"[ERROR] Erro ao usar Swiss Ephemeris: {e}. Fallback para PyEphem.")
+            import traceback
+            print(traceback.format_exc())
+    
+    # Fallback para PyEphem (código legado)
     # Combinar data e hora
     time_parts = birth_time.split(":")
     hour = int(time_parts[0]) if len(time_parts) > 0 else 0
@@ -391,7 +448,35 @@ def calculate_birth_chart(
     chiron_longitude = calculate_chiron(observer)
     chiron_data = get_zodiac_sign(chiron_longitude)
     
-    return {
+    # FONTE ÚNICA DE VERDADE: Armazenar TODAS as longitudes calculadas
+    # Isso garante que não haverá inconsistências - todas as referências usam os mesmos valores
+    all_longitudes = {
+        "sun": sun_longitude,
+        "moon": moon_longitude,
+        "mercury": mercury_longitude,
+        "venus": venus_longitude,
+        "mars": mars_longitude,
+        "jupiter": jupiter_longitude,
+        "saturn": saturn_longitude,
+        "uranus": uranus_longitude,
+        "neptune": neptune_longitude,
+        "pluto": pluto_longitude,
+        "ascendant": ascendant_longitude,
+        "midheaven": midheaven_longitude,
+        "north_node": lunar_nodes["north_node"],
+        "south_node": lunar_nodes["south_node"],
+        "chiron": chiron_longitude,
+    }
+    
+    # VALIDAÇÃO DE CONSISTÊNCIA: Verificar que os signos calculados são consistentes
+    # Se houver inconsistência, vamos detectar e corrigir
+    venus_sign_from_longitude = get_zodiac_sign(venus_longitude)["sign"]
+    if venus_data["sign"] != venus_sign_from_longitude:
+        print(f"[WARNING] Inconsistência detectada em Vênus: {venus_data['sign']} vs {venus_sign_from_longitude}. Usando cálculo direto.")
+        venus_data = get_zodiac_sign(venus_longitude)
+    
+    # Construir resultado final com TODAS as informações
+    result = {
         "sun_sign": sun_data["sign"],
         "sun_degree": sun_data["degree"],
         "moon_sign": moon_data["sign"],
@@ -427,7 +512,11 @@ def calculate_birth_chart(
         # Quíron (a ferida do curador)
         "chiron_sign": chiron_data["sign"],
         "chiron_degree": chiron_data["degree"],
+        # FONTE ÚNICA DE VERDADE: Todas as longitudes calculadas (para referência futura)
+        "_source_longitudes": all_longitudes,
     }
+    
+    return result
 
 
 def calculate_solar_return(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UIIcons } from './ui-icons';
 import { zodiacSigns } from './zodiac-icons';
 import { BirthChartWheel } from './birth-chart-wheel';
@@ -6,6 +6,8 @@ import { apiService } from '../services/api';
 import { useLanguage } from '../i18n';
 import { OnboardingData } from './onboarding';
 import { formatGroqText } from '../utils/formatGroqText';
+import { generateBirthChartPDF } from '../utils/generateBirthChartPDF';
+import { formatTriadContent } from '../utils/formatTriadContent';
 
 // ===== TIPOS =====
 interface BirthChartSection {
@@ -19,143 +21,6 @@ interface FullBirthChartProps {
   userData: OnboardingData;
   onBack: () => void;
 }
-
-// ===== FUNÇÃO DE FORMATAÇÃO PARA TRÍADE FUNDAMENTAL =====
-const formatTriadContent = (content: string): string => {
-  // Dividir em parágrafos
-  const paragraphs = content.split('\n\n').map(p => p.trim()).filter(p => p.length > 0);
-  
-  // Remover informações de suporte primeiro
-  let cleanedParagraphs = paragraphs.map(p => {
-    let cleaned = p;
-    cleaned = cleaned.replace(/##?\s*📞\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
-    cleaned = cleaned.replace(/##?\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
-    cleaned = cleaned.replace(/Para dúvidas sobre interpretação astrológica[\s\S]*?Consulta com astrólogo profissional[\s\S]*?(?=\n\n|$)/gi, '');
-    cleaned = cleaned.replace(/Livros de astrologia na pasta.*?/gi, '');
-    cleaned = cleaned.replace(/Análise com IA.*?/gi, '');
-    cleaned = cleaned.replace(/Consulta com astrólogo profissional.*?/gi, '');
-    cleaned = cleaned.replace(/Desenvolvido com.*?autoconhecimento profundo[\s\S]*?(?=\n\n|$)/gi, '');
-    cleaned = cleaned.replace(/^[-]{3,}$/gm, '');
-    return cleaned.trim();
-  }).filter(p => p.length > 0);
-  
-  // Detectar repetições e remover
-  const uniqueParagraphs: string[] = [];
-  const seenConcepts = new Set<string>();
-  
-  // Padrões de repetição comuns
-  const repetitionPatterns = [
-    /(sol|sun).*(essência|essence|identidade|identity|ego)/gi,
-    /(lua|moon).*(emoção|emotion|necessidade|need|sentimento|feeling)/gi,
-    /(ascendente|ascendant).*(máscara|mask|persona|aparência|appearance)/gi,
-  ];
-  
-  for (const paragraph of cleanedParagraphs) {
-    // Extrair conceitos principais do parágrafo
-    const concepts = paragraph.toLowerCase().match(/\b(sol|lua|ascendente|sun|moon|ascendant|essência|essence|emoção|emotion|máscara|mask|identidade|identity|necessidade|need)\b/gi) || [];
-    
-    // Verificar se este parágrafo já foi visto (conteúdo similar)
-    let isDuplicate = false;
-    const paragraphKey = concepts.join('|').toLowerCase();
-    
-    // Verificar similaridade de conteúdo (palavras-chave repetidas)
-    if (seenConcepts.has(paragraphKey)) {
-      // Verificar se é uma variação do mesmo conceito
-      const paragraphWords = paragraph.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-      for (const seenPara of uniqueParagraphs) {
-        const seenWords = seenPara.toLowerCase().split(/\s+/).filter(w => w.length > 4);
-        const commonWords = paragraphWords.filter(w => seenWords.includes(w));
-        // Se mais de 40% das palavras são comuns e falam da mesma coisa, é duplicata
-        if (commonWords.length > Math.max(paragraphWords.length, seenWords.length) * 0.4) {
-          // Verificar se falam dos mesmos conceitos
-          const commonConcepts = concepts.filter(c => 
-            seenPara.toLowerCase().includes(c.toLowerCase())
-          );
-          if (commonConcepts.length >= 2) {
-            isDuplicate = true;
-            break;
-          }
-        }
-      }
-    }
-    
-    // Se não é duplicata, adicionar
-    if (!isDuplicate) {
-      uniqueParagraphs.push(paragraph);
-      seenConcepts.add(paragraphKey);
-    }
-  }
-  
-  // Remover parágrafos muito genéricos que não agregam valor
-  const meaningfulParagraphs = uniqueParagraphs.filter(p => {
-    // Remover parágrafos muito curtos ou genéricos
-    if (p.length < 50) return false;
-    
-    // Remover parágrafos que são apenas definições genéricas
-    const genericPhrases = [
-      /^o sol é/i,
-      /^a lua é/i,
-      /^o ascendente é/i,
-      /^o sol representa/i,
-      /^a lua representa/i,
-      /^o ascendente representa/i,
-      /^quando o sol/i,
-      /^quando a lua/i,
-      /^quando o ascendente/i,
-    ];
-    
-    return !genericPhrases.some(pattern => pattern.test(p));
-  });
-  
-  // Reorganizar para garantir complementaridade
-  // Agrupar por tema (Sol, Lua, Ascendente, Interação)
-  const solParagraphs: string[] = [];
-  const luaParagraphs: string[] = [];
-  const ascParagraphs: string[] = [];
-  const interactionParagraphs: string[] = [];
-  
-  meaningfulParagraphs.forEach(p => {
-    const lower = p.toLowerCase();
-    const hasSol = /\b(sol|sun)\b/i.test(p);
-    const hasLua = /\b(lua|moon)\b/i.test(p);
-    const hasAsc = /\b(ascendente|ascendant)\b/i.test(p);
-    
-    // Se menciona interação entre os três, priorizar
-    if (hasSol && hasLua && hasAsc) {
-      interactionParagraphs.push(p);
-    } else if (hasSol && hasLua) {
-      interactionParagraphs.push(p);
-    } else if (hasSol && hasAsc) {
-      interactionParagraphs.push(p);
-    } else if (hasLua && hasAsc) {
-      interactionParagraphs.push(p);
-    } else if (hasSol && !hasLua && !hasAsc) {
-      solParagraphs.push(p);
-    } else if (hasLua && !hasSol && !hasAsc) {
-      luaParagraphs.push(p);
-    } else if (hasAsc && !hasSol && !hasLua) {
-      ascParagraphs.push(p);
-    } else {
-      // Parágrafos gerais ou de síntese
-      interactionParagraphs.push(p);
-    }
-  });
-  
-  // Combinar de forma complementar: interações primeiro, depois individuais
-  const finalParagraphs = [
-    ...interactionParagraphs,
-    ...solParagraphs.slice(0, 1), // Limitar a 1 parágrafo por planeta individual
-    ...luaParagraphs.slice(0, 1),
-    ...ascParagraphs.slice(0, 1),
-  ];
-  
-  // Garantir que temos pelo menos 2 parágrafos
-  if (finalParagraphs.length < 2 && meaningfulParagraphs.length >= 2) {
-    return meaningfulParagraphs.join('\n\n');
-  }
-  
-  return finalParagraphs.join('\n\n');
-};
 
 // ===== COMPONENTE DE SEÇÃO INDIVIDUAL =====
 const ChartSection = ({ 
@@ -246,7 +111,7 @@ const ChartSection = ({
 
 // ===== COMPONENTE PRINCIPAL =====
 export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps) => {
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
   const [sections, setSections] = useState<Record<string, BirthChartSection | null>>({
     power: null,
     triad: null,
@@ -630,6 +495,41 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Botão de Gerar PDF */}
+      <div className="birth-chart-pdf-section">
+        <button
+          onClick={() => {
+            // Verificar se há pelo menos uma seção gerada
+            const hasAnySection = Object.values(sections).some(section => section !== null && section.content);
+            
+            if (!hasAnySection) {
+              alert(language === 'pt' 
+                ? 'Por favor, gere pelo menos uma seção do mapa astral antes de exportar para PDF.'
+                : 'Please generate at least one section of the birth chart before exporting to PDF.');
+              return;
+            }
+            
+            generateBirthChartPDF({
+              userData,
+              sections,
+              language
+            });
+          }}
+          className="birth-chart-pdf-button"
+        >
+          <UIIcons.FileText size={20} className="birth-chart-pdf-icon" />
+          <span className="birth-chart-pdf-text">
+            {language === 'pt' ? 'Gerar PDF do Mapa Astral' : 'Generate Birth Chart PDF'}
+          </span>
+          <UIIcons.Download size={18} className="birth-chart-pdf-download-icon" />
+        </button>
+        <p className="birth-chart-pdf-description">
+          {language === 'pt' 
+            ? 'Baixe seu mapa astral completo em PDF com todas as seções, referências e informações organizadas.'
+            : 'Download your complete birth chart in PDF format with all sections, references and organized information.'}
+        </p>
       </div>
     </div>
   );

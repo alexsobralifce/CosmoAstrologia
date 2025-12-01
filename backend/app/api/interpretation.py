@@ -2659,28 +2659,45 @@ async def generate_birth_chart_section(
                 detail="Especifique uma seção: power, triad, personal, houses, karma, synthesis"
             )
         
-        # Verificar RAG service (não é mais obrigatório - temos fallbacks)
+        # Verificar RAG service - OBRIGATÓRIO para geração
         rag_client = None
+        rag_error = None
         try:
             rag_client = get_rag_client()
             if rag_client:
-                log("INFO", "RAG service disponível")
+                log("INFO", f"RAG service disponível em: {rag_client.base_url}")
             else:
-                log("WARNING", "RAG service não disponível - usando fallbacks")
+                rag_error = "RAG_SERVICE_URL não configurado ou get_rag_client retornou None"
+                log("ERROR", f"RAG service não disponível: {rag_error}")
+                print(f"[ERROR] [REQ-{request_id}] RAG service não disponível: {rag_error}")
         except Exception as e:
-            log("WARNING", f"Erro ao obter RAG service: {str(e)} - continuando com fallbacks")
+            rag_error = f"Erro ao obter RAG service: {str(e)}"
+            log("ERROR", rag_error)
+            print(f"[ERROR] [REQ-{request_id}] {rag_error}")
+            print(f"[ERROR] [REQ-{request_id}] Traceback: {traceback.format_exc()}")
         
-        # Não falhar se RAG não estiver disponível - temos fallbacks robustos
+        # Verificar se o RAG service tem índice
         has_index = False
+        rag_status_error = None
         if rag_client:
             try:
-                # Verificar se o RAG service está funcionando
+                log("INFO", "Verificando status do RAG service...")
                 status = await rag_client.get_status()
                 has_index = status.get('has_index', False)
+                log("INFO", f"Status RAG - has_index: {has_index}, status completo: {status}")
                 if not has_index:
-                    log("WARNING", "Índice RAG vazio. Continuando com fallbacks.")
+                    rag_status_error = "Índice RAG vazio ou não carregado"
+                    log("ERROR", rag_status_error)
+                    print(f"[ERROR] [REQ-{request_id}] {rag_status_error}")
             except Exception as e:
-                log("WARNING", f"Erro ao verificar status RAG: {str(e)}")
+                rag_status_error = f"Erro ao verificar status RAG: {str(e)}"
+                log("ERROR", rag_status_error)
+                print(f"[ERROR] [REQ-{request_id}] {rag_status_error}")
+                print(f"[ERROR] [REQ-{request_id}] Traceback: {traceback.format_exc()}")
+        else:
+            rag_status_error = "RAG client não disponível para verificar status"
+            log("ERROR", rag_status_error)
+            print(f"[ERROR] [REQ-{request_id}] {rag_status_error}")
         
         # Validar dados do mapa astral e criar bloco de dados pré-calculados
         try:
@@ -2717,34 +2734,55 @@ async def generate_birth_chart_section(
         
         query = search_queries.get(request.section, "interpretação mapa astral")
         
-        # Buscar contexto do RAG com tratamento de erro
+        # Buscar contexto do RAG - OBRIGATÓRIO
         rag_results = []
-        if rag_client and has_index:
+        rag_search_error = None
+        if not rag_client:
+            rag_search_error = f"RAG client não disponível. Erro anterior: {rag_error or 'desconhecido'}"
+            log("ERROR", rag_search_error)
+            print(f"[ERROR] [REQ-{request_id}] {rag_search_error}")
+        elif not has_index:
+            rag_search_error = f"RAG index não disponível. Erro anterior: {rag_status_error or 'desconhecido'}"
+            log("ERROR", rag_search_error)
+            print(f"[ERROR] [REQ-{request_id}] {rag_search_error}")
+        else:
             try:
                 log("INFO", f"Buscando contexto no RAG para query: {query[:50]}...")
                 rag_results = await rag_client.search(query, top_k=6)
                 log("INFO", f"RAG retornou {len(rag_results)} resultados")
+                if len(rag_results) == 0:
+                    log("WARNING", "RAG retornou 0 resultados - pode indicar problema no índice")
+                    print(f"[WARNING] [REQ-{request_id}] RAG retornou 0 resultados para query: {query[:100]}")
             except Exception as e:
-                log("WARNING", f"Erro ao buscar no RAG: {str(e)} - continuando sem RAG")
-        else:
-            log("INFO", "Pulando busca RAG (serviço não disponível ou índice vazio)")
+                rag_search_error = f"Erro ao buscar no RAG: {str(e)}"
+                log("ERROR", rag_search_error)
+                print(f"[ERROR] [REQ-{request_id}] {rag_search_error}")
+                print(f"[ERROR] [REQ-{request_id}] Traceback: {traceback.format_exc()}")
         
         # Preparar contexto
         context_text = "\n\n".join([doc.get('text', '') for doc in rag_results[:6] if doc.get('text')])
         
-        # Se não houver contexto do RAG, usar contexto mínimo
+        # Se não houver contexto do RAG, usar contexto mínimo (mas ainda tentar gerar)
         if not context_text or len(context_text.strip()) < 100:
-            context_text = "Informações astrológicas gerais sobre o tema."
+            context_text = "Informações astrológicas gerais sobre o tema. Use seu conhecimento astrológico para criar uma interpretação detalhada e completa."
         
-        # Gerar interpretação com Groq
+        # Verificar Groq - OBRIGATÓRIO para geração
         groq_client = _get_groq_client()
+        groq_error = None
+        if not groq_client:
+            groq_error = "Groq client não disponível - GROQ_API_KEY não configurada ou inválida"
+            log("ERROR", groq_error)
+            print(f"[ERROR] [REQ-{request_id}] {groq_error}")
+            print(f"[ERROR] [REQ-{request_id}] Verifique se GROQ_API_KEY está configurada nas variáveis de ambiente")
+        
+        # Gerar interpretação com Groq - OBRIGATÓRIO
         if groq_client:
             try:
                 from groq import Groq
                 
                 # Limitar contexto para evitar token overflow
                 context_limit = min(len(context_text), 3000)
-                context_snippet = context_text[:context_limit] if context_text else "Informações astrológicas gerais sobre o tema."
+                context_snippet = context_text[:context_limit] if context_text else "Informações astrológicas gerais sobre o tema. Use seu conhecimento astrológico para criar uma interpretação detalhada e completa."
                 
                 full_user_prompt = f"""⚠️ **LEIA PRIMEIRO - INSTRUÇÃO CRÍTICA:**
 
@@ -2800,31 +2838,48 @@ IMPORTANTE FINAL:
                 )
                 
             except Exception as e:
-                log("ERROR", f"Erro ao gerar com Groq: {str(e)}")
-                log("ERROR", f"Traceback: {traceback.format_exc()}")
-                # Tentar fallback com RAG apenas
-                if rag_results and len(rag_results) > 0:
-                    log("INFO", f"Tentando fallback: RAG apenas ({len(rag_results)} resultados)")
-                    fallback_content = "\n\n".join([doc['text'] for doc in rag_results[:3]])
-                    if fallback_content and len(fallback_content) > 100:
-                        return FullBirthChartResponse(
-                            section=request.section,
-                            title=title,
-                            content=fallback_content[:2000],  # Limitar tamanho
-                            generated_by="rag_only"
-                        )
+                groq_error = f"Erro ao gerar com Groq: {str(e)}"
+                log("ERROR", groq_error)
+                print(f"[ERROR] [REQ-{request_id}] {groq_error}")
+                print(f"[ERROR] [REQ-{request_id}] Traceback completo: {traceback.format_exc()}")
+                print(f"[ERROR] [REQ-{request_id}] Modelo usado: llama-3.1-8b-instant")
+                print(f"[ERROR] [REQ-{request_id}] Tamanho do prompt: {len(full_user_prompt)} chars")
+                print(f"[ERROR] [REQ-{request_id}] Tamanho do system prompt: {len(master_prompt)} chars")
+                print(f"[ERROR] [REQ-{request_id}] Contexto RAG disponível: {len(context_snippet)} chars")
+                # Não fazer fallback - queremos ver o erro
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Erro ao gerar interpretação com Groq: {str(e)}. Verifique os logs para mais detalhes. Request ID: {request_id}"
+                )
         
-        # Fallback final: retornar mensagem informativa
-        log("WARNING", "Todos os fallbacks falharam. Retornando mensagem informativa.")
-        return FullBirthChartResponse(
-            section=request.section,
-            title=title,
-            content="Não foi possível gerar interpretação no momento. Por favor, tente novamente mais tarde.",
-            generated_by="none"
-        )
-        
-        # Último fallback: mensagem de erro útil
-        log("WARNING", "Todos os métodos de geração falharam - retornando mensagem de erro")
+        # Se Groq não está disponível, retornar erro
+        if not groq_client:
+            error_summary = f"""
+[ERROR] [REQ-{request_id}] Não foi possível gerar interpretação - Groq não disponível
+
+Diagnóstico:
+- RAG Client: {'Disponível' if rag_client else 'NÃO DISPONÍVEL'}
+- RAG Index: {'Disponível' if has_index else 'NÃO DISPONÍVEL'}
+- Groq Client: NÃO DISPONÍVEL
+- RAG Results: {len(rag_results)} resultados
+
+Erros encontrados:
+- RAG Error: {rag_error or 'Nenhum'}
+- RAG Status Error: {rag_status_error or 'Nenhum'}
+- RAG Search Error: {rag_search_error or 'Nenhum'}
+- Groq Error: {groq_error or 'Nenhum'}
+
+Ação necessária:
+1. Verifique se GROQ_API_KEY está configurada nas variáveis de ambiente
+2. Verifique se RAG_SERVICE_URL está configurada e o serviço está rodando
+3. Verifique os logs acima para mais detalhes
+"""
+            print(error_summary)
+            log("ERROR", "Não foi possível gerar - Groq não disponível")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Serviço Groq não disponível. Verifique se GROQ_API_KEY está configurada. Request ID: {request_id}"
+            )
         error_msg_pt = f"""Não foi possível gerar a análise completa no momento. 
 
 **Dados do seu mapa astral:**

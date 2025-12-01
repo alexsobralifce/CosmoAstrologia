@@ -9,14 +9,26 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import re
 from app.core.database import get_db
-from app.services.rag_service_wrapper import get_rag_service
+from app.services.rag_client import get_rag_client
 from app.services.transits_calculator import calculate_future_transits
 from app.services.astrology_calculator import calculate_solar_return
 from app.services.numerology_calculator import NumerologyCalculator
 from app.api.auth import get_current_user
 from app.models.database import BirthChart
+from app.core.config import settings
 
 router = APIRouter()
+
+
+def _get_groq_client():
+    """Helper para obter cliente Groq se disponível."""
+    try:
+        if not settings.GROQ_API_KEY:
+            return None
+        from groq import Groq
+        return Groq(api_key=settings.GROQ_API_KEY)
+    except Exception:
+        return None
 
 
 def _deduplicate_text(text: str) -> str:
@@ -150,7 +162,7 @@ class InterpretationResponse(BaseModel):
 
 
 @router.post("/interpretation", response_model=InterpretationResponse)
-def get_interpretation(
+async def get_interpretation(
     request: InterpretationRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -174,15 +186,15 @@ def get_interpretation(
                 detail="Para interpretação de planetas, use o endpoint específico: /api/interpretation/planet"
             )
         
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
-        if not rag_service:
+        if not rag_client:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
+                detail="Serviço RAG não disponível. Verifique se RAG_SERVICE_URL está configurado e o serviço está rodando."
             )
         
-        interpretation = rag_service.get_interpretation(
+        interpretation = await rag_client.get_interpretation(
             planet=request.planet,
             sign=request.sign,
             house=request.house,
@@ -226,7 +238,7 @@ def get_interpretation(
 
 
 @router.get("/interpretation/search")
-def search_documents(
+async def search_documents(
     query: str,
     top_k: int = 5,
     authorization: Optional[str] = Header(None)
@@ -239,33 +251,17 @@ def search_documents(
         top_k: Número de resultados (padrão: 5)
     """
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
-        if not rag_service:
+        if not rag_client:
             return {
                 "query": query,
                 "results": [],
                 "count": 0,
-                "error": "Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas."
+                "error": "Serviço RAG não disponível. Verifique se RAG_SERVICE_URL está configurado e o serviço está rodando."
             }
         
-        # Verificar se o índice está carregado
-        # Verificar se o índice está disponível
-        has_index = False
-        if hasattr(rag_service, 'index'):
-            has_index = rag_service.index is not None
-        elif hasattr(rag_service, 'embeddings'):
-            has_index = rag_service.embeddings is not None and hasattr(rag_service, 'documents') and len(rag_service.documents) > 0
-        
-        if not has_index:
-            return {
-                "query": query,
-                "results": [],
-                "count": 0,
-                "error": "Índice RAG não carregado. Execute build_rag_index_llamaindex.py primeiro."
-            }
-        
-        results = rag_service.search(query, top_k=top_k)
+        results = await rag_client.search(query, top_k=top_k)
         
         return {
             "query": query,
@@ -283,59 +279,22 @@ def search_documents(
 
 
 @router.get("/interpretation/status")
-def get_rag_status():
+async def get_rag_status():
     """Retorna o status do sistema RAG."""
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
-        if not rag_service:
+        if not rag_client:
             return {
-                "status": "unavailable",
-                "message": "Serviço RAG não disponível. O índice ainda não foi construído ou as dependências não estão instaladas.",
+                "available": False,
+                "message": "Serviço RAG não disponível. Verifique se RAG_SERVICE_URL está configurado e o serviço está rodando.",
                 "has_index": False,
                 "implementation": "none"
             }
         
-        # Verificar se é LlamaIndex ou implementação antiga
-        has_llamaindex = hasattr(rag_service, 'index')
-        
-        if has_llamaindex:
-            # Implementação LlamaIndex
-            has_index = rag_service.index is not None
-            has_groq = rag_service.groq_client is not None
-            # Para LlamaIndex, verificar se o índice foi carregado
-            try:
-                from llama_index.core import VectorStoreIndex
-                has_dependencies = True
-            except ImportError:
-                has_dependencies = False
-            
-            return {
-                "available": has_index and has_dependencies,
-                "document_count": 0,  # LlamaIndex não expõe contagem direta
-                "has_dependencies": has_dependencies,
-                "has_groq": has_groq,
-                "model_loaded": has_dependencies,
-                "index_loaded": has_index,
-                "implementation": "llamaindex",
-                "error": None if (has_index and has_dependencies) else "LlamaIndex não instalado ou índice não carregado"
-            }
-        else:
-            # Implementação antiga (não deveria acontecer, mas mantido para compatibilidade)
-            has_index = hasattr(rag_service, 'embeddings') and rag_service.embeddings is not None and hasattr(rag_service, 'documents') and len(rag_service.documents) > 0
-            has_groq = rag_service.groq_client is not None
-            has_model = hasattr(rag_service, 'model') and rag_service.model is not None
-            
-            return {
-                "available": has_index and has_model,
-                "document_count": len(rag_service.documents) if has_index else 0,
-                "has_dependencies": has_model,
-                "has_groq": has_groq,
-                "model_loaded": has_model,
-                "index_loaded": has_index,
-                "implementation": "legacy",
-                "error": None if (has_index and has_model) else "Índice não carregado ou modelo não disponível"
-            }
+        # Buscar status do RAG service
+        status = await rag_client.get_status()
+        return status
     except Exception as e:
         return {
             "available": False,
@@ -347,7 +306,7 @@ def get_rag_status():
 
 
 @router.get("/birth-chart/diagnostics")
-def get_birth_chart_diagnostics():
+async def get_birth_chart_diagnostics():
     """
     Endpoint de diagnóstico completo para geração de mapas astrais.
     Verifica todos os serviços necessários e retorna status detalhado.
@@ -361,26 +320,27 @@ def get_birth_chart_diagnostics():
     
     # 1. Verificar RAG Service
     try:
-        rag_service = get_rag_service()
-        if rag_service:
-            has_index = False
-            if hasattr(rag_service, 'index'):
-                has_index = rag_service.index is not None
-            elif hasattr(rag_service, 'documents'):
-                has_index = len(rag_service.documents) > 0
-            
-            diagnostics["services"]["rag"] = {
-                "available": True,
-                "has_index": has_index,
-                "groq_client": rag_service.groq_client is not None if hasattr(rag_service, 'groq_client') else False,
-                "implementation": "llamaindex" if hasattr(rag_service, 'index') else "legacy"
-            }
+        rag_client = get_rag_client()
+        if rag_client:
+            try:
+                status = await rag_client.get_status()
+                diagnostics["services"]["rag"] = {
+                    "available": status.get("available", False),
+                    "has_index": status.get("has_index", False),
+                    "has_groq": status.get("has_groq", False),
+                    "implementation": status.get("implementation", "unknown")
+                }
+            except Exception as e:
+                diagnostics["services"]["rag"] = {
+                    "available": False,
+                    "error": f"Erro ao verificar RAG service: {str(e)}"
+                }
         else:
             diagnostics["services"]["rag"] = {
                 "available": False,
-                "error": "RAG service não inicializado"
+                "error": "RAG service não configurado (RAG_SERVICE_URL não definido)"
             }
-            diagnostics["recommendations"].append("Instale e configure o serviço RAG (LlamaIndex)")
+            diagnostics["recommendations"].append("Instale e configure o serviço RAG (FastEmbed)")
     except Exception as e:
         diagnostics["services"]["rag"] = {
             "available": False,
@@ -434,20 +394,11 @@ def get_birth_chart_diagnostics():
             "error": str(e)
         }
     
-    # 5. Verificar base de conhecimento local (fallback)
-    try:
-        from app.services.local_knowledge_base import LocalKnowledgeBase
-        local_kb = LocalKnowledgeBase()
-        diagnostics["services"]["local_knowledge_base"] = {
-            "available": True,
-            "has_fallback": True
-        }
-    except Exception as e:
-        diagnostics["services"]["local_knowledge_base"] = {
-            "available": False,
-            "error": str(e)
-        }
-        diagnostics["recommendations"].append("Base de conhecimento local não disponível (fallback)")
+    # 5. Base de conhecimento local foi removida (migrado para RAG service)
+    diagnostics["services"]["local_knowledge_base"] = {
+        "available": False,
+        "note": "Migrado para RAG service (microsserviço)"
+    }
     
     # 6. Determinar status geral
     rag_ok = diagnostics["services"].get("rag", {}).get("available", False)
@@ -521,44 +472,16 @@ def get_future_transits(
         
         # Enriquecer descrições com RAG + Groq
         enriched_transits = []
-        rag_service = None
+        rag_client = None
         
         try:
-            rag_service = get_rag_service()
+            rag_client = get_rag_client()
         except Exception as e:
             print(f"[WARNING] RAG service não disponível: {e}")
         
         for transit in transits:
-            # Tentar enriquecer com RAG + Groq se disponível
-            if rag_service:
-                # Criar query mais específica para busca RAG
-                natal_point_names = {
-                    'sun': 'Sol',
-                    'moon': 'Lua',
-                    'mercury': 'Mercúrio',
-                    'venus': 'Vênus',
-                    'mars': 'Marte',
-                    'ascendant': 'Ascendente'
-                }
-                natal_point_display = natal_point_names.get(transit.get('natal_point', ''), transit.get('natal_point', '').capitalize())
-                
-                # Query mais específica para encontrar informações sobre o trânsito
-                transit_query = f"{transit.get('planet', '')} {transit.get('aspect_type', '')} {natal_point_display} trânsito interpretação"
-                
-                try:
-                    # Verificar se o índice RAG está carregado
-                    has_index = (hasattr(rag_service, 'index') and rag_service.index is not None) or \
-                               (hasattr(rag_service, 'embeddings') and rag_service.embeddings is not None and 
-                                hasattr(rag_service, 'documents') and len(rag_service.documents) > 0)
-                    if has_index:
-                        # A descrição base já é completa com exemplos práticos
-                        # Não precisa enriquecer com RAG/Groq para não cortar o texto
-                        print(f"[INFO] Usando descrição base completa: {transit.get('planet')} {transit.get('aspect_type')} com {natal_point_display}")
-                except Exception as e:
-                    print(f"[WARNING] Erro ao enriquecer trânsito com RAG/Groq: {e}")
-                    # Manter descrição original em caso de erro
-                    pass
-            
+            # Descrição base já é completa com exemplos práticos
+            # Não precisa enriquecer adicionalmente
             enriched_transits.append(transit)
         
         # Formatar resposta
@@ -776,7 +699,7 @@ IMPORTANTE:
 
 
 @router.post("/interpretation/planet")
-def get_planet_interpretation(
+async def get_planet_interpretation(
     request: PlanetInterpretationRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -795,7 +718,7 @@ def get_planet_interpretation(
     }
     """
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
         planet = request.planet
         sign = request.sign
@@ -819,12 +742,12 @@ def get_planet_interpretation(
             query_parts.append(f"casa {house}")
         
         query = " ".join(query_parts)
-        results = rag_service.search(query, top_k=10, expand_query=True)
+        results = await rag_client.search(query, top_k=6, expand_query=True)
         
         # Preparar contexto dos documentos
         context_text = "\n\n".join([
             doc.get('text', '')
-            for doc in results[:8]  # Usar até 8 documentos
+            for doc in results[:6]  # Usar até 6 documentos
             if doc.get('text')
         ])
         
@@ -848,12 +771,13 @@ def get_planet_interpretation(
             print(f"[PLANET API] Contexto do RAG adicionado ({len(context_text)} chars)")
         
         # Gerar interpretação com Groq usando o novo prompt prático (se disponível)
-        if rag_service.groq_client:
+        groq_client = _get_groq_client()
+        if groq_client:
             try:
                 print(f"[PLANET API] Gerando interpretação com novo prompt prático para {planet} em {sign}")
                 print(f"[PLANET API] Contexto do mapa: Sol={request.sunSign}, Lua={request.moonSign}, Asc={request.ascendant}")
                 
-                chat_completion = rag_service.groq_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     model="llama-3.1-70b-versatile",
                     messages=[
                         {"role": "system", "content": system_prompt},
@@ -994,7 +918,7 @@ class ChartRulerInterpretationRequest(BaseModel):
 
 
 @router.post("/interpretation/chart-ruler")
-def get_chart_ruler_interpretation(
+async def get_chart_ruler_interpretation(
     request: ChartRulerInterpretationRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -1010,7 +934,7 @@ def get_chart_ruler_interpretation(
     }
     """
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
         ascendant = request.ascendant
         ruler = request.ruler
@@ -1042,7 +966,7 @@ def get_chart_ruler_interpretation(
         all_results = []
         for q in queries:
             try:
-                results = rag_service.search(q, top_k=10, expand_query=True)
+                results = await rag_client.search(q, top_k=6, expand_query=True)
                 all_results.extend(results)
             except Exception as e:
                 print(f"[WARNING] Erro ao buscar com query '{q}': {e}")
@@ -1076,7 +1000,7 @@ def get_chart_ruler_interpretation(
                 if ruler_house:
                     fallback_query += f" casa {ruler_house}"
                 
-                fallback_results = rag_service.search(fallback_query, top_k=15, expand_query=True)
+                fallback_results = await rag_client.search(fallback_query, top_k=15, expand_query=True)
                 if fallback_results:
                     unique_results = fallback_results[:12]
                     context_text = "\n\n".join([
@@ -1091,7 +1015,8 @@ def get_chart_ruler_interpretation(
         context_snippet = context_text[:context_limit] if context_text else "Informações astrológicas gerais sobre regentes do mapa astral."
         
         # Gerar interpretação detalhada com Groq (sempre tentar, mesmo sem contexto do RAG)
-        if rag_service.groq_client:
+        groq_client = _get_groq_client()
+        if groq_client:
             try:
                 # Prompt detalhado para gerar pelo menos 2 parágrafos
                 system_prompt = """Você é um astrólogo experiente especializado em interpretação de regentes do mapa astral. 
@@ -1160,7 +1085,7 @@ IMPORTANTE:
 
 Formate a resposta de forma didática, usando quebras de linha e estruturação adequada para facilitar a leitura."""
                 
-                chat_completion = rag_service.groq_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
@@ -1221,7 +1146,7 @@ Formate a resposta de forma didática, usando quebras de linha e estruturação 
         if ruler_house:
             query += f" casa {ruler_house}"
         
-        interpretation = rag_service.get_interpretation(
+        interpretation = await rag_client.get_interpretation(
             custom_query=query,
             use_groq=True,
             top_k=12,  # Aumentar top_k no fallback também
@@ -1258,7 +1183,7 @@ class PlanetHouseInterpretationRequest(BaseModel):
 
 
 @router.post("/interpretation/planet-house")
-def get_planet_house_interpretation(
+async def get_planet_house_interpretation(
     request: PlanetHouseInterpretationRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -1272,7 +1197,7 @@ def get_planet_house_interpretation(
     }
     """
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
         planet = request.planet
         house = request.house
@@ -1298,7 +1223,7 @@ NÃO invente outros planetas ou casas.
 """
         
         # Buscar no RAG e gerar com Groq
-        interpretation = rag_service.get_interpretation(
+        interpretation = await rag_client.get_interpretation(
             planet=planet,
             house=house,
             use_groq=True,
@@ -1337,7 +1262,7 @@ class AspectInterpretationRequest(BaseModel):
 
 
 @router.post("/interpretation/aspect")
-def get_aspect_interpretation(
+async def get_aspect_interpretation(
     request: AspectInterpretationRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -1352,7 +1277,7 @@ def get_aspect_interpretation(
     }
     """
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
         planet1 = request.planet1
         planet2 = request.planet2
@@ -1372,7 +1297,7 @@ def get_aspect_interpretation(
         query = f"{planet1} {aspect} {planet2} aspecto interpretação"
         
         # Buscar no RAG e gerar com Groq
-        interpretation = rag_service.get_interpretation(
+        interpretation = await rag_client.get_interpretation(
             custom_query=query,
             use_groq=True,
             category='astrology'  # Garantir que use apenas documentos de astrologia
@@ -1403,7 +1328,7 @@ def get_aspect_interpretation(
 
 
 @router.post("/interpretation/daily-advice")
-def get_daily_advice(
+async def get_daily_advice(
     request: DailyAdviceRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -1423,7 +1348,7 @@ def get_daily_advice(
     }
     """
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
         # Construir query baseada na categoria e casa lunar
         category_queries = {
@@ -1484,23 +1409,36 @@ def get_daily_advice(
         query = " ".join(query_parts)
         
         # Buscar interpretação usando RAG + Groq
-        interpretation = rag_service.get_interpretation(
+        interpretation = await rag_client.get_interpretation(
             custom_query=query,
             use_groq=True,
             category='astrology'  # Garantir que use apenas documentos de astrologia
         )
         
         # Se Groq não estiver disponível ou falhar, usar fallback
-        if interpretation.get('generated_by') != 'groq' and rag_service.groq_client:
+        groq_client = _get_groq_client()
+        if interpretation.get('generated_by') != 'groq' and groq_client:
             # Tentar gerar com Groq usando contexto mais específico
             try:
                 # Buscar documentos relevantes
-                rag_results = rag_service.search(query, top_k=8)
+                rag_results = await rag_client.search(query, top_k=8)
                 if rag_results:
-                    interpretation_text = rag_service._generate_with_groq(
-                        f"Conselho astrológico sobre {request.category} considerando Lua na casa {request.moonHouse}",
-                        rag_results
-                    )
+                    # Gerar interpretação com Groq usando contexto do RAG
+                    try:
+                        context_text = "\n\n".join([doc.get('text', '') for doc in rag_results[:5] if doc.get('text')])
+                        chat_completion = groq_client.chat.completions.create(
+                            model="llama-3.1-70b-versatile",
+                            messages=[
+                                {"role": "system", "content": "Você é um astrólogo experiente."},
+                                {"role": "user", "content": f"Conselho astrológico sobre {request.category} considerando Lua na casa {request.moonHouse}. Contexto: {context_text[:2000]}"}
+                            ],
+                            temperature=0.7,
+                            max_tokens=2000
+                        )
+                        interpretation_text = chat_completion.choices[0].message.content
+                    except Exception as e:
+                        print(f"[WARNING] Erro ao gerar com Groq: {e}")
+                        interpretation_text = None
                     # Aplicar filtro de deduplicação
                     interpretation_text = _deduplicate_text(interpretation_text)
                     interpretation['interpretation'] = interpretation_text
@@ -2684,7 +2622,7 @@ IMPORTANT:
 
 
 @router.post("/full-birth-chart/section", response_model=FullBirthChartResponse)
-def generate_birth_chart_section(
+async def generate_birth_chart_section(
     request: FullBirthChartRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -2722,10 +2660,10 @@ def generate_birth_chart_section(
             )
         
         # Verificar RAG service (não é mais obrigatório - temos fallbacks)
-        rag_service = None
+        rag_client = None
         try:
-            rag_service = get_rag_service()
-            if rag_service:
+            rag_client = get_rag_client()
+            if rag_client:
                 log("INFO", "RAG service disponível")
             else:
                 log("WARNING", "RAG service não disponível - usando fallbacks")
@@ -2733,25 +2671,16 @@ def generate_birth_chart_section(
             log("WARNING", f"Erro ao obter RAG service: {str(e)} - continuando com fallbacks")
         
         # Não falhar se RAG não estiver disponível - temos fallbacks robustos
-        
-        # Tentar carregar índice se RAG service estiver disponível
         has_index = False
-        if rag_service:
+        if rag_client:
             try:
-                if hasattr(rag_service, 'index'):
-                    has_index = rag_service.index is not None
-                elif hasattr(rag_service, 'documents'):
-                    has_index = len(rag_service.documents) > 0
-                
+                # Verificar se o RAG service está funcionando
+                status = await rag_client.get_status()
+                has_index = status.get('has_index', False)
                 if not has_index:
-                    log("WARNING", "Índice RAG vazio, tentando carregar...")
-                    if hasattr(rag_service, 'load_index'):
-                        if not rag_service.load_index():
-                            log("WARNING", "Não foi possível carregar índice RAG. Continuando com base local.")
-                    else:
-                        log("WARNING", "Método load_index não disponível. Continuando com base local.")
+                    log("WARNING", "Índice RAG vazio. Continuando com fallbacks.")
             except Exception as e:
-                log("WARNING", f"Erro ao verificar índice RAG: {str(e)}")
+                log("WARNING", f"Erro ao verificar status RAG: {str(e)}")
         
         # Validar dados do mapa astral e criar bloco de dados pré-calculados
         try:
@@ -2790,10 +2719,10 @@ def generate_birth_chart_section(
         
         # Buscar contexto do RAG com tratamento de erro
         rag_results = []
-        if rag_service and has_index:
+        if rag_client and has_index:
             try:
                 log("INFO", f"Buscando contexto no RAG para query: {query[:50]}...")
-                rag_results = rag_service.search(query, top_k=10)
+                rag_results = await rag_client.search(query, top_k=6)
                 log("INFO", f"RAG retornou {len(rag_results)} resultados")
             except Exception as e:
                 log("WARNING", f"Erro ao buscar no RAG: {str(e)} - continuando sem RAG")
@@ -2801,26 +2730,15 @@ def generate_birth_chart_section(
             log("INFO", "Pulando busca RAG (serviço não disponível ou índice vazio)")
         
         # Preparar contexto
-        context_text = "\n\n".join([doc.get('text', '') for doc in rag_results[:8] if doc.get('text')])
+        context_text = "\n\n".join([doc.get('text', '') for doc in rag_results[:6] if doc.get('text')])
         
-        # Se não houver contexto do RAG, usar base local
+        # Se não houver contexto do RAG, usar contexto mínimo
         if not context_text or len(context_text.strip()) < 100:
-            try:
-                from app.services.local_knowledge_base import LocalKnowledgeBase
-                local_kb = LocalKnowledgeBase()
-                local_results = local_kb.get_context(
-                    planet=request.sunSign if request.section == 'triad' else None,
-                    sign=request.sunSign,
-                    house=request.sunHouse if request.section == 'roots' else None,
-                    query=query
-                )
-                if local_results:
-                    context_text = "\n\n".join([ctx.get('text', '') for ctx in local_results[:5] if ctx.get('text')])
-            except Exception as e:
-                print(f"[WARNING] Erro ao usar base local: {e}")
+            context_text = "Informações astrológicas gerais sobre o tema."
         
         # Gerar interpretação com Groq
-        if rag_service.groq_client:
+        groq_client = _get_groq_client()
+        if groq_client:
             try:
                 from groq import Groq
                 
@@ -2855,7 +2773,7 @@ IMPORTANTE FINAL:
 - Garanta que TODAS as seções tenham conteúdo completo e detalhado
 - Não deixe títulos sem conteúdo"""
                 
-                chat_completion = rag_service.groq_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     messages=[
                         {"role": "system", "content": master_prompt},
                         {"role": "user", "content": full_user_prompt}
@@ -2896,28 +2814,14 @@ IMPORTANTE FINAL:
                             generated_by="rag_only"
                         )
         
-        # Fallback final: usar base de conhecimento local
-        try:
-            from app.services.local_knowledge_base import LocalKnowledgeBase
-            local_kb = LocalKnowledgeBase()
-            local_context = local_kb.get_context(
-                planet=request.sunSign if request.section == 'triad' else None,
-                sign=request.sunSign,
-                house=request.sunHouse if request.section == 'roots' else None,
-                query=query
-            )
-            
-            if local_context and len(local_context) > 0:
-                fallback_text = "\n\n".join([ctx.get('text', '') for ctx in local_context[:2] if ctx.get('text')])
-                if fallback_text and len(fallback_text) > 100:
-                    return FullBirthChartResponse(
-                        section=request.section,
-                        title=title,
-                        content=fallback_text[:2000],
-                        generated_by="local_kb"
-                    )
-        except Exception as e:
-            log("ERROR", f"Erro ao usar base local: {str(e)}")
+        # Fallback final: retornar mensagem informativa
+        log("WARNING", "Todos os fallbacks falharam. Retornando mensagem informativa.")
+        return FullBirthChartResponse(
+            section=request.section,
+            title=title,
+            content="Não foi possível gerar interpretação no momento. Por favor, tente novamente mais tarde.",
+            generated_by="none"
+        )
         
         # Último fallback: mensagem de erro útil
         log("WARNING", "Todos os métodos de geração falharam - retornando mensagem de erro")
@@ -2975,7 +2879,7 @@ IMPORTANTE FINAL:
 
 
 @router.post("/full-birth-chart/all", response_model=FullBirthChartSectionsResponse)
-def generate_full_birth_chart(
+async def generate_full_birth_chart(
     request: FullBirthChartRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -3106,7 +3010,7 @@ def calculate_solar_return_chart(
 
 
 @router.post("/solar-return/interpretation", response_model=InterpretationResponse)
-def get_solar_return_interpretation(
+async def get_solar_return_interpretation(
     request: SolarReturnInterpretationRequest,
     authorization: Optional[str] = Header(None)
 ):
@@ -3133,11 +3037,12 @@ def get_solar_return_interpretation(
     }
     """
     try:
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         lang = request.language or 'pt'
         
         # Verificar se o Groq está disponível
-        has_groq = rag_service.groq_client is not None
+        groq_client = _get_groq_client()
+        has_groq = groq_client is not None
         print(f"[SOLAR RETURN] Groq disponível: {has_groq}")
         if not has_groq:
             print(f"[SOLAR RETURN] AVISO: Groq client não está disponível.")
@@ -3373,7 +3278,7 @@ IMPORTANT:
         all_rag_results = []
         for q in queries:
             try:
-                results = rag_service.search(q, top_k=5)
+                results = await rag_client.search(q, top_k=5)
                 all_rag_results.extend(results)
             except Exception as e:
                 print(f"[WARNING] Erro ao buscar no RAG com query '{q}': {e}")
@@ -3393,7 +3298,8 @@ IMPORTANT:
         print(f"[SOLAR RETURN] Contexto RAG coletado: {len(context_text)} chars de {len(unique_results)} documentos")
         
         # Gerar interpretação com Groq
-        if rag_service.groq_client:
+        groq_client = _get_groq_client()
+        if groq_client:
             try:
                 print(f"[SOLAR RETURN] Tentando gerar interpretação com Groq...")
                 context_snippet = context_text[:3000] if context_text else "Informações gerais sobre revolução solar."
@@ -3422,7 +3328,7 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                 for model_name in models_to_try:
                     try:
                         print(f"[SOLAR RETURN] Tentando modelo: {model_name}")
-                        chat_completion = rag_service.groq_client.chat.completions.create(
+                        chat_completion = groq_client.chat.completions.create(
                             messages=[
                                 {"role": "system", "content": system_prompt},
                                 {"role": "user", "content": full_user_prompt}
@@ -3492,7 +3398,7 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
             # Tentar cada query
             for fallback_query in fallback_queries:
                 try:
-                    fallback_result = rag_service.get_interpretation(
+                    fallback_result = await rag_client.get_interpretation(
                         custom_query=fallback_query,
                         use_groq=True,
                         category='astrology'  # Garantir que use apenas documentos de astrologia
@@ -3733,7 +3639,7 @@ class NumerologyMapResponse(BaseModel):
 
 
 @router.get("/numerology/map", response_model=NumerologyMapResponse)
-def get_numerology_map(
+async def get_numerology_map(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
@@ -3792,7 +3698,7 @@ class NumerologyInterpretationResponse(BaseModel):
 
 
 @router.post("/numerology/interpretation", response_model=NumerologyInterpretationResponse)
-def get_numerology_interpretation(
+async def get_numerology_interpretation(
     request: NumerologyInterpretationRequest,
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
@@ -3825,7 +3731,7 @@ def get_numerology_interpretation(
         )
         
         # Obter RAG service
-        rag_service = get_rag_service()
+        rag_client = get_rag_client()
         
         # Construir queries específicas para cada número e conceito
         queries = []
@@ -3921,7 +3827,7 @@ def get_numerology_interpretation(
         
         for query in queries:
             try:
-                results = rag_service.search(
+                results = await rag_client.search(
                     query=query,
                     top_k=3,  # Menos resultados por query, mas mais queries
                     expand_query=False,  # Não expandir para manter foco
@@ -3961,9 +3867,9 @@ def get_numerology_interpretation(
             
             # Tentar busca genérica de numerologia
             try:
-                generic_results = rag_service.search(
+                generic_results = await rag_client.search(
                     query="numerologia pitagórica significado números",
-                    top_k=10,
+                    top_k=6,
                     expand_query=True,
                     category='numerology'
                 )
@@ -4256,10 +4162,11 @@ IMPORTANT:
 - Organize information clearly, avoiding repetitions"""
         
         # Gerar interpretação com Groq usando prompts customizados
-        if rag_service.groq_client and context_documents:
+        groq_client = _get_groq_client()
+        if groq_client and context_documents:
             try:
                 # Chamar Groq diretamente com prompts customizados
-                chat_completion = rag_service.groq_client.chat.completions.create(
+                chat_completion = groq_client.chat.completions.create(
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}

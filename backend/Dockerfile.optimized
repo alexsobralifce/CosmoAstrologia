@@ -45,7 +45,7 @@ COPY --from=builder /root/.local /root/.local
 
 # Copy app
 COPY app/ ./app/
-COPY rag_index_llamaindex/ ./rag_index_llamaindex/
+# RAG index is now in a separate microservice, no need to copy it
 
 EXPOSE 8000
 

@@ -67,25 +67,12 @@ RUN pip install --no-cache-dir --user \
     google-auth-httplib2>=0.2.0 \
     groq>=0.4.1
 
-# Batch 7: Utilities
+# Batch 7: Utilities & HTTP Client
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
-    PyPDF2==3.0.1 \
-    "numpy<2.0"
-
-# Batch 8: ML/AI (heaviest - install last, with longer timeout)
-# Build continues even if these fail (RAG will be optional)
-RUN pip install --no-cache-dir --user \
-    --timeout=600 \
-    --retries=5 \
-    fastembed>=0.2.0 || echo "⚠️ fastembed failed - RAG may not work"
-
-RUN pip install --no-cache-dir --user \
-    --timeout=600 \
-    --retries=5 \
-    llama-index>=0.13.6 \
-    llama-index-embeddings-huggingface>=0.1.0 || echo "⚠️ llama-index failed - RAG may not work"
+    "numpy<2.0" \
+    httpx>=0.24.0
 
 # Final stage
 FROM python:3.11-slim
@@ -106,7 +93,6 @@ COPY --from=builder /root/.local /root/.local
 
 # Copy application
 COPY app/ ./app/
-COPY rag_index_llamaindex/ ./rag_index_llamaindex/
 
 EXPOSE 8000
 

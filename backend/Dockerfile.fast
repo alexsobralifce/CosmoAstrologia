@@ -83,11 +83,7 @@ RUN pip install --no-cache-dir --user \
     --retries=5 \
     fastembed>=0.2.0 || echo "⚠️ fastembed failed - RAG may not work"
 
-RUN pip install --no-cache-dir --user \
-    --timeout=600 \
-    --retries=5 \
-    llama-index>=0.13.6 \
-    llama-index-embeddings-huggingface>=0.1.0 || echo "⚠️ llama-index failed - RAG may not work"
+# LlamaIndex removido - usando FastEmbed (já instalado no Batch 8)
 
 # Final stage
 FROM python:3.11-slim
@@ -108,7 +104,7 @@ COPY --from=builder /root/.local /root/.local
 
 # Copy app
 COPY app/ ./app/
-COPY rag_index_llamaindex/ ./rag_index_llamaindex/
+# RAG index is now in a separate microservice, no need to copy it
 
 EXPOSE 8000
 

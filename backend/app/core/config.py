@@ -50,9 +50,8 @@ class Settings(BaseSettings):
     # API Keys
     GROQ_API_KEY: str = ""
     
-    # RAG Implementation
-    # Usando apenas LlamaIndex (legacy removido)
-    RAG_IMPLEMENTATION: str = "llamaindex"
+    # RAG Service URL (microsserviço)
+    RAG_SERVICE_URL: str = "http://localhost:8001"
     
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod

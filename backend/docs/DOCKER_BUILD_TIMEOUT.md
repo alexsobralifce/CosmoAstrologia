@@ -137,7 +137,7 @@ Verifique os logs do Railway para identificar onde está travando:
 **Solução:**
 1. Verifique logs de runtime (não build)
 2. Verifique variáveis de ambiente
-3. Verifique se `rag_index_llamaindex/` foi copiado
+3. Verifique se `rag_index_fastembed/` foi copiado
 
 ### Erro "Module not found" em runtime
 

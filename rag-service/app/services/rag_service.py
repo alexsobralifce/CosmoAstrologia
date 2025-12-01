@@ -1,33 +1,29 @@
 """
-Serviço RAG (Retrieval-Augmented Generation) usando LlamaIndex e BGE (Hugging Face).
-Nova implementação que substituirá a estrutura antiga após validação.
+Serviço RAG (Retrieval-Augmented Generation) usando FastEmbed e modelo BGE (Hugging Face).
+Versão otimizada - mais leve e rápida que LlamaIndex.
 """
 
 import os
+import json
+import pickle
 from pathlib import Path
-from typing import List, Dict, Optional, Any, TYPE_CHECKING
+from typing import List, Dict, Optional, Any
 import re
-
-if TYPE_CHECKING:
-    from llama_index.core.node_parser import SentenceSplitter
-    from llama_index.core.schema import Document
+import numpy as np
 
 try:
-    from llama_index.core import (
-        VectorStoreIndex,
-        SimpleDirectoryReader,
-        StorageContext,
-        load_index_from_storage,
-        Settings,
-    )
-    from llama_index.core.schema import Document
-    from llama_index.core.node_parser import SentenceSplitter
-    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-    HAS_LLAMAINDEX = True
+    from fastembed import TextEmbedding
+    HAS_FASTEMBED = True
 except ImportError as e:
-    HAS_LLAMAINDEX = False
-    SentenceSplitter = None  # Define como None quando não disponível
-    print(f"[DEBUG] ImportError ao carregar LlamaIndex: {e}")
+    HAS_FASTEMBED = False
+    print(f"[DEBUG] ImportError ao carregar FastEmbed: {e}")
+
+try:
+    import PyPDF2
+    HAS_PYPDF2 = True
+except ImportError:
+    HAS_PYPDF2 = False
+    print("[WARNING] PyPDF2 não instalado. PDFs não poderão ser processados.")
 
 try:
     from groq import Groq
@@ -38,18 +34,59 @@ except ImportError:
 from app.services.local_knowledge_base import LocalKnowledgeBase
 
 
-class RAGServiceLlamaIndex:
-    """Serviço RAG usando LlamaIndex e modelo BGE do Hugging Face."""
+def _chunk_text(text: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[str]:
+    """
+    Divide texto em chunks com overlap.
+    
+    Args:
+        text: Texto a dividir
+        chunk_size: Tamanho do chunk
+        chunk_overlap: Overlap entre chunks
+    
+    Returns:
+        Lista de chunks
+    """
+    if not text or len(text) < chunk_size:
+        return [text] if text else []
+    
+    chunks = []
+    start = 0
+    
+    while start < len(text):
+        end = start + chunk_size
+        chunk = text[start:end]
+        
+        # Tentar quebrar em parágrafo ou frase
+        if end < len(text):
+            # Procurar última quebra de linha ou ponto
+            last_newline = chunk.rfind('\n')
+            last_period = chunk.rfind('. ')
+            
+            if last_newline > chunk_size * 0.5:
+                chunk = chunk[:last_newline + 1]
+                end = start + last_newline + 1
+            elif last_period > chunk_size * 0.5:
+                chunk = chunk[:last_period + 1]
+                end = start + last_period + 1
+        
+        chunks.append(chunk.strip())
+        start = end - chunk_overlap
+    
+    return chunks
+
+
+class RAGServiceFastEmbed:
+    """Serviço RAG usando FastEmbed e modelo BGE do Hugging Face."""
     
     def __init__(
         self,
         docs_path: str = "docs",
-        index_path: str = "rag_index_llamaindex",
+        index_path: str = "rag_index_fastembed",
         groq_api_key: Optional[str] = None,
         bge_model_name: str = "BAAI/bge-small-en-v1.5"
     ):
         """
-        Inicializa o serviço RAG com LlamaIndex.
+        Inicializa o serviço RAG com FastEmbed.
         
         Args:
             docs_path: Caminho para pasta de documentos
@@ -59,35 +96,33 @@ class RAGServiceLlamaIndex:
         """
         self.docs_path = Path(docs_path)
         self.index_path = Path(index_path)
-        self.index = None
+        self.embedding_model = None
         self.groq_client = None
         self.bge_model_name = bge_model_name
         
-        if not HAS_LLAMAINDEX:
-            print("[WARNING] LlamaIndex não instalado. Instale com: pip install llama-index llama-index-embeddings-huggingface")
+        # Dados do índice
+        self.documents: List[Dict[str, Any]] = []  # Lista de documentos com embeddings
+        self.embeddings_matrix: Optional[np.ndarray] = None  # Matriz de embeddings
+        
+        if not HAS_FASTEMBED:
+            print("[WARNING] FastEmbed não instalado. Instale com: pip install fastembed")
             return
         
         # Configurar modelo de embeddings BGE
         try:
-            print(f"[RAG-LlamaIndex] Carregando modelo BGE: {bge_model_name}")
-            embed_model = HuggingFaceEmbedding(
-                model_name=bge_model_name,
-                trust_remote_code=True
-            )
-            Settings.embed_model = embed_model
-            print(f"[RAG-LlamaIndex] Modelo BGE carregado com sucesso")
+            print(f"[RAG-FastEmbed] Carregando modelo BGE: {bge_model_name}")
+            self.embedding_model = TextEmbedding(model_name=bge_model_name)
+            print(f"[RAG-FastEmbed] Modelo BGE carregado com sucesso")
         except Exception as e:
             print(f"[ERROR] Erro ao carregar modelo BGE: {e}")
-            print(f"[RAG-LlamaIndex] Tentando modelo alternativo...")
+            print(f"[RAG-FastEmbed] Tentando modelo alternativo...")
             try:
                 # Fallback para modelo multilíngue
-                embed_model = HuggingFaceEmbedding(
-                    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-                    trust_remote_code=True
+                self.embedding_model = TextEmbedding(
+                    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
                 )
-                Settings.embed_model = embed_model
                 self.bge_model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-                print(f"[RAG-LlamaIndex] Modelo alternativo carregado")
+                print(f"[RAG-FastEmbed] Modelo alternativo carregado")
             except Exception as e2:
                 print(f"[ERROR] Não foi possível carregar modelo: {e2}")
                 raise
@@ -97,7 +132,7 @@ class RAGServiceLlamaIndex:
             if groq_api_key and groq_api_key.strip():
                 try:
                     self.groq_client = Groq(api_key=groq_api_key.strip())
-                    print("[RAG-LlamaIndex] Cliente Groq inicializado com sucesso")
+                    print("[RAG-FastEmbed] Cliente Groq inicializado com sucesso")
                 except Exception as e:
                     print(f"[WARNING] Erro ao inicializar Groq: {e}")
                     self.groq_client = None
@@ -106,7 +141,7 @@ class RAGServiceLlamaIndex:
                 self.groq_client = None
     
     def _clean_text(self, text: str) -> str:
-        """Remove ruído comum de PDFs (mesma lógica da implementação antiga)."""
+        """Remove ruído comum de PDFs."""
         if not text:
             return ""
         
@@ -149,101 +184,87 @@ class RAGServiceLlamaIndex:
         return text.strip()
     
     def _detect_category(self, filename: str, folder_path: Path) -> str:
-        """
-        Detecta a categoria do documento pelo prefixo do arquivo ou pela pasta.
-        
-        Args:
-            filename: Nome do arquivo
-            folder_path: Caminho da pasta onde o arquivo está
-            
-        Returns:
-            'astrology' ou 'numerology'
-        """
+        """Detecta a categoria do documento."""
         filename_lower = filename.lower()
         folder_str = str(folder_path).lower()
         
-        # Prioridade 1: Verificar prefixo do arquivo
         if filename_lower.startswith('num_'):
             return 'numerology'
         elif filename_lower.startswith('ast_'):
             return 'astrology'
         
-        # Prioridade 2: Verificar se está na pasta numerologia
         if 'numerologia' in folder_str:
             return 'numerology'
         
-        # Default: astrologia (pasta docs)
         return 'astrology'
     
-    def _process_folder(
-        self, 
-        folder_path: Path, 
-        node_parser: "SentenceSplitter",
-        documents: List
-    ) -> None:
-        """
-        Processa todos os documentos (PDFs e Markdowns) de uma pasta específica.
+    def _extract_text_from_pdf(self, pdf_path: Path) -> str:
+        """Extrai texto de um PDF."""
+        if not HAS_PYPDF2:
+            return ""
         
-        Args:
-            folder_path: Caminho da pasta a processar
-            node_parser: Parser de nós para chunking
-            documents: Lista de documentos para adicionar os processados
-        """
+        try:
+            text = ""
+            with open(pdf_path, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                for page in pdf_reader.pages:
+                    text += page.extract_text() + "\n"
+            return text
+        except Exception as e:
+            print(f"[ERROR] Erro ao extrair texto de {pdf_path.name}: {e}")
+            return ""
+    
+    def _process_folder(self, folder_path: Path) -> List[Dict[str, Any]]:
+        """Processa todos os documentos de uma pasta."""
         if not folder_path.exists():
-            print(f"[RAG-LlamaIndex] Pasta não encontrada: {folder_path}")
-            return
+            print(f"[RAG-FastEmbed] Pasta não encontrada: {folder_path}")
+            return []
         
         folder_name = folder_path.name
-        print(f"[RAG-LlamaIndex] Processando pasta: {folder_name}...")
+        print(f"[RAG-FastEmbed] Processando pasta: {folder_name}...")
+        
+        documents = []
         
         # Processar PDFs
         pdf_files = list(folder_path.glob("*.pdf"))
-        print(f"[RAG-LlamaIndex] Encontrados {len(pdf_files)} arquivos PDF em {folder_name}")
+        print(f"[RAG-FastEmbed] Encontrados {len(pdf_files)} arquivos PDF em {folder_name}")
         
         for pdf_path in pdf_files:
-            print(f"[RAG-LlamaIndex] Processando PDF: {pdf_path.name}...")
+            print(f"[RAG-FastEmbed] Processando PDF: {pdf_path.name}...")
             try:
                 category = self._detect_category(pdf_path.name, folder_path)
+                text = self._extract_text_from_pdf(pdf_path)
+                cleaned_text = self._clean_text(text)
                 
-                reader = SimpleDirectoryReader(
-                    input_files=[str(pdf_path)],
-                    file_metadata=lambda filename: {
-                        'source': Path(filename).name,
-                        'file_type': 'pdf',
-                        'category': category
-                    }
-                )
-                pdf_docs = reader.load_data()
-                
-                # Limpar texto e garantir categoria nos metadados
-                # Criar novos documentos com texto limpo (Document.text é read-only)
-                cleaned_docs = []
-                for doc in pdf_docs:
-                    cleaned_text = self._clean_text(doc.text if hasattr(doc, 'text') else str(doc))
+                if cleaned_text:
+                    # Dividir em chunks
+                    chunks = _chunk_text(cleaned_text, chunk_size=1000, chunk_overlap=200)
                     
-                    # Criar novo documento com texto limpo
-                    new_doc = Document(
-                        text=cleaned_text,
-                        metadata={
-                            'source': pdf_path.name,
-                            'file_type': 'pdf',
-                            'category': category,
-                            **(doc.metadata if hasattr(doc, 'metadata') and doc.metadata else {})
-                        }
-                    )
-                    cleaned_docs.append(new_doc)
-                
-                documents.extend(cleaned_docs)
-                print(f"  → {len(pdf_docs)} documentos extraídos (categoria: {category})")
+                    for i, chunk in enumerate(chunks):
+                        if len(chunk.strip()) > 50:  # Ignorar chunks muito pequenos
+                            documents.append({
+                                'text': chunk,
+                                'source': pdf_path.name,
+                                'file_type': 'pdf',
+                                'category': category,
+                                'page': i + 1,  # Aproximação
+                                'metadata': {
+                                    'source': pdf_path.name,
+                                    'file_type': 'pdf',
+                                    'category': category
+                                }
+                            })
+                    
+                    print(f"  → {len(chunks)} chunks extraídos (categoria: {category})")
             except Exception as e:
                 print(f"[ERROR] Erro ao processar {pdf_path.name}: {e}")
         
         # Processar Markdowns
         md_files = list(folder_path.glob("*.md"))
-        print(f"[RAG-LlamaIndex] Encontrados {len(md_files)} arquivos Markdown em {folder_name}")
+        print(f"[RAG-FastEmbed] Encontrados {len(md_files)} arquivos Markdown em {folder_name}")
         
         for md_path in md_files:
-            print(f"[RAG-LlamaIndex] Processando MD: {md_path.name}...")
+            print(f"[RAG-FastEmbed] Processando MD: {md_path.name}...")
             try:
                 with open(md_path, 'r', encoding='utf-8') as f:
                     content = f.read()
@@ -251,56 +272,57 @@ class RAGServiceLlamaIndex:
                 if content.strip():
                     category = self._detect_category(md_path.name, folder_path)
                     
-                    doc = Document(
-                        text=content,
-                        metadata={
-                            'source': md_path.name,
-                            'file_type': 'markdown',
-                            'category': category
-                        }
-                    )
-                    documents.append(doc)
-                    print(f"  → 1 documento extraído (categoria: {category})")
+                    # Dividir em chunks
+                    chunks = _chunk_text(content, chunk_size=1000, chunk_overlap=200)
+                    
+                    for i, chunk in enumerate(chunks):
+                        if len(chunk.strip()) > 50:
+                            documents.append({
+                                'text': chunk,
+                                'source': md_path.name,
+                                'file_type': 'markdown',
+                                'category': category,
+                                'page': i + 1,
+                                'metadata': {
+                                    'source': md_path.name,
+                                    'file_type': 'markdown',
+                                    'category': category
+                                }
+                            })
+                    
+                    print(f"  → {len(chunks)} chunks extraídos (categoria: {category})")
             except Exception as e:
                 print(f"[ERROR] Erro ao processar {md_path.name}: {e}")
+        
+        return documents
     
     def process_all_documents(self) -> int:
         """
-        Processa todos os documentos (PDFs e Markdowns) de ambas as pastas
-        (docs para astrologia e numerologia para numerologia) e cria o índice.
+        Processa todos os documentos e cria o índice.
         
         Returns:
             Número de chunks processados
         """
-        if not HAS_LLAMAINDEX:
-            raise RuntimeError("LlamaIndex não disponível. Instale: pip install llama-index llama-index-embeddings-huggingface")
+        if not HAS_FASTEMBED:
+            raise RuntimeError("FastEmbed não disponível. Instale: pip install fastembed")
         
         if not self.docs_path.exists():
             raise FileNotFoundError(f"Pasta de documentos não encontrada: {self.docs_path}")
         
         # Definir pastas
-        docs_path = Path(self.docs_path)  # Pasta docs (astrologia)
-        numerologia_path = docs_path.parent / "numerologia"  # Pasta numerologia
+        docs_path = Path(self.docs_path)
+        numerologia_path = docs_path.parent / "numerologia"
         
-        print(f"[RAG-LlamaIndex] Processando documentos em {docs_path} e {numerologia_path}...")
+        print(f"[RAG-FastEmbed] Processando documentos em {docs_path} e {numerologia_path}...")
         
-        # Configurar parser de nós com chunking otimizado
-        node_parser = SentenceSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-        )
-        
-        # Ler documentos
+        # Processar documentos
         documents = []
+        documents.extend(self._process_folder(docs_path))
         
-        # Processar pasta docs (astrologia)
-        self._process_folder(docs_path, node_parser, documents)
-        
-        # Processar pasta numerologia (se existir)
         if numerologia_path.exists():
-            self._process_folder(numerologia_path, node_parser, documents)
+            documents.extend(self._process_folder(numerologia_path))
         else:
-            print(f"[RAG-LlamaIndex] Pasta numerologia não encontrada: {numerologia_path}")
+            print(f"[RAG-FastEmbed] Pasta numerologia não encontrada: {numerologia_path}")
         
         if not documents:
             print("[WARNING] Nenhum documento processado")
@@ -309,64 +331,128 @@ class RAGServiceLlamaIndex:
         # Estatísticas por categoria
         categories_count = {}
         for doc in documents:
-            category = doc.metadata.get('category', 'astrology') if hasattr(doc, 'metadata') and doc.metadata else 'astrology'
+            category = doc.get('category', 'astrology')
             categories_count[category] = categories_count.get(category, 0) + 1
         
-        print(f"[RAG-LlamaIndex] Total de documentos: {len(documents)}")
+        print(f"[RAG-FastEmbed] Total de chunks: {len(documents)}")
         for cat, count in categories_count.items():
-            print(f"  → {cat}: {count} documentos")
+            print(f"  → {cat}: {count} chunks")
         
-        print(f"[RAG-LlamaIndex] Criando índice vetorial com LlamaIndex...")
+        print(f"[RAG-FastEmbed] Gerando embeddings com FastEmbed...")
         
-        # Criar nós dos documentos
-        nodes = node_parser.get_nodes_from_documents(documents)
-        print(f"[RAG-LlamaIndex] Criados {len(nodes)} nós (chunks)")
+        # Gerar embeddings para todos os documentos
+        texts = [doc['text'] for doc in documents]
+        embeddings_list = list(self.embedding_model.embed(texts))
         
-        # Criar índice vetorial
-        self.index = VectorStoreIndex(nodes)
+        # Converter para numpy array
+        self.embeddings_matrix = np.array(embeddings_list)
         
-        print(f"[RAG-LlamaIndex] Índice criado com sucesso!")
-        print(f"  → {len(nodes)} nós indexados")
+        # Adicionar embeddings aos documentos
+        for i, doc in enumerate(documents):
+            doc['embedding'] = embeddings_list[i]
         
-        return len(nodes)
+        self.documents = documents
+        
+        print(f"[RAG-FastEmbed] Índice criado com sucesso!")
+        print(f"  → {len(documents)} chunks indexados")
+        print(f"  → Dimensão dos embeddings: {self.embeddings_matrix.shape[1]}")
+        
+        return len(documents)
     
     def save_index(self):
         """Salva o índice em disco."""
-        if self.index is None:
+        if not self.documents or self.embeddings_matrix is None:
             raise ValueError("Nenhum índice para salvar. Execute process_all_documents() primeiro.")
         
         # Criar diretório se não existir
         self.index_path.mkdir(parents=True, exist_ok=True)
         
-        # Salvar índice
-        self.index.storage_context.persist(persist_dir=str(self.index_path))
-        print(f"[RAG-LlamaIndex] Índice salvo em {self.index_path}")
+        # Salvar documentos (sem embeddings para economizar espaço)
+        documents_to_save = []
+        for doc in self.documents:
+            doc_copy = doc.copy()
+            doc_copy.pop('embedding', None)  # Remover embedding (será recalculado se necessário)
+            documents_to_save.append(doc_copy)
+        
+        # Salvar documentos
+        with open(self.index_path / "documents.json", 'w', encoding='utf-8') as f:
+            json.dump(documents_to_save, f, ensure_ascii=False, indent=2)
+        
+        # Salvar embeddings como numpy array (mais eficiente)
+        np.save(self.index_path / "embeddings.npy", self.embeddings_matrix)
+        
+        # Salvar metadados
+        metadata = {
+            'model_name': self.bge_model_name,
+            'num_documents': len(self.documents),
+            'embedding_dim': self.embeddings_matrix.shape[1]
+        }
+        with open(self.index_path / "metadata.json", 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+        
+        print(f"[RAG-FastEmbed] Índice salvo em {self.index_path}")
     
     def load_index(self) -> bool:
         """Carrega o índice do disco."""
-        if not HAS_LLAMAINDEX:
+        if not HAS_FASTEMBED:
             return False
         
         if not self.index_path.exists():
             return False
         
         try:
-            # Recriar embed_model para garantir que está configurado
-            embed_model = HuggingFaceEmbedding(
-                model_name=self.bge_model_name,
-                trust_remote_code=True
-            )
-            Settings.embed_model = embed_model
+            # Carregar metadados
+            metadata_path = self.index_path / "metadata.json"
+            if not metadata_path.exists():
+                return False
             
-            # Carregar índice
-            storage_context = StorageContext.from_defaults(persist_dir=str(self.index_path))
-            self.index = load_index_from_storage(storage_context)
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
             
-            print(f"[RAG-LlamaIndex] Índice carregado de {self.index_path}")
+            # Verificar se o modelo é compatível
+            if metadata.get('model_name') != self.bge_model_name:
+                print(f"[WARNING] Modelo do índice ({metadata.get('model_name')}) diferente do configurado ({self.bge_model_name})")
+                print("[WARNING] Reconstruindo índice...")
+                return False
+            
+            # Carregar documentos
+            documents_path = self.index_path / "documents.json"
+            if not documents_path.exists():
+                return False
+            
+            with open(documents_path, 'r', encoding='utf-8') as f:
+                documents = json.load(f)
+            
+            # Carregar embeddings
+            embeddings_path = self.index_path / "embeddings.npy"
+            if not embeddings_path.exists():
+                return False
+            
+            self.embeddings_matrix = np.load(embeddings_path)
+            
+            # Reconstruir documentos com embeddings
+            self.documents = []
+            for i, doc in enumerate(documents):
+                doc['embedding'] = self.embeddings_matrix[i].tolist()
+                self.documents.append(doc)
+            
+            print(f"[RAG-FastEmbed] Índice carregado de {self.index_path}")
+            print(f"  → {len(self.documents)} documentos carregados")
             return True
         except Exception as e:
             print(f"[ERROR] Erro ao carregar índice: {e}")
+            import traceback
+            traceback.print_exc()
             return False
+    
+    def _cosine_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
+        """Calcula similaridade cosseno entre dois vetores."""
+        dot_product = np.dot(vec1, vec2)
+        norm1 = np.linalg.norm(vec1)
+        norm2 = np.linalg.norm(vec2)
+        if norm1 == 0 or norm2 == 0:
+            return 0.0
+        return float(dot_product / (norm1 * norm2))
     
     def search(
         self, 
@@ -382,48 +468,40 @@ class RAGServiceLlamaIndex:
             query: Texto da consulta
             top_k: Número de resultados a retornar
             expand_query: Se True, faz múltiplas buscas com variações da query
-            category: Filtrar por categoria ('astrology' ou 'numerology'). 
-                     Se None, retorna resultados de todas as categorias.
+            category: Filtrar por categoria ('astrology' ou 'numerology')
         
         Returns:
             Lista de documentos relevantes com metadados e score
         """
-        if not HAS_LLAMAINDEX:
+        if not HAS_FASTEMBED or self.embedding_model is None:
             # Fallback para base de conhecimento local
-            from app.services.local_knowledge_base import LocalKnowledgeBase
-            import re
-            
             local_kb = LocalKnowledgeBase()
+            import re
             
             # Tentar extrair planetas e signos da query
             planet = None
             sign = None
             house = None
             
-            # Lista de planetas
             planets_list = ['Sol', 'Lua', 'Mercúrio', 'Vênus', 'Marte', 'Júpiter', 'Saturno', 'Urano', 'Netuno', 'Plutão']
             signs_list = ['Áries', 'Touro', 'Gêmeos', 'Câncer', 'Leão', 'Virgem', 'Libra', 'Escorpião', 'Sagitário', 'Capricórnio', 'Aquário', 'Peixes']
             
             query_lower = query.lower()
             
-            # Procurar planetas na query
             for p in planets_list:
                 if p.lower() in query_lower or local_kb.normalize_planet(p).lower() in query_lower:
                     planet = p
                     break
             
-            # Procurar signos na query
             for s in signs_list:
                 if s.lower() in query_lower or local_kb.normalize_sign(s).lower() in query_lower:
                     sign = s
                     break
             
-            # Procurar casas (casa 1, casa 2, etc.)
             house_match = re.search(r'casa\s+(\d+)', query_lower)
             if house_match:
                 house = int(house_match.group(1))
             
-            # Buscar contexto com informações extraídas
             context = local_kb.get_context(
                 planet=planet,
                 sign=sign,
@@ -431,20 +509,18 @@ class RAGServiceLlamaIndex:
                 query=query if not planet and not sign else None
             )
             
-            # Converter para formato esperado
             results = []
             for i, ctx in enumerate(context[:top_k]):
                 results.append({
                     'text': ctx.get('text', ''),
                     'source': ctx.get('source', 'local_kb'),
                     'page': ctx.get('page', 1),
-                    'score': 0.8 - (i * 0.1)  # Score decrescente
+                    'score': 0.8 - (i * 0.1)
                 })
             
-            # Se não encontrou nada, retornar pelo menos um resultado genérico
             if not results:
                 results.append({
-                    'text': f"Informações sobre: {query}. Para interpretações completas, instale o LlamaIndex e construa o índice RAG.",
+                    'text': f"Informações sobre: {query}. Para interpretações completas, instale o FastEmbed e construa o índice RAG.",
                     'source': 'local_kb',
                     'page': 1,
                     'score': 0.5
@@ -452,54 +528,58 @@ class RAGServiceLlamaIndex:
             
             return results
         
-        if self.index is None:
+        if not self.documents or self.embeddings_matrix is None:
             raise ValueError("Índice não carregado. Execute load_index() ou process_all_documents() primeiro.")
         
-        # Usar retriever para obter nós diretamente
         try:
-            # Buscar mais resultados se houver filtro de categoria (para garantir top_k após filtro)
-            search_top_k = top_k * 3 if category else (top_k * 2 if expand_query else top_k)
-            retriever = self.index.as_retriever(similarity_top_k=search_top_k)
-            nodes = retriever.retrieve(query)
+            # Gerar embedding da query
+            query_embedding = np.array(list(self.embedding_model.embed([query]))[0])
             
-            # Converter nós para formato esperado e filtrar por categoria
-            results = []
-            for node in nodes:
-                # Extrair score (similarity score)
-                score = node.score if hasattr(node, 'score') else 0.0
-                
-                # Extrair metadados
-                metadata = node.metadata if hasattr(node, 'metadata') else {}
-                source = metadata.get('source', 'unknown')
-                page = metadata.get('page', 1)
-                node_category = metadata.get('category', 'astrology')  # Default para astrologia
-                
+            # Buscar mais resultados se houver filtro de categoria (otimizado: reduzido de *3 para *1.5)
+            search_top_k = int(top_k * 1.5) if category else (int(top_k * 1.2) if expand_query else top_k)
+            
+            # Calcular similaridade com todos os documentos
+            similarities = []
+            for i, doc in enumerate(self.documents):
                 # Filtrar por categoria se especificada
-                if category and node_category != category:
+                if category and doc.get('category') != category:
                     continue
                 
+                doc_embedding = np.array(doc.get('embedding', []))
+                if len(doc_embedding) == 0:
+                    continue
+                
+                similarity = self._cosine_similarity(query_embedding, doc_embedding)
+                similarities.append((similarity, i))
+            
+            # Ordenar por similaridade e pegar top_k
+            similarities.sort(reverse=True, key=lambda x: x[0])
+            top_indices = [idx for _, idx in similarities[:search_top_k]]
+            
+            # Converter para formato esperado
+            results = []
+            for idx in top_indices:
+                doc = self.documents[idx]
+                similarity_score = similarities[top_indices.index(idx)][0] if top_indices else 0.0
+                
                 results.append({
-                    'text': node.text if hasattr(node, 'text') else str(node),
-                    'score': float(score),
-                    'source': source,
-                    'page': page,
-                    'category': node_category,
-                    'metadata': metadata
+                    'text': doc.get('text', ''),
+                    'score': float(similarity_score),
+                    'source': doc.get('source', 'unknown'),
+                    'page': doc.get('page', 1),
+                    'category': doc.get('category', 'astrology'),
+                    'metadata': doc.get('metadata', {})
                 })
                 
-                # Limitar resultados após filtro
                 if len(results) >= top_k:
                     break
             
-            # Ordenar por score (caso não esteja ordenado) e limitar
-            results = sorted(results, key=lambda x: x['score'], reverse=True)[:top_k]
-            
             if category:
-                print(f"[RAG-LlamaIndex] Busca filtrada por categoria '{category}': {len(results)} resultados")
+                print(f"[RAG-FastEmbed] Busca filtrada por categoria '{category}': {len(results)} resultados")
             
             return results
         except Exception as e:
-            print(f"[RAG-LlamaIndex] Erro ao buscar: {e}")
+            print(f"[RAG-FastEmbed] Erro ao buscar: {e}")
             import traceback
             traceback.print_exc()
             return []
@@ -510,23 +590,15 @@ class RAGServiceLlamaIndex:
         context_documents: List[Dict[str, Any]],
         category: Optional[str] = None
     ) -> str:
-        """
-        Gera interpretação usando Groq baseada nos documentos recuperados.
-        
-        Args:
-            query: Query de busca
-            context_documents: Documentos recuperados do RAG
-            category: 'astrology' ou 'numerology' para ajustar o prompt
-        """
+        """Gera interpretação usando Groq baseada nos documentos recuperados."""
         if not self.groq_client:
             raise ValueError("Cliente Groq não disponível")
         
         # Determinar categoria se não especificada
         if category is None:
-            # Detectar categoria pelos documentos ou pela query
             doc_categories = [doc.get('category', 'astrology') for doc in context_documents if doc.get('category')]
             if doc_categories:
-                category = doc_categories[0]  # Usar categoria do primeiro documento
+                category = doc_categories[0]
             else:
                 query_lower = query.lower()
                 if any(word in query_lower for word in ['numerologia', 'numerology', 'número', 'numero', 'caminho de vida', 'life path']):
@@ -534,13 +606,12 @@ class RAGServiceLlamaIndex:
                 else:
                     category = 'astrology'
         
-        # Preparar contexto - garantir que todos os documentos sejam da mesma categoria
+        # Preparar contexto
         filtered_docs = [
             doc for doc in context_documents 
             if doc.get('category', 'astrology') == category
         ]
         
-        # Se não houver documentos filtrados, usar todos (mas avisar)
         if not filtered_docs:
             print(f"[WARNING] Nenhum documento da categoria '{category}' encontrado. Usando todos os documentos.")
             filtered_docs = context_documents
@@ -551,7 +622,7 @@ class RAGServiceLlamaIndex:
             if doc.get('text')
         ])
         
-        # Detectar tipo de consulta (apenas para astrologia)
+        # Detectar tipo de consulta
         is_synastry_query = False
         is_chart_ruler_query = False
         
@@ -566,9 +637,8 @@ class RAGServiceLlamaIndex:
                 'chart ruler', 'ruler of', 'ascendant ruler'
             ])
         
-        # Ajustar prompts baseado na categoria
+        # Ajustar prompts baseado na categoria (mesmo código do original)
         if category == 'numerology':
-            # Prompt específico para numerologia
             system_prompt = """Você é um Numerólogo Pitagórico experiente e também Astrólogo. Sua abordagem sintetiza as melhores referências mundiais: a precisão técnica e síntese de Matthew Oliver Goodwin, a profundidade psicológica e terapêutica de Hans Decoz, a visão holística de saúde de David A. Phillips e a geometria sagrada/ciclos de vida de Faith Javane & Dusty Bunker.
 
 IMPORTANTE CRÍTICO:
@@ -684,7 +754,6 @@ IMPORTANTE:
 - Conecte as informações de forma narrativa"""
         
         else:
-            # Prompt padrão para outras consultas
             system_prompt = """Você é um astrólogo especialista com profundo conhecimento em astrologia tradicional, cármica e preditiva.
 
 MISSÃO: Criar interpretações astrológicas PRECISAS, COMPLETAS e DIDÁTICAS baseadas nos documentos fornecidos.
@@ -741,10 +810,8 @@ INSTRUÇÕES:
             
             interpretation = chat_completion.choices[0].message.content
             
-            # Limpeza básica
             if interpretation:
                 interpretation = interpretation.strip()
-                # Remover referências explícitas a fontes
                 interpretation = re.sub(r'\[Fonte:[^\]]+\]', '', interpretation)
                 interpretation = re.sub(r'Página \d+', '', interpretation)
             
@@ -764,20 +831,10 @@ INSTRUÇÕES:
         top_k: int = 8,
         category: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Obtém interpretação astrológica ou numerológica.
-        
-        Args:
-            category: 'astrology' ou 'numerology' para filtrar resultados.
-                     Se None, assume 'astrology' por padrão.
-        """
-        # Verificar se LlamaIndex está disponível
-        if not HAS_LLAMAINDEX:
-            # Usar base de conhecimento local como fallback
-            from app.services.local_knowledge_base import LocalKnowledgeBase
+        """Obtém interpretação astrológica ou numerológica."""
+        if not HAS_FASTEMBED:
             local_kb = LocalKnowledgeBase()
             
-            # Construir query
             if custom_query:
                 query = custom_query
             else:
@@ -792,7 +849,6 @@ INSTRUÇÕES:
                     query_parts.append(f"casa {house}")
                 query = " ".join(query_parts) if query_parts else "interpretação astrológica"
             
-            # Buscar no conhecimento local
             context = local_kb.get_context(
                 planet=planet,
                 sign=sign,
@@ -800,18 +856,17 @@ INSTRUÇÕES:
                 query=query
             )
             
-            # Gerar interpretação básica
             if context and len(context) > 0:
                 context_text = "\n\n".join([ctx.get('text', '') for ctx in context[:3] if ctx.get('text')])
                 return {
-                    'interpretation': context_text[:1000] if context_text else "Interpretação não disponível sem LlamaIndex.",
+                    'interpretation': context_text[:1000] if context_text else "Interpretação não disponível sem FastEmbed.",
                     'sources': [],
                     'query_used': query,
                     'generated_by': 'local_kb'
                 }
             else:
                 return {
-                    'interpretation': f"Interpretação básica: {query}. Para interpretações completas, instale o LlamaIndex.",
+                    'interpretation': f"Interpretação básica: {query}. Para interpretações completas, instale o FastEmbed.",
                     'sources': [],
                     'query_used': query,
                     'generated_by': 'fallback'
@@ -834,7 +889,7 @@ INSTRUÇÕES:
                 query_parts.append(f"aspecto {aspect} relação planetas")
             query = " ".join(query_parts) if query_parts else "interpretação mapa astral completa"
         
-        # Identificar tipo de consulta para ajustar top_k
+        # Identificar tipo de consulta para ajustar top_k (otimizado: valores reduzidos)
         query_lower = query.lower()
         is_karma_query = any(word in query_lower for word in ['nodo', 'karma', 'carma', 'passado', 'vidas passadas', 'retrógrado'])
         is_transit_query = any(word in query_lower for word in ['trânsito', 'transito', 'futuro', 'previsão', 'tendência'])
@@ -844,32 +899,31 @@ INSTRUÇÕES:
             'relacionamento', 'relationship', 'casal', 'couple'
         ])
         
-        # Ajustar top_k baseado no tipo de consulta
+        # Ajustar top_k baseado no tipo de consulta (valores reduzidos)
         if is_karma_query or is_transit_query:
-            top_k = 20
+            top_k = 12  # Era 20
         elif is_aspect_query:
-            top_k = 15
+            top_k = 10  # Era 15
         elif is_synastry_query:
-            top_k = 18
+            top_k = 12  # Era 18
         else:
-            top_k = 12
+            top_k = 8  # Era 12
         
         # Determinar categoria se não especificada
         if category is None:
-            # Detectar categoria pela query (padrão: astrologia)
             query_lower = query.lower()
             if any(word in query_lower for word in ['numerologia', 'numerology', 'número', 'numero', 'caminho de vida', 'life path']):
                 category = 'numerology'
             else:
-                category = 'astrology'  # Default
+                category = 'astrology'
         
-        # Buscar documentos relevantes com filtro de categoria
+        # Buscar documentos relevantes
         results = []
         try:
             results = self.search(query, top_k=top_k, expand_query=True, category=category)
-            print(f"[RAG-LlamaIndex] Busca retornou {len(results)} resultados para query: {query[:100]} (categoria: {category})")
+            print(f"[RAG-FastEmbed] Busca retornou {len(results)} resultados para query: {query[:100]} (categoria: {category})")
         except Exception as e:
-            print(f"[RAG-LlamaIndex] Erro na busca: {e}")
+            print(f"[RAG-FastEmbed] Erro na busca: {e}")
         
         # Fallback para base local se não houver resultados
         if not results:
@@ -901,7 +955,7 @@ INSTRUÇÕES:
                         'generated_by': 'groq'
                     }
             except Exception as e:
-                print(f"[RAG-LlamaIndex] Erro ao gerar com Groq: {e}")
+                print(f"[RAG-FastEmbed] Erro ao gerar com Groq: {e}")
         
         # Fallback: retornar documentos sem processamento
         interpretation_text = "\n\n".join([
@@ -934,31 +988,31 @@ INSTRUÇÕES:
 
 
 # Instância global
-_rag_service_llamaindex: Optional[RAGServiceLlamaIndex] = None
+_rag_service_instance: Optional[RAGServiceFastEmbed] = None
 
 
-def get_rag_service_llamaindex() -> RAGServiceLlamaIndex:
-    """Obtém instância singleton do serviço RAG com LlamaIndex."""
-    global _rag_service_llamaindex
+def get_rag_service() -> RAGServiceFastEmbed:
+    """Obtém instância singleton do serviço RAG com FastEmbed."""
+    global _rag_service_instance
     
-    if _rag_service_llamaindex is None:
+    if _rag_service_instance is None:
         from app.core.config import settings
         
-        backend_path = Path(__file__).parent.parent.parent
-        docs_path = backend_path / "docs"
-        index_path = backend_path / "rag_index_llamaindex"
+        service_path = Path(__file__).parent.parent.parent
+        docs_path = service_path / settings.DOCS_PATH
+        index_path = service_path / settings.INDEX_PATH
         
-        groq_api_key = settings.GROQ_API_KEY if hasattr(settings, 'GROQ_API_KEY') else None
+        groq_api_key = settings.GROQ_API_KEY if settings.GROQ_API_KEY else None
         
-        _rag_service_llamaindex = RAGServiceLlamaIndex(
+        _rag_service_instance = RAGServiceFastEmbed(
             docs_path=str(docs_path),
             index_path=str(index_path),
-            groq_api_key=groq_api_key
+            groq_api_key=groq_api_key,
+            bge_model_name=settings.BGE_MODEL_NAME
         )
         
         # Tentar carregar índice existente
-        if not _rag_service_llamaindex.load_index():
-            print("[RAG-LlamaIndex] Índice não encontrado. Execute build_rag_index_llamaindex.py para criar.")
+        if not _rag_service_instance.load_index():
+            print("[RAG-Service] Índice não encontrado. Execute o script de build do índice para criar.")
     
-    return _rag_service_llamaindex
-
+    return _rag_service_instance

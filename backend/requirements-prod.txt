@@ -35,11 +35,8 @@ google-auth-httplib2>=0.2.0
 groq>=0.4.1
 
 # Utilities
-PyPDF2==3.0.1
 numpy<2.0
 
-# RAG Dependencies (instalar por último)
-fastembed>=0.2.0
-llama-index>=0.13.6
-llama-index-embeddings-huggingface>=0.1.0
+# HTTP Client para RAG Service
+httpx>=0.24.0
 

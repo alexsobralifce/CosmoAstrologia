@@ -1,3 +1,7 @@
+# Dockerfile otimizado para builds rápidos
+# Usa requirements-prod.txt (sem dependências de teste)
+# Instala dependências em batches menores
+
 FROM python:3.11-slim as builder
 
 WORKDIR /app
@@ -9,16 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip first
+# Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Use production requirements (without test dependencies)
-# This significantly reduces build time
-COPY requirements-prod.txt requirements.txt
+# Copy production requirements (sem dependências de teste)
+COPY requirements-prod.txt .
 
-# Install dependencies in small batches to avoid timeout
-# Each batch has 3min timeout, ML dependencies have 10min
-# Batch 1: FastAPI core
+# Install in small batches to avoid timeout
+# Batch 1: FastAPI core (muito rápido)
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
@@ -74,8 +76,8 @@ RUN pip install --no-cache-dir --user \
     PyPDF2==3.0.1 \
     "numpy<2.0"
 
-# Batch 8: ML/AI (heaviest - install last, with longer timeout)
-# Build continues even if these fail (RAG will be optional)
+# Batch 8: ML/AI (mais pesadas - instalar por último)
+# Se falhar, o build continua (RAG será opcional)
 RUN pip install --no-cache-dir --user \
     --timeout=600 \
     --retries=5 \
@@ -92,7 +94,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Runtime dependencies only
+# Runtime only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
@@ -101,13 +103,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/root/.local/bin:$PATH
 
-# Copy installed packages
+# Copy packages
 COPY --from=builder /root/.local /root/.local
 
-# Copy application
+# Copy app
 COPY app/ ./app/
 COPY rag_index_llamaindex/ ./rag_index_llamaindex/
 
 EXPOSE 8000
 
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --loop asyncio
+

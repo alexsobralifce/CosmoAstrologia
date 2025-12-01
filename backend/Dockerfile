@@ -2,11 +2,13 @@ FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies (including swig for pyswisseph/kerykeion)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
+    swig \
+    libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip first
@@ -72,21 +74,30 @@ RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
     "numpy<2.0" \
-    httpx>=0.24.0
+    httpx>=0.27.0 \
+    PyPDF2==3.0.1
+
+# Batch 8: RAG Dependencies (consolidado no backend)
+RUN pip install --no-cache-dir --user \
+    --timeout=600 \
+    --retries=3 \
+    fastembed>=0.2.0
 
 # Final stage
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Runtime dependencies only
+# Runtime dependencies only (libpq5 for PostgreSQL, libc6 for compiled extensions)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    libc6 \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PATH=/root/.local/bin:$PATH
+    PATH=/root/.local/bin:$PATH \
+    PORT=8000
 
 # Copy installed packages
 COPY --from=builder /root/.local /root/.local
@@ -96,4 +107,6 @@ COPY app/ ./app/
 
 EXPOSE 8000
 
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --loop asyncio
+# Use PORT environment variable (defaults to 8000 if not set)
+# Railway e outras plataformas definem PORT automaticamente
+CMD sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --loop asyncio'

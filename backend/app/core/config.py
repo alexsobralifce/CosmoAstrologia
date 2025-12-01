@@ -50,8 +50,10 @@ class Settings(BaseSettings):
     # API Keys
     GROQ_API_KEY: str = ""
     
-    # RAG Service URL (microsserviço)
-    RAG_SERVICE_URL: str = "http://localhost:8001"
+    # RAG Configuration (consolidado no backend)
+    DOCS_PATH: str = "docs"
+    INDEX_PATH: str = "rag_index_fastembed"
+    BGE_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
     
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod

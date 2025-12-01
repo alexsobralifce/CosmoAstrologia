@@ -1,10 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.api import auth
 from app.api import interpretation
 import os
+import traceback
 
 # Criar tabelas
 Base.metadata.create_all(bind=engine)
@@ -45,6 +49,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Exception handlers para garantir CORS mesmo em erros
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Garante que headers CORS sejam adicionados mesmo em erros HTTP"""
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+    # Adicionar headers CORS manualmente
+    origin = request.headers.get("origin")
+    if origin and origin in cors_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Garante que headers CORS sejam adicionados mesmo em erros gerais"""
+    print(f"[ERROR] Exception não tratada: {str(exc)}")
+    print(f"[ERROR] Traceback: {traceback.format_exc()}")
+    response = JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": f"Erro interno do servidor: {str(exc)}"}
+    )
+    # Adicionar headers CORS manualmente
+    origin = request.headers.get("origin")
+    if origin and origin in cors_origins:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # Routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

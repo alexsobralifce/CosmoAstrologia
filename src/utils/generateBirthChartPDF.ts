@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { OnboardingData } from '../components/onboarding';
 import { formatTriadContent } from './formatTriadContent';
+import { getAllGlossaryTerms } from './astrologicalGlossary';
 
 interface BirthChartSection {
   section: string;
@@ -223,12 +224,27 @@ export const generateBirthChartPDF = ({
   const birthTime = userData.birthTime || '';
   const birthPlace = userData.birthPlace || '';
   
+  // Nome
   doc.text(`${language === 'pt' ? 'Nome:' : 'Name:'} ${userName}`, pageWidth / 2, y, { align: 'center' });
   y += 7;
-  doc.text(`${language === 'pt' ? 'Data de Nascimento:' : 'Birth Date:'} ${birthDate} ${language === 'pt' ? 'às' : 'at'} ${birthTime}`, pageWidth / 2, y, { align: 'center' });
-  y += 7;
-  doc.text(`${language === 'pt' ? 'Local:' : 'Place:'} ${birthPlace}`, pageWidth / 2, y, { align: 'center' });
-  y += 15;
+  
+  // Data e hora
+  const dateTimeText = `${language === 'pt' ? 'Data de Nascimento:' : 'Birth Date:'} ${birthDate} ${language === 'pt' ? 'às' : 'at'} ${birthTime}`;
+  const dateTimeLines = splitTextIntoLines(doc, dateTimeText, pageWidth - (margin * 2));
+  dateTimeLines.forEach((line) => {
+    doc.text(line, pageWidth / 2, y, { align: 'center' });
+    y += 6;
+  });
+  
+  // Local - usar splitTextIntoLines para evitar truncamento
+  const placeLabel = language === 'pt' ? 'Local:' : 'Place:';
+  const placeText = `${placeLabel} ${birthPlace}`;
+  const placeLines = splitTextIntoLines(doc, placeText, pageWidth - (margin * 2));
+  placeLines.forEach((line) => {
+    doc.text(line, pageWidth / 2, y, { align: 'center' });
+    y += 6;
+  });
+  y += 9; // Espaço adicional após local
   
   // Resumo do mapa
   doc.setFontSize(11);
@@ -388,6 +404,127 @@ export const generateBirthChartPDF = ({
     }
     doc.text(line, margin, y);
     y += 6;
+  });
+  
+  // ===== GLOSSÁRIO DE TERMOS TÉCNICOS =====
+  y += 15;
+  if (y > pageHeight - 60) {
+    doc.addPage();
+    y = margin;
+  }
+  
+  // Título do Glossário
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(60, 60, 60);
+  doc.text(language === 'pt' ? 'Glossário de Termos Técnicos' : 'Glossary of Technical Terms', margin, y);
+  y += 12;
+  
+  // Introdução do Glossário
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(80, 80, 80);
+  const glossaryIntro = language === 'pt' 
+    ? 'Abaixo estão explicações dos principais termos técnicos de astrologia utilizados neste mapa astral:'
+    : 'Below are explanations of the main technical terms in astrology used in this birth chart:';
+  const glossaryIntroLines = splitTextIntoLines(doc, glossaryIntro, pageWidth - (margin * 2), 9);
+  glossaryIntroLines.forEach((line) => {
+    if (y > pageHeight - 30) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.text(line, margin, y);
+    y += 5;
+  });
+  y += 8;
+  
+  // Obter termos do glossário
+  const glossaryTerms = getAllGlossaryTerms(language as 'pt' | 'en');
+  
+  // Organizar termos por categoria
+  const termsByCategory: Record<string, typeof glossaryTerms> = {
+    basic: [],
+    planets: [],
+    houses: [],
+    aspects: [],
+    points: [],
+    advanced: [],
+  };
+  
+  glossaryTerms.forEach(term => {
+    if (termsByCategory[term.category]) {
+      termsByCategory[term.category].push(term);
+    }
+  });
+  
+  // Categorias em ordem de importância
+  const categoryOrder = ['basic', 'planets', 'houses', 'aspects', 'points', 'advanced'];
+  const categoryNames = language === 'pt' 
+    ? {
+        basic: 'Termos Básicos',
+        planets: 'Planetas',
+        houses: 'Casas',
+        aspects: 'Aspectos',
+        points: 'Pontos Importantes',
+        advanced: 'Termos Avançados',
+      }
+    : {
+        basic: 'Basic Terms',
+        planets: 'Planets',
+        houses: 'Houses',
+        aspects: 'Aspects',
+        points: 'Important Points',
+        advanced: 'Advanced Terms',
+      };
+  
+  categoryOrder.forEach(category => {
+    const categoryTerms = termsByCategory[category];
+    if (categoryTerms.length === 0) return;
+    
+    // Título da categoria
+    if (y > pageHeight - 50) {
+      doc.addPage();
+      y = margin;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 100, 200);
+    doc.text(categoryNames[category as keyof typeof categoryNames] || category, margin, y);
+    y += 10;
+    
+    // Termos da categoria
+    categoryTerms.forEach(term => {
+      if (y > pageHeight - 40) {
+        doc.addPage();
+        y = margin;
+      }
+      
+      // Nome do termo
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text(term.term + ':', margin + 5, y);
+      y += 6;
+      
+      // Explicação do termo
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      const explanationLines = splitTextIntoLines(doc, term.explanation, pageWidth - (margin * 2) - 10, 9);
+      explanationLines.forEach((line) => {
+        if (y > pageHeight - 30) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin + 10, y);
+        y += 5;
+      });
+      
+      y += 5; // Espaço entre termos
+    });
+    
+    y += 5; // Espaço extra entre categorias
   });
   
   // Rodapé

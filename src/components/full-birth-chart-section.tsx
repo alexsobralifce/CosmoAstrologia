@@ -8,6 +8,7 @@ import { OnboardingData } from './onboarding';
 import { formatGroqText } from '../utils/formatGroqText';
 import { generateBirthChartPDF } from '../utils/generateBirthChartPDF';
 import { formatTriadContent } from '../utils/formatTriadContent';
+import { GlossaryTooltip } from './glossary-tooltip';
 
 // ===== TIPOS =====
 interface BirthChartSection {
@@ -410,7 +411,13 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                   <p className="birth-chart-planet-sign">{sunSign}</p>
                 </div>
                 <p className="birth-chart-planet-desc">
-                  {language === 'pt' ? 'Sua essência e identidade' : 'Your essence and identity'}
+                  {language === 'pt' ? (
+                    <>
+                      <GlossaryTooltip term="Signo Solar">Sua essência e identidade</GlossaryTooltip>
+                    </>
+                  ) : (
+                    'Your essence and identity'
+                  )}
                 </p>
               </div>
               
@@ -426,7 +433,13 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                   <p className="birth-chart-planet-sign">{moonSign}</p>
                 </div>
                 <p className="birth-chart-planet-desc">
-                  {language === 'pt' ? 'Suas emoções e necessidades' : 'Your emotions and needs'}
+                  {language === 'pt' ? (
+                    <>
+                      <GlossaryTooltip term="Signo Lunar">Suas emoções e necessidades</GlossaryTooltip>
+                    </>
+                  ) : (
+                    'Your emotions and needs'
+                  )}
                 </p>
               </div>
               
@@ -442,7 +455,13 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
                   <p className="birth-chart-planet-sign">{ascendant}</p>
                 </div>
                 <p className="birth-chart-planet-desc">
-                  {language === 'pt' ? 'Sua máscara social' : 'Your social mask'}
+                  {language === 'pt' ? (
+                    <>
+                      <GlossaryTooltip term="Ascendente">Sua máscara social</GlossaryTooltip>
+                    </>
+                  ) : (
+                    'Your social mask'
+                  )}
                 </p>
               </div>
             </div>
@@ -459,8 +478,8 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
         
         <p className="birth-chart-sections-description">
           {language === 'pt' 
-            ? 'Clique em cada seção para expandir e ler a análise detalhada. Cada seção é gerada individualmente com base nos seus dados de nascimento.'
-            : 'Click on each section to expand and read the detailed analysis. Each section is generated individually based on your birth data.'}
+            ? 'Clique em cada seção para expandir e ler a análise detalhada. Cada seção é gerada individualmente com base nos seus dados de nascimento. Passe o mouse sobre os termos técnicos para ver explicações detalhadas.'
+            : 'Click on each section to expand and read the detailed analysis. Each section is generated individually based on your birth data. Hover over technical terms to see detailed explanations.'}
         </p>
         
         <div className="birth-chart-sections-list">

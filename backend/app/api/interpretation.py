@@ -23,11 +23,16 @@ router = APIRouter()
 def _get_groq_client():
     """Helper para obter cliente Groq se disponível."""
     try:
-        if not settings.GROQ_API_KEY:
+        if not settings.GROQ_API_KEY or not settings.GROQ_API_KEY.strip():
             return None
         from groq import Groq
-        return Groq(api_key=settings.GROQ_API_KEY)
-    except Exception:
+        # Validar formato básico da chave (deve começar com gsk_)
+        api_key = settings.GROQ_API_KEY.strip()
+        if not api_key.startswith('gsk_'):
+            print("[WARNING] GROQ_API_KEY não parece ter formato válido (deve começar com 'gsk_')")
+        return Groq(api_key=api_key)
+    except Exception as e:
+        print(f"[WARNING] Erro ao criar cliente Groq: {e}")
         return None
 
 
@@ -383,16 +388,47 @@ async def get_birth_chart_diagnostics():
     try:
         import os
         from app.core.config import settings
-        groq_key = os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", None)
-        has_groq_key = bool(groq_key)
+        
+        # Verificar de múltiplas fontes
+        groq_key_env = os.getenv("GROQ_API_KEY")
+        groq_key_settings = getattr(settings, "GROQ_API_KEY", None)
+        groq_key = groq_key_env or groq_key_settings
+        
+        has_groq_key = bool(groq_key and groq_key.strip())
+        key_length = len(groq_key.strip()) if groq_key else 0
+        key_format_valid = groq_key.strip().startswith('gsk_') if groq_key else False
+        
+        # Tentar validar a chave fazendo uma chamada de teste
+        key_valid = False
+        validation_error = None
+        if has_groq_key:
+            try:
+                from groq import Groq
+                test_client = Groq(api_key=groq_key.strip())
+                # Fazer uma chamada simples para validar
+                test_client.models.list()  # Chamada simples que não consome tokens
+                key_valid = True
+            except Exception as e:
+                validation_error = str(e)
+                if "401" in str(e) or "Invalid API Key" in str(e) or "invalid_api_key" in str(e):
+                    key_valid = False
+                    validation_error = "Chave inválida ou expirada"
         
         diagnostics["services"]["groq"] = {
             "api_key_configured": has_groq_key,
-            "api_key_length": len(groq_key) if groq_key else 0
+            "api_key_length": key_length,
+            "api_key_format_valid": key_format_valid,
+            "api_key_valid": key_valid,
+            "validation_error": validation_error,
+            "source": "env" if groq_key_env else "settings" if groq_key_settings else "none"
         }
         
         if not has_groq_key:
-            diagnostics["recommendations"].append("Configure GROQ_API_KEY nas variáveis de ambiente")
+            diagnostics["recommendations"].append("Configure GROQ_API_KEY no arquivo backend/.env ou variáveis de ambiente")
+        elif not key_format_valid:
+            diagnostics["recommendations"].append("GROQ_API_KEY não tem formato válido (deve começar com 'gsk_')")
+        elif not key_valid:
+            diagnostics["recommendations"].append(f"GROQ_API_KEY configurada mas inválida: {validation_error}. Obtenha uma nova chave em https://console.groq.com/")
     except Exception as e:
         diagnostics["services"]["groq"] = {
             "available": False,
@@ -2866,13 +2902,28 @@ async def generate_birth_chart_section(
             context_text = "Informações astrológicas gerais sobre o tema. Use seu conhecimento astrológico para criar uma interpretação detalhada e completa."
         
         # Verificar Groq - OBRIGATÓRIO para geração
-        groq_client = _get_groq_client()
+        groq_client = None
         groq_error = None
-        if not groq_client:
-            groq_error = "Groq client não disponível - GROQ_API_KEY não configurada ou inválida"
+        
+        # Verificar se a chave está configurada
+        if not settings.GROQ_API_KEY or not settings.GROQ_API_KEY.strip():
+            groq_error = "GROQ_API_KEY não configurada - Configure a chave da API do Groq no arquivo .env ou variáveis de ambiente"
             log("ERROR", groq_error)
             print(f"[ERROR] [REQ-{request_id}] {groq_error}")
-            print(f"[ERROR] [REQ-{request_id}] Verifique se GROQ_API_KEY está configurada nas variáveis de ambiente")
+            print(f"[ERROR] [REQ-{request_id}] Para obter uma chave: https://console.groq.com/")
+            print(f"[ERROR] [REQ-{request_id}] Adicione no arquivo backend/.env: GROQ_API_KEY=sua_chave_aqui")
+        else:
+            # Tentar criar o cliente
+            try:
+                groq_client = _get_groq_client()
+                if not groq_client:
+                    groq_error = "Erro ao inicializar cliente Groq - Verifique se a chave é válida"
+                    log("ERROR", groq_error)
+                    print(f"[ERROR] [REQ-{request_id}] {groq_error}")
+            except Exception as e:
+                groq_error = f"Erro ao criar cliente Groq: {str(e)}"
+                log("ERROR", groq_error)
+                print(f"[ERROR] [REQ-{request_id}] {groq_error}")
         
         # Gerar interpretação com Groq - OBRIGATÓRIO
         if groq_client:
@@ -2937,7 +2988,8 @@ IMPORTANTE FINAL:
                 )
                 
             except Exception as e:
-                groq_error = f"Erro ao gerar com Groq: {str(e)}"
+                error_str = str(e)
+                groq_error = f"Erro ao gerar com Groq: {error_str}"
                 log("ERROR", groq_error)
                 print(f"[ERROR] [REQ-{request_id}] {groq_error}")
                 print(f"[ERROR] [REQ-{request_id}] Traceback completo: {traceback.format_exc()}")
@@ -2945,11 +2997,28 @@ IMPORTANTE FINAL:
                 print(f"[ERROR] [REQ-{request_id}] Tamanho do prompt: {len(full_user_prompt)} chars")
                 print(f"[ERROR] [REQ-{request_id}] Tamanho do system prompt: {len(master_prompt)} chars")
                 print(f"[ERROR] [REQ-{request_id}] Contexto RAG disponível: {len(context_snippet)} chars")
-                # Não fazer fallback - queremos ver o erro
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Erro ao gerar interpretação com Groq: {str(e)}. Verifique os logs para mais detalhes. Request ID: {request_id}"
-                )
+                
+                # Importar status aqui para evitar problemas de escopo
+                from fastapi import status as http_status
+                
+                # Verificar se é erro de API key inválida
+                if "401" in error_str or "Invalid API Key" in error_str or "invalid_api_key" in error_str:
+                    error_detail = (
+                        f"Chave da API do Groq inválida ou expirada. "
+                        f"Verifique se GROQ_API_KEY está correta no arquivo backend/.env. "
+                        f"Para obter uma nova chave: https://console.groq.com/ "
+                        f"Request ID: {request_id}"
+                    )
+                    raise HTTPException(
+                        status_code=http_status.HTTP_401_UNAUTHORIZED,
+                        detail=error_detail
+                    )
+                else:
+                    # Outros erros
+                    raise HTTPException(
+                        status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Erro ao gerar interpretação com Groq: {error_str}. Verifique os logs para mais detalhes. Request ID: {request_id}"
+                    )
         
         # Se Groq não está disponível, retornar erro
         if not groq_client:
@@ -2975,9 +3044,28 @@ Ação necessária:
 """
             print(error_summary)
             log("ERROR", "Não foi possível gerar - Groq não disponível")
+            
+            # Importar status aqui para evitar problemas de escopo
+            from fastapi import status as http_status
+            
+            # Mensagem mais clara para o usuário
+            if "não configurada" in (groq_error or "").lower():
+                error_detail = (
+                    f"Chave da API do Groq não configurada. "
+                    f"Configure GROQ_API_KEY no arquivo backend/.env. "
+                    f"Para obter uma chave: https://console.groq.com/ "
+                    f"Request ID: {request_id}"
+                )
+            else:
+                error_detail = (
+                    f"Serviço Groq não disponível: {groq_error or 'Erro desconhecido'}. "
+                    f"Verifique se GROQ_API_KEY está configurada corretamente. "
+                    f"Request ID: {request_id}"
+                )
+            
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Serviço Groq não disponível. Verifique se GROQ_API_KEY está configurada. Request ID: {request_id}"
+                status_code=http_status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=error_detail
             )
         error_msg_pt = f"""Não foi possível gerar a análise completa no momento. 
 
@@ -3024,10 +3112,17 @@ Ação necessária:
     except HTTPException:
         raise
     except Exception as e:
-        log("ERROR", f"Erro crítico ao gerar seção do mapa: {str(e)}")
-        log("ERROR", f"Traceback completo: {traceback.format_exc()}")
+        # Importar status aqui para evitar problemas de escopo
+        from fastapi import status as http_status
+        try:
+            log("ERROR", f"Erro crítico ao gerar seção do mapa: {str(e)}")
+            log("ERROR", f"Traceback completo: {traceback.format_exc()}")
+        except:
+            # Se log falhar, apenas imprimir
+            print(f"[ERROR] [REQ-{request_id}] Erro crítico ao gerar seção do mapa: {str(e)}")
+            print(f"[ERROR] [REQ-{request_id}] Traceback completo: {traceback.format_exc()}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao gerar seção do mapa: {str(e)}. Request ID: {request_id}. Verifique os logs para mais detalhes."
         )
 
@@ -3991,16 +4086,15 @@ async def get_numerology_interpretation(
                         expand_query=False,  # Não expandir para manter foco
                         category='numerology'
                     )
-                
-                for doc in results:
-                    doc_text = doc.get('text', '').strip()
-                    if doc_text and doc_text not in seen_texts:
-                        seen_texts.add(doc_text)
-                        context_documents.append(doc)
-                        
-            except Exception as e:
-                print(f"[WARNING] Erro ao buscar query '{query}': {e}")
-                continue
+                    
+                    for doc in results:
+                        doc_text = doc.get('text', '').strip()
+                        if doc_text and doc_text not in seen_texts:
+                            seen_texts.add(doc_text)
+                            context_documents.append(doc)
+                except Exception as e:
+                    print(f"[WARNING] Erro ao buscar query '{query}': {e}")
+                    continue
         
         # Ordenar por relevância (score) e limitar
         context_documents = sorted(

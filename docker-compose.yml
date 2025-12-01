@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./astrologia.db}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - RAG_SERVICE_URL=http://rag-service:8001
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+    depends_on:
+      - rag-service
+    volumes:
+      - ./backend/astrologia.db:/app/astrologia.db
+    restart: unless-stopped
+
+  rag-service:
+    build:
+      context: ./rag-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - DOCS_PATH=docs
+      - INDEX_PATH=rag_index_fastembed
+      - BGE_MODEL_NAME=BAAI/bge-small-en-v1.5
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8000
+    volumes:
+      - ./backend/docs:/app/docs:ro
+      - ./backend/numerologia:/app/numerologia:ro
+      - ./backend/rag_index_fastembed:/app/rag_index_fastembed
+    restart: unless-stopped
+

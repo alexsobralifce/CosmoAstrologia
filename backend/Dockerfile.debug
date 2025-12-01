@@ -1,5 +1,5 @@
-# Dockerfile otimizado alternativo - use se o principal ainda der timeout
-# Este Dockerfile instala dependências de forma mais agressiva com cache
+# Dockerfile para DEBUG - mostra erros detalhados
+# Use este para identificar qual dependência está falhando
 
 FROM python:3.11-slim as builder
 
@@ -16,22 +16,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Copy requirements
-COPY requirements.txt .
+COPY requirements-prod.txt requirements.txt
 
-# Install all dependencies in one go with extended timeout
-# Railway geralmente tem timeout de 10-15 minutos, então 600s (10min) é seguro
+# Show Python and pip versions
+RUN python --version && pip --version
+
+# Try to install all at once with verbose output
 RUN pip install --no-cache-dir --user \
-    --timeout=600 \
-    --retries=5 \
-    --default-timeout=600 \
-    -r requirements.txt
+    --timeout=1800 \
+    --retries=10 \
+    -v \
+    -r requirements.txt 2>&1 | tee /tmp/install.log || \
+    (echo "=== INSTALL FAILED ===" && cat /tmp/install.log && exit 1)
 
 # Final stage
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     && rm -rf /var/lib/apt/lists/*
@@ -40,10 +42,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/root/.local/bin:$PATH
 
-# Copy packages
 COPY --from=builder /root/.local /root/.local
-
-# Copy app
 COPY app/ ./app/
 # RAG index is now in a separate microservice, no need to copy it
 

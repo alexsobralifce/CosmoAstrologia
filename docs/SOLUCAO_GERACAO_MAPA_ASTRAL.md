@@ -239,7 +239,7 @@ Use este checklist para identificar problemas:
 
 - [ ] Índice RAG está carregado?
   - Verificar: `services.rag.has_index === true`
-  - Se não: Executar `build_rag_index_llamaindex.py`
+  - Se não: Executar `build_rag_index_fastembed.py`
 
 ## Configuração Recomendada
 
@@ -255,8 +255,8 @@ Use este checklist para identificar problemas:
 export GROQ_API_KEY="sua-chave-aqui"
 
 # Instalar RAG (opcional mas recomendado):
-pip install llama-index llama-index-vector-stores-faiss
-python backend/scripts/build_rag_index_llamaindex.py
+pip install fastembed PyPDF2 numpy
+python scripts/build_rag_index_fastembed.py
 ```
 
 ### Configuração Ideal (Máxima Qualidade)

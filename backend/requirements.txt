@@ -15,22 +15,15 @@ timezonefinder>=6.4.1
 email-validator==2.2.0
 # Database drivers
 psycopg2-binary>=2.9.0  # PostgreSQL driver (para Railway/Postgres)
-# Dependências para RAG (FastEmbed é mais leve que sentence-transformers)
-fastembed>=0.2.0
-PyPDF2==3.0.1
+# HTTP Client para RAG Service
+httpx>=0.24.0
 numpy<2.0
-# Groq para geração de interpretações
-groq>=0.4.1
+# HTTP Client para RAG Service
+httpx>=0.24.0
 # Google OAuth
 google-auth>=2.0.0
 google-auth-oauthlib>=1.0.0
 google-auth-httplib2>=0.2.0
-# LlamaIndex para nova estrutura RAG
-# Atualizado para >=0.13.6 para compatibilidade com Pydantic 2.10+
-# Resolve: PydanticSchemaGenerationError com AsyncGenerator
-llama-index>=0.13.6
-llama-index-embeddings-huggingface>=0.1.0
-# BGE model via Hugging Face (sentence-transformers será instalado como dependência)
 # Testing dependencies
 pytest>=8.0.0
 pytest-asyncio>=0.23.0

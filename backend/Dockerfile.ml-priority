@@ -1,3 +1,7 @@
+# Dockerfile com prioridade em ML dependencies
+# Estratégia: Instalar ML dependencies PRIMEIRO (quando build ainda tem tempo)
+# Depois instala o resto rapidamente
+
 FROM python:3.11-slim as builder
 
 WORKDIR /app
@@ -12,27 +16,42 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Upgrade pip first
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Use production requirements (without test dependencies)
-# This significantly reduces build time
-COPY requirements-prod.txt requirements.txt
+# ESTRATÉGIA: Instalar ML dependencies PRIMEIRO (mais pesadas)
+# Isso garante que elas tenham tempo suficiente antes do timeout
+# Batch 1: NumPy (requerido por ML libraries)
+RUN pip install --no-cache-dir --user \
+    --timeout=300 \
+    --retries=5 \
+    "numpy<2.0"
 
-# Install dependencies in small batches to avoid timeout
-# Each batch has 3min timeout, ML dependencies have 10min
-# Batch 1: FastAPI core
+# Batch 2: FastEmbed (mais leve que llama-index)
+RUN pip install --no-cache-dir --user \
+    --timeout=600 \
+    --retries=5 \
+    fastembed>=0.2.0
+
+# Batch 3: FastEmbed (substitui LlamaIndex - mais leve e rápido)
+RUN pip install --no-cache-dir --user \
+    --timeout=300 \
+    --retries=3 \
+    fastembed>=0.2.0
+
+# Agora instalar o resto (muito mais rápido)
+# Batch 5: FastAPI core
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
     fastapi==0.115.0 \
     uvicorn[standard]==0.32.0
 
-# Batch 2: Database
+# Batch 6: Database
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
     sqlalchemy==2.0.36 \
     psycopg2-binary>=2.9.0
 
-# Batch 3: Pydantic
+# Batch 7: Pydantic
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
@@ -41,7 +60,7 @@ RUN pip install --no-cache-dir --user \
     "pydantic[email]==2.10.0" \
     email-validator==2.2.0
 
-# Batch 4: Auth
+# Batch 8: Auth
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
@@ -49,7 +68,7 @@ RUN pip install --no-cache-dir --user \
     bcrypt==4.2.0 \
     python-multipart==0.0.12
 
-# Batch 5: Astronomy
+# Batch 9: Astronomy
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
@@ -58,7 +77,7 @@ RUN pip install --no-cache-dir --user \
     pytz>=2024.1 \
     timezonefinder>=6.4.1
 
-# Batch 6: Google & Groq
+# Batch 10: Google & Groq
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
@@ -67,12 +86,11 @@ RUN pip install --no-cache-dir --user \
     google-auth-httplib2>=0.2.0 \
     groq>=0.4.1
 
-# Batch 7: Utilities & HTTP Client
+# Batch 11: Utilities
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
-    "numpy<2.0" \
-    httpx>=0.24.0
+    PyPDF2==3.0.1
 
 # Final stage
 FROM python:3.11-slim
@@ -93,7 +111,9 @@ COPY --from=builder /root/.local /root/.local
 
 # Copy application
 COPY app/ ./app/
+# RAG index is now in a separate microservice, no need to copy it
 
 EXPOSE 8000
 
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --loop asyncio
+

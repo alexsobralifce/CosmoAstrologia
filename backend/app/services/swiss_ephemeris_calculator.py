@@ -414,3 +414,220 @@ def get_planet_longitude(kr: AstrologicalSubjectModel, planet_key: str) -> float
     pos = get_planet_position(kr, planet_key)
     return pos["longitude"]
 
+
+def get_planet_house(kr: AstrologicalSubjectModel, planet_key: str) -> int:
+    """
+    Obtém a casa de um planeta usando os dados do kerykeion.
+    Kerykeion calcula as casas corretamente usando o sistema de casas configurado.
+    
+    Returns:
+        Número da casa (1-12)
+    """
+    planet_key_upper = PLANET_KEYS.get(planet_key.lower(), planet_key.capitalize())
+    attr_name = planet_key_upper.lower()
+    
+    planet_obj = getattr(kr, attr_name, None)
+    if planet_obj is None:
+        return 1  # Default
+    
+    planet_data = planet_obj.model_dump()
+    house = planet_data.get("house")
+    
+    if house is None:
+        return 1  # Default
+    
+    # Kerykeion pode retornar casa como número ou como string (ex: "Ninth_House")
+    if isinstance(house, int):
+        return house
+    
+    if isinstance(house, str):
+        # Converter string para número (ex: "Ninth_House" -> 9)
+        house_mapping = {
+            "First_House": 1, "Second_House": 2, "Third_House": 3,
+            "Fourth_House": 4, "Fifth_House": 5, "Sixth_House": 6,
+            "Seventh_House": 7, "Eighth_House": 8, "Ninth_House": 9,
+            "Tenth_House": 10, "Eleventh_House": 11, "Twelfth_House": 12
+        }
+        return house_mapping.get(house, 1)
+    
+    # Tentar converter para int se possível
+    try:
+        return int(house)
+    except (ValueError, TypeError):
+        return 1  # Default
+
+
+def calculate_solar_return(
+    birth_date: datetime,
+    birth_time: str,
+    latitude: float,
+    longitude: float,
+    target_year: Optional[int] = None,
+    timezone_name: Optional[str] = None
+) -> Dict[str, any]:
+    """
+    Calcula o mapa de Revolução Solar usando Swiss Ephemeris (via kerykeion).
+    
+    A Revolução Solar é calculada para o momento exato em que o Sol retorna
+    à mesma posição do nascimento, mas no ano especificado (ou ano atual).
+    Usa Swiss Ephemeris para máxima precisão e cálculo correto de casas.
+    
+    Args:
+        birth_date: Data de nascimento
+        birth_time: Hora de nascimento no formato "HH:MM" (hora local)
+        latitude: Latitude do local de nascimento
+        longitude: Longitude do local de nascimento
+        target_year: Ano para calcular a revolução (padrão: ano atual)
+        timezone_name: Nome do timezone (ex: 'America/Sao_Paulo'). Se None, tenta inferir
+    
+    Returns:
+        Dicionário com o mapa de revolução solar completo
+    """
+    from datetime import timedelta
+    
+    # Usar ano atual se não especificado
+    if target_year is None:
+        target_year = datetime.now().year
+    
+    # Calcular mapa natal para obter posição do Sol
+    natal_chart = calculate_birth_chart(birth_date, birth_time, latitude, longitude, timezone_name)
+    natal_sun_longitude = natal_chart["sun_longitude"]
+    
+    # Encontrar o momento exato do retorno solar
+    # Começar com data aproximada (aniversário)
+    time_parts = birth_time.split(":")
+    hour = int(time_parts[0]) if len(time_parts) > 0 else 0
+    minute = int(time_parts[1]) if len(time_parts) > 1 else 0
+    
+    # Data inicial aproximada
+    solar_return_date = datetime(target_year, birth_date.month, birth_date.day, hour, minute, 0)
+    
+    # Refinar a data para encontrar o momento exato do retorno solar
+    # O Sol se move aproximadamente 0.9856 graus por dia (~365.25 dias para 360 graus)
+    best_date = solar_return_date
+    best_diff = 360.0
+    
+    # Buscar em um intervalo de ±3 dias
+    for day_offset in range(-3, 4):
+        test_date = solar_return_date + timedelta(days=day_offset)
+        
+        try:
+            # Calcular mapa para esta data de teste
+            test_chart = calculate_birth_chart(
+                test_date, 
+                birth_time, 
+                latitude, 
+                longitude, 
+                timezone_name
+            )
+            test_sun_longitude = test_chart["sun_longitude"]
+            
+            # Calcular diferença angular (considerando que pode ter dado uma volta completa)
+            diff = shortest_angular_distance(test_sun_longitude, natal_sun_longitude)
+            
+            if diff < best_diff:
+                best_diff = diff
+                best_date = test_date
+        except Exception as e:
+            print(f"[WARNING] Erro ao calcular posição solar para {test_date}: {e}")
+            continue
+    
+    # Refinar ainda mais com horas (buscar dentro de ±24 horas)
+    final_date = best_date
+    final_diff = best_diff
+    
+    for hour_offset in range(-24, 25):
+        test_date = best_date + timedelta(hours=hour_offset)
+        
+        try:
+            test_chart = calculate_birth_chart(
+                test_date, 
+                birth_time, 
+                latitude, 
+                longitude, 
+                timezone_name
+            )
+            test_sun_longitude = test_chart["sun_longitude"]
+            diff = shortest_angular_distance(test_sun_longitude, natal_sun_longitude)
+            
+            if diff < final_diff:
+                final_diff = diff
+                final_date = test_date
+        except Exception as e:
+            continue
+    
+    # Calcular mapa completo da revolução solar para o momento exato
+    solar_return_chart = calculate_birth_chart(
+        final_date, 
+        birth_time, 
+        latitude, 
+        longitude, 
+        timezone_name
+    )
+    
+    # Criar instância kerykeion para obter casas corretas
+    kr_sr = create_kr_instance(final_date, birth_time, latitude, longitude, timezone_name)
+    
+    # Obter casas dos planetas (kerykeion calcula corretamente)
+    planets_to_get_houses = ["sun", "moon", "mercury", "venus", "mars", "jupiter", "saturn"]
+    
+    planet_houses = {}
+    for planet_key in planets_to_get_houses:
+        try:
+            house = get_planet_house(kr_sr, planet_key)
+            planet_houses[planet_key] = house
+        except Exception as e:
+            print(f"[WARNING] Erro ao obter casa de {planet_key}: {e}")
+            planet_houses[planet_key] = 1
+    
+    # Construir resultado no formato esperado
+    result = {
+        "solar_return_date": final_date.isoformat(),
+        "target_year": target_year,
+        
+        # Ascendente
+        "ascendant_sign": solar_return_chart["ascendant_sign"],
+        "ascendant_degree": solar_return_chart["ascendant_degree"],
+        
+        # Sol
+        "sun_sign": solar_return_chart["sun_sign"],
+        "sun_degree": solar_return_chart["sun_degree"],
+        "sun_house": planet_houses.get("sun", 1),
+        
+        # Lua
+        "moon_sign": solar_return_chart["moon_sign"],
+        "moon_degree": solar_return_chart["moon_degree"],
+        "moon_house": planet_houses.get("moon", 1),
+        
+        # Planetas
+        "mercury_sign": solar_return_chart.get("mercury_sign"),
+        "mercury_degree": solar_return_chart.get("mercury_degree"),
+        "mercury_house": planet_houses.get("mercury"),
+        
+        "venus_sign": solar_return_chart.get("venus_sign"),
+        "venus_degree": solar_return_chart.get("venus_degree"),
+        "venus_house": planet_houses.get("venus"),
+        
+        "mars_sign": solar_return_chart.get("mars_sign"),
+        "mars_degree": solar_return_chart.get("mars_degree"),
+        "mars_house": planet_houses.get("mars"),
+        
+        "jupiter_sign": solar_return_chart.get("jupiter_sign"),
+        "jupiter_degree": solar_return_chart.get("jupiter_degree"),
+        "jupiter_house": planet_houses.get("jupiter"),
+        
+        "saturn_sign": solar_return_chart.get("saturn_sign"),
+        "saturn_degree": solar_return_chart.get("saturn_degree"),
+        "saturn_house": planet_houses.get("saturn"),
+        
+        # Meio do Céu
+        "midheaven_sign": solar_return_chart["midheaven_sign"],
+        "midheaven_degree": solar_return_chart["midheaven_degree"],
+        
+        # Informações adicionais para validação
+        "sun_return_precision": final_diff,  # Diferença em graus (deve ser muito pequena)
+        "planet_longitudes": solar_return_chart.get("planet_longitudes", {}),
+    }
+    
+    return result
+

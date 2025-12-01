@@ -417,21 +417,32 @@ Você NÃO deve calcular NADA. Todos os dados abaixo foram calculados
 matematicamente pelo código Python usando Swiss Ephemeris.
 Use APENAS estes dados. NÃO invente, NÃO estime, NÃO "adivinhe".
 
+⚠️⚠️⚠️ VALIDAÇÃO OBRIGATÓRIA ⚠️⚠️⚠️
+Antes de escrever sobre temperamento, você DEVE:
+1. Ler os pontos EXATOS abaixo
+2. Usar EXATAMENTE esses números
+3. NÃO recalcular ou estimar
+4. Se o bloco diz "Água: 8 pontos", você DEVE dizer "Água com 8 pontos"
+5. Se o bloco diz "ELEMENTO DOMINANTE: Água", você DEVE dizer "Água é dominante"
+
 ───────────────────────────────────────────────────────────────
-📊 TEMPERAMENTO (CALCULADO MATEMATICAMENTE)
+📊 TEMPERAMENTO (CALCULADO MATEMATICAMENTE) - USE APENAS ESTES DADOS
 ───────────────────────────────────────────────────────────────
 
-PONTUAÇÃO DE ELEMENTOS (já calculada):
+🎯 PONTUAÇÃO DE ELEMENTOS (já calculada - USE EXATAMENTE ESTES NÚMEROS):
   • Fogo: {temperament['points'].get('Fogo', 0)} pontos
   • Terra: {temperament['points'].get('Terra', 0)} pontos
   • Ar: {temperament['points'].get('Ar', 0)} pontos
   • Água: {temperament['points'].get('Água', 0)} pontos
 
-ELEMENTO DOMINANTE: {temperament['dominant']}
-ELEMENTO AUSENTE: {temperament['lacking'] if temperament['lacking'] else 'Nenhum (todos presentes)'}
+🎯 ELEMENTO DOMINANTE: {temperament['dominant']} (USE EXATAMENTE ESTE)
+🎯 ELEMENTO AUSENTE: {temperament['lacking'] if temperament['lacking'] else 'Nenhum (todos presentes)'} (USE EXATAMENTE ESTE)
 
-CONTRIBUIÇÃO DE CADA PLANETA:
+📋 CONTRIBUIÇÃO DE CADA PLANETA (para referência):
 {chr(10).join(temperament['contributions'])}
+
+⚠️ LEMBRE-SE: Se o bloco diz "Água: 8 pontos" e "ELEMENTO DOMINANTE: Água",
+você NÃO PODE dizer "Fogo dominante" ou "Água ausente". Use EXATAMENTE os dados acima.
 
 ───────────────────────────────────────────────────────────────
 👑 REGENTE DO MAPA (IDENTIFICADO POR TABELA FIXA)
@@ -547,21 +558,32 @@ You MUST NOT calculate ANYTHING. All data below was mathematically
 calculated by Python code using Swiss Ephemeris.
 Use ONLY this data. DO NOT invent, DO NOT estimate, DO NOT "guess".
 
+⚠️⚠️⚠️ MANDATORY VALIDATION ⚠️⚠️⚠️
+Before writing about temperament, you MUST:
+1. Read the EXACT points below
+2. Use EXACTLY these numbers
+3. DO NOT recalculate or estimate
+4. If the block says "Water: 8 points", you MUST say "Water with 8 points"
+5. If the block says "DOMINANT ELEMENT: Water", you MUST say "Water is dominant"
+
 ───────────────────────────────────────────────────────────────
-📊 TEMPERAMENT (MATHEMATICALLY CALCULATED)
+📊 TEMPERAMENT (MATHEMATICALLY CALCULATED) - USE ONLY THIS DATA
 ───────────────────────────────────────────────────────────────
 
-ELEMENT SCORES (pre-calculated):
+🎯 ELEMENT SCORES (pre-calculated - USE EXACTLY THESE NUMBERS):
   • Fire: {temperament['points'].get('Fire', 0)} points
   • Earth: {temperament['points'].get('Earth', 0)} points
   • Air: {temperament['points'].get('Air', 0)} points
   • Water: {temperament['points'].get('Water', 0)} points
 
-DOMINANT ELEMENT: {temperament['dominant']}
-LACKING ELEMENT: {temperament['lacking'] if temperament['lacking'] else 'None (all present)'}
+🎯 DOMINANT ELEMENT: {temperament['dominant']} (USE EXACTLY THIS)
+🎯 LACKING ELEMENT: {temperament['lacking'] if temperament['lacking'] else 'None (all present)'} (USE EXACTLY THIS)
 
-PLANET CONTRIBUTIONS:
+📋 PLANET CONTRIBUTIONS (for reference):
 {chr(10).join(temperament['contributions'])}
+
+⚠️ REMEMBER: If the block says "Water: 8 points" and "DOMINANT ELEMENT: Water",
+you CANNOT say "Fire dominant" or "Water absent". Use EXACTLY the data above.
 
 ───────────────────────────────────────────────────────────────
 👑 CHART RULER (IDENTIFIED BY FIXED TABLE)

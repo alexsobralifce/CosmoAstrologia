@@ -74,7 +74,8 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
       setIsLoading(true);
       setError('');
 
-      const result = await apiService.getSolarReturnInterpretation({
+      // Enviar dados de nascimento para permitir recálculo no backend (fonte única de verdade)
+      const interpretationParams: any = {
         natal_sun_sign: userData.sunSign || 'Áries',
         natal_ascendant: userData.ascendant,
         solar_return_ascendant: solarData.ascendant_sign,
@@ -91,7 +92,17 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
         solar_return_midheaven: solarData.midheaven_sign,
         target_year: targetYear,
         language: language,
-      });
+      };
+
+      // Se dados de nascimento estiverem disponíveis, enviar para recálculo no backend
+      if (userData.birthDate && userData.birthTime && userData.coordinates) {
+        interpretationParams.birth_date = userData.birthDate.toISOString();
+        interpretationParams.birth_time = userData.birthTime;
+        interpretationParams.latitude = userData.coordinates.latitude;
+        interpretationParams.longitude = userData.coordinates.longitude;
+      }
+
+      const result = await apiService.getSolarReturnInterpretation(interpretationParams);
 
       if (result && result.interpretation) {
         setInterpretation(result.interpretation);

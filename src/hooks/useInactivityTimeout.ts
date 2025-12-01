@@ -150,7 +150,8 @@ export const useInactivityTimeout = ({
         clearTimeout(throttleTimer);
       }
     };
-  }, [enabled, resetTimer, clearTimers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]); // Remover resetTimer e clearTimers das dependências para evitar loops
 
   return {
     /**

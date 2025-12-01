@@ -651,10 +651,10 @@ class ApiService {
   async getSolarReturnInterpretation(params: {
     natal_sun_sign: string;
     natal_ascendant?: string;
-    solar_return_ascendant: string;
-    solar_return_sun_house: number;
-    solar_return_moon_sign: string;
-    solar_return_moon_house: number;
+    solar_return_ascendant?: string;
+    solar_return_sun_house?: number;
+    solar_return_moon_sign?: string;
+    solar_return_moon_house?: number;
     solar_return_venus_sign?: string;
     solar_return_venus_house?: number;
     solar_return_mars_sign?: string;
@@ -665,6 +665,11 @@ class ApiService {
     solar_return_midheaven?: string;
     target_year?: number;
     language?: string;
+    // Dados para recálculo (opcional)
+    birth_date?: string;
+    birth_time?: string;
+    latitude?: number;
+    longitude?: number;
   }): Promise<{
     interpretation: string;
     sources: Array<{
@@ -754,9 +759,10 @@ class ApiService {
       age: number;
     };
   }> {
+    // Timeout maior para cálculo completo do mapa numerológico (120 segundos)
     return await this.request('/api/numerology/map', {
       method: 'GET',
-    });
+    }, 120000);
   }
 
   async getNumerologyInterpretation(params: {
@@ -775,6 +781,24 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(params),
     }, 120000); // Timeout maior para interpretações completas
+  }
+
+  async getBirthGridQuantitiesInterpretation(params: {
+    grid: Record<number, number>;
+    language?: string;
+  }): Promise<{
+    explanation: string;
+    sources: Array<{
+      source: string;
+      page: number;
+      relevance: number;
+    }>;
+    query_used: string;
+  }> {
+    return await this.request('/api/numerology/birth-grid-quantities', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 60000);
   }
 }
 

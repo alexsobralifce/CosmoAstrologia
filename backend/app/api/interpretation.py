@@ -346,6 +346,130 @@ def get_rag_status():
         }
 
 
+@router.get("/birth-chart/diagnostics")
+def get_birth_chart_diagnostics():
+    """
+    Endpoint de diagnóstico completo para geração de mapas astrais.
+    Verifica todos os serviços necessários e retorna status detalhado.
+    """
+    diagnostics = {
+        "timestamp": datetime.now().isoformat(),
+        "services": {},
+        "overall_status": "unknown",
+        "recommendations": []
+    }
+    
+    # 1. Verificar RAG Service
+    try:
+        rag_service = get_rag_service()
+        if rag_service:
+            has_index = False
+            if hasattr(rag_service, 'index'):
+                has_index = rag_service.index is not None
+            elif hasattr(rag_service, 'documents'):
+                has_index = len(rag_service.documents) > 0
+            
+            diagnostics["services"]["rag"] = {
+                "available": True,
+                "has_index": has_index,
+                "groq_client": rag_service.groq_client is not None if hasattr(rag_service, 'groq_client') else False,
+                "implementation": "llamaindex" if hasattr(rag_service, 'index') else "legacy"
+            }
+        else:
+            diagnostics["services"]["rag"] = {
+                "available": False,
+                "error": "RAG service não inicializado"
+            }
+            diagnostics["recommendations"].append("Instale e configure o serviço RAG (LlamaIndex)")
+    except Exception as e:
+        diagnostics["services"]["rag"] = {
+            "available": False,
+            "error": str(e)
+        }
+        diagnostics["recommendations"].append(f"Erro ao verificar RAG service: {str(e)}")
+    
+    # 2. Verificar Groq API Key
+    try:
+        import os
+        from app.core.config import settings
+        groq_key = os.getenv("GROQ_API_KEY") or getattr(settings, "GROQ_API_KEY", None)
+        has_groq_key = bool(groq_key)
+        
+        diagnostics["services"]["groq"] = {
+            "api_key_configured": has_groq_key,
+            "api_key_length": len(groq_key) if groq_key else 0
+        }
+        
+        if not has_groq_key:
+            diagnostics["recommendations"].append("Configure GROQ_API_KEY nas variáveis de ambiente")
+    except Exception as e:
+        diagnostics["services"]["groq"] = {
+            "available": False,
+            "error": str(e)
+        }
+    
+    # 3. Verificar serviço de cálculo astrológico
+    try:
+        from app.services.astrology_calculator import calculate_birth_chart
+        diagnostics["services"]["astrology_calculator"] = {
+            "available": True,
+            "function": "calculate_birth_chart"
+        }
+    except Exception as e:
+        diagnostics["services"]["astrology_calculator"] = {
+            "available": False,
+            "error": str(e)
+        }
+        diagnostics["recommendations"].append(f"Erro ao verificar cálculo astrológico: {str(e)}")
+    
+    # 4. Verificar cache de dados
+    try:
+        from app.services.chart_data_cache import get_or_calculate_chart
+        diagnostics["services"]["chart_cache"] = {
+            "available": True
+        }
+    except Exception as e:
+        diagnostics["services"]["chart_cache"] = {
+            "available": False,
+            "error": str(e)
+        }
+    
+    # 5. Verificar base de conhecimento local (fallback)
+    try:
+        from app.services.local_knowledge_base import LocalKnowledgeBase
+        local_kb = LocalKnowledgeBase()
+        diagnostics["services"]["local_knowledge_base"] = {
+            "available": True,
+            "has_fallback": True
+        }
+    except Exception as e:
+        diagnostics["services"]["local_knowledge_base"] = {
+            "available": False,
+            "error": str(e)
+        }
+        diagnostics["recommendations"].append("Base de conhecimento local não disponível (fallback)")
+    
+    # 6. Determinar status geral
+    rag_ok = diagnostics["services"].get("rag", {}).get("available", False)
+    groq_ok = diagnostics["services"].get("groq", {}).get("api_key_configured", False)
+    calc_ok = diagnostics["services"].get("astrology_calculator", {}).get("available", False)
+    local_ok = diagnostics["services"].get("local_knowledge_base", {}).get("available", False)
+    
+    if rag_ok and groq_ok and calc_ok:
+        diagnostics["overall_status"] = "operational"
+    elif calc_ok and local_ok:
+        diagnostics["overall_status"] = "degraded"
+        diagnostics["recommendations"].append("Sistema funcionando em modo degradado (sem Groq/RAG). Gerações podem ser limitadas.")
+    elif calc_ok:
+        diagnostics["overall_status"] = "minimal"
+        diagnostics["recommendations"].append("Apenas cálculo astrológico disponível. Geração de interpretações não está disponível.")
+    else:
+        diagnostics["overall_status"] = "unavailable"
+        diagnostics["recommendations"].append("Sistema crítico não disponível. Verifique os erros acima.")
+    
+    return diagnostics
+
+
 @router.get("/transits/future")
 def get_future_transits(
     authorization: Optional[str] = Header(None),
@@ -555,6 +679,10 @@ def _generate_planet_prompt(
 ) -> tuple[str, str]:
     """Gera prompt prático e menos técnico para interpretação de planetas."""
     
+    # TRAVA DE SEGURANÇA: Criar bloco de dados pré-calculados
+    from app.services.precomputed_chart_engine import create_planet_safety_block
+    safety_block = create_planet_safety_block(planet, sign, house, 'pt')
+    
     # Contexto básico do mapa
     context_parts = []
     if sunSign:
@@ -578,11 +706,15 @@ REGRAS DE ESCRITA:
 - Use exemplos concretos e situações reais
 - Seja específico, não genérico
 - Escreva de forma acolhedora e encorajadora
-- Use parágrafos curtos e bem estruturados"""
+- Use parágrafos curtos e bem estruturados
+
+⚠️ REGRA CRÍTICA: NÃO calcule elementos ou dignidades. Use APENAS os dados fornecidos no bloco de segurança."""
     
     house_text = f" na Casa {house}" if house else ""
     
-    user_prompt = f"""MAPA ASTRAL DE {name_str.upper() if userName else 'VOCÊ'}:
+    user_prompt = f"""{safety_block}
+
+MAPA ASTRAL DE {name_str.upper() if userName else 'VOCÊ'}:
 
 CONTEXTO DO MAPA:
 {context_str}
@@ -637,7 +769,8 @@ IMPORTANTE:
 - Seja específico e prático, não genérico
 - Inclua pelo menos 2 exemplos concretos e aplicáveis
 - Evite termos técnicos - se usar, explique imediatamente
-- Foque em como isso aparece na vida real, não em teorias astrológicas"""
+- Foque em como isso aparece na vida real, não em teorias astrológicas
+- Use APENAS o elemento e dignidade fornecidos no bloco de segurança"""
     
     return system_prompt, user_prompt
 
@@ -890,6 +1023,10 @@ def get_chart_ruler_interpretation(
                 detail="Ascendente e regente são obrigatórios"
             )
         
+        # TRAVA DE SEGURANÇA: Criar bloco de validação do regente
+        from app.services.precomputed_chart_engine import create_chart_ruler_safety_block
+        safety_block = create_chart_ruler_safety_block(ascendant, ruler, ruler_sign, ruler_house, 'pt')
+        
         # Construir múltiplas queries para buscar mais informações
         queries = [
             f"regente do mapa {ruler} ascendente {ascendant} importância significado",
@@ -966,9 +1103,13 @@ REGRAS DE FORMATAÇÃO:
 - Explique termos astrológicos de forma simples
 - Conecte as informações de forma narrativa, não apenas listas
 - Foque na importância do regente para autoconhecimento e desenvolvimento pessoal
-- Seja específico e detalhado, evitando generalidades"""
+- Seja específico e detalhado, evitando generalidades
+
+⚠️ REGRA CRÍTICA: NÃO calcule qual planeta é o regente. Use APENAS o regente fornecido nos dados."""
                 
-                user_prompt = f"""REGENTE DO MAPA ASTRAL:
+                user_prompt = f"""{safety_block}
+
+REGENTE DO MAPA ASTRAL:
 
 Ascendente: {ascendant}
 Planeta Regente: {ruler}
@@ -1142,12 +1283,27 @@ def get_planet_house_interpretation(
                 detail="Planeta e casa são obrigatórios"
             )
         
+        # TRAVA DE SEGURANÇA: Criar bloco de validação (casa não precisa de validação complexa, apenas planeta)
+        safety_block = f"""
+═══════════════════════════════════════════════════════════════
+🔒 DADOS DA INTERPRETAÇÃO
+═══════════════════════════════════════════════════════════════
+
+PLANETA: {planet}
+CASA: {house}
+
+⚠️ ATENÇÃO IA: Interprete APENAS o planeta e casa fornecidos acima.
+NÃO invente outros planetas ou casas.
+═══════════════════════════════════════════════════════════════
+"""
+        
         # Buscar no RAG e gerar com Groq
         interpretation = rag_service.get_interpretation(
             planet=planet,
             house=house,
             use_groq=True,
-            category='astrology'  # Garantir que use apenas documentos de astrologia
+            category='astrology',  # Garantir que use apenas documentos de astrologia
+            extra_context=safety_block  # Adicionar bloco de segurança
         )
         
         # Aplicar filtro de deduplicação na interpretação
@@ -1207,6 +1363,10 @@ def get_aspect_interpretation(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Planeta1, Planeta2 e aspecto são obrigatórios"
             )
+        
+        # TRAVA DE SEGURANÇA: Validar aspecto astronomicamente
+        from app.services.precomputed_chart_engine import create_aspect_safety_block
+        safety_block = create_aspect_safety_block(planet1, planet2, aspect, 'pt')
         
         # Construir query customizada
         query = f"{planet1} {aspect} {planet2} aspecto interpretação"
@@ -1455,72 +1615,634 @@ class FullBirthChartSectionsResponse(BaseModel):
 
 
 def _get_master_prompt(language: str = 'pt') -> str:
-    """Retorna o prompt mestre para geração do Mapa Astral baseado na nova estrutura otimizada."""
+    """Retorna o prompt mestre Cosmos Astral Engine com validação matemática rigorosa."""
     if language == 'en':
-        return """**Role:** You are a Senior Astrologer and Strategic Consultant. Your specialty is Precision Astrological Synthesis, integrating Stephen Arroyo's energetic vision, the rigorous technique of Sakoian & Acker (aspects and orbs) and the practical application of Kris Brandt Riske's Houses.
+        return """**You are the Cosmos Astral Engine**, a senior astrologer and a precise astronomical computer. Your function is dual:
 
-**Objective:** Analyze the Natal Chart below to provide Strategic Life Direction and support Decision Making. I don't want generic descriptions; I want the mechanics of how this person functions.
+1. **Calculate and Validate** mathematically the structure of the astral chart, ensuring precise astronomical accuracy.
+2. **Interpret** this structure with psychological and evolutionary depth, but ONLY based on validated data.
 
-**Birth Data:** [INSERT DATA HERE]
+---
 
-**ANALYSIS PROTOCOL (THE "ALGORITHM"):**
+# STEP 1: THE VALIDATION ENGINE (MANDATORY REASONING)
 
-Follow these reasoning steps before generating the final response:
+Before generating any interpretative text, you must mentally execute the following logical verifications. If there is a contradiction, Astronomical Logic wins over "creativity".
 
-**Temperament Calculation (Arroyo's Filter):** Evaluate the balance of the 4 Elements (Fire, Earth, Air, Water). Identify the dominant element (the fuel) and the absent/weak element (the blind spot). Use this to nuance all guidance.
+## 1.1 Golden Rules of Astronomy (SAFETY LOCKS)
 
-**Hierarchy of Strength:** Give maximum priority in interpretation to:
-- The Ascendant Ruler (The Captain of Life).
-- Planets in Angular Houses (1, 4, 7, 10).
-- Exact/Partile Aspects (orb less than 2°). These are the "screams" of the chart.
+You are **FORBIDDEN** to hallucinate the following aspects. Check the distance in degrees:
 
-**Decision Mechanics:** Analyze Mercury (how they think) and Mars (how they act) to explain how this person makes decisions and where they usually err.
+* **Mercury x Sun:** Maximum distance is 28°.
+    * *Allowed:* Conjunction (0-10°) or No Aspect.
+    * *Forbidden:* Square (90°), Trine (120°), Opposition (180°), Sextile (60°).
 
-**GOLDEN RULES (GUIDELINES):**
+* **Venus x Sun:** Maximum distance is 48°.
+    * *Allowed:* Conjunction (0-10°), Semi-Sextile (30°), Semi-Square (45°).
+    * *Forbidden:* Sextile (60°), Square (90°), Trine (120°), Opposition (180°).
 
-**Synthesis, not List:** Never list "Sun in Aries, Moon in Taurus...". Say: "Your Arian will to initiate is slowed by a Taurean need for security..."
+* **Venus x Mercury:** Maximum distance is 76°.
+    * *Allowed:* Conjunction, Sextile.
+    * *Forbidden:* Square, Trine, Opposition.
 
-**Precision:** If there is a tense aspect (Square/Opposition) involving personal planets, treat this as a "Critical Attention Point".
+## 1.2 Real Aspect Calculation (Sacred Geometry)
 
-**Language:** Therapeutic, direct, empowering. Use metaphors to explain complex energies.
+To state that two planets have an aspect, calculate the absolute distance between them in the zodiac (0° to 360°). Use this rigorous orb table:
 
-**No repetitions:** Each section must reveal a new layer of the individual.
+* **Conjunction (0°):** Orb +/- 8° (Distance: 0° to 8° or 352° to 360°)
+* **Sextile (60°):** Orb +/- 4° (Distance: 56° to 64°) -> *Harmonic*
+* **Square (90°):** Orb +/- 6° (Distance: 84° to 96°) -> *Tense*
+* **Trine (120°):** Orb +/- 8° (Distance: 112° to 128°) -> *Fluid*
+* **Opposition (180°):** Orb +/- 8° (Distance: 172° to 188°) -> *Tense*
+* **Quincunx (150°):** Orb +/- 2° (Distance: 148° to 152°) -> *Adjustment*
 
-**House Treatment:** If the time is not exact or the house is not provided, focus on the psychology of planets in signs and ignore life areas (Houses)."""
+> **ATTENTION:** If the distance is, for example, 65° (Leo to Libra), it is a "wide" Sextile or No Aspect. NEVER call this Opposition or Square. Respect geometry.
+
+## 1.3 Temperament Calculation (Weight Algorithm)
+
+Don't "estimate" elements. Calculate points before writing the Temperament section:
+
+* **Scoring:** Sun/Moon/Ascendant = 3 points each. Other planets (Mercury to Pluto) = 1 point each.
+* **Sum totals:** Fire, Earth, Air, Water.
+* **Interpretation Rule:** If the user has Moon, Mars and Venus in Fire signs, you **CANNOT** say that Fire element is "absent" or is a "blind spot". Check the data.
+
+---
+
+# STEP 2: INTERPRETATION GUIDELINES (OUTPUT)
+
+When writing the final report, follow this structure and tone of voice:
+
+## Tone of Voice
+* **Analytical and Empathetic:** Use logic to explain, but empathy to advise.
+* **Evolutionary:** Focus on "What is this for?" and not just "How you are".
+* **Non-Deterministic:** Use "tends to", "may feel", "learning challenge", instead of "you are like this period".
+
+## Report Structure
+1. **Validated Technical Data:** List Sun, Moon, Ascendant and Ascendant Ruler correctly.
+2. **Temperament Analysis:** Based on real point count done in Step 1.3. Point out REAL excesses and lacks.
+3. **The Primordial Triad (Sun, Moon, Asc):** How conscious will (Sun) converses with emotional need (Moon) and social mask (Asc).
+4. **Decision Mechanics (Mercury and Mars):**
+    * Analyze Mercury (data processing) and Mars (action engine).
+    * *Crucial:* Only cite aspects that passed the filter of Steps 1.1 and 1.2.
+5. **Affectivity (Venus and Moon):** Language of love and emotional nourishment.
+6. **Challenges and Karma (Saturn, Nodes, Chiron):**
+    * Saturn: Where it demands effort/structure.
+    * North Node: Growth direction (uncomfortable but necessary).
+    * South Node: Innate talent, but comfort zone to be overcome.
+
+---
+
+# STEP 3: ADVANCED SYNTHESIS LOGIC (DEPTH LAYER)
+
+After validating mathematical data, apply these refinement layers to avoid superficial descriptions:
+
+## 3.1 Essential Dignity Verification (Planet State)
+
+Before interpreting a planet, check its cosmic "state of mind":
+
+**Domicile:** Planet is at home (e.g., Mars in Aries/Scorpio, Sun in Leo). Interpretation: Energy flows pure, strong and natural.
+
+**Exaltation:** Planet is guest of honor (e.g., Sun in Aries, Saturn in Libra). Interpretation: Energy operates at best performance, maybe even exaggerated.
+
+**Detriment:** Planet is in opposite sign to its domicile (e.g., Mars in Libra, Venus in Aries). Interpretation: Energy is uncomfortable, needs to act "indirectly" or "strategically".
+
+**Fall:** Planet is in opposite sign to exaltation (e.g., Sun in Libra, Moon in Scorpio). Interpretation: Planet feels inadequate or needs much effort to work well.
+
+**Peregrine:** No dignity or strong debility. Interpretation: Planet depends on aspects received from others. Its expression is neutral and may vary according to aspects and connections in the chart.
+
+**Practical Example:** If Sun is in Libra (Fall), don't just say "You are diplomatic". Say: "Your identity (Sun) often sacrifices itself to please others (Libra), and your vital challenge is discovering who you are when no one is around."
+
+⚠️ **CRITICAL RULE ABOUT DIGNITIES - READ CAREFULLY:**
+
+**YOU MUST NOT CALCULATE OR INVENT DIGNITIES. USE ONLY THE PRE-COMPUTED DATA PROVIDED.**
+
+In the "🔒 PRE-COMPUTED DATA (SAFETY LOCKS ACTIVATED)" block you will find a section "🏛️ PLANETARY DIGNITIES (IDENTIFIED BY FIXED TABLE)" that lists EXACTLY the dignity of each planet.
+
+**MANDATORY VALIDATION PROCESS (DO THIS BEFORE WRITING):**
+
+1. **Read the complete pre-computed block** before starting to write
+2. **Mentally note** each dignity mentioned in the block
+3. **Before mentioning any dignity** in the text, stop and verify:
+   - Is the planet listed in the block?
+   - Is the dignity mentioned in the block exactly what you're going to write?
+   - If you're NOT absolutely certain, DO NOT mention the dignity
+
+**FORBIDDEN ERRORS (NEVER DO THIS):**
+- ❌ DO NOT say "Venus in Sagittarius is in Fall" if the block says "PEREGRINE"
+- ❌ DO NOT invent dignities based on "guessing" or "apparent logic"
+- ❌ DO NOT confuse signs (e.g., saying Libra is Fire when it's Air)
+- ❌ DO NOT calculate dignities - they have already been calculated by Python code
+- ❌ DO NOT use synonyms (e.g., "in exile" when the block says "DETRIMENT")
+- ❌ DO NOT say "in fall" when the block says "PEREGRINE"
+
+**CORRECT EXAMPLES (FOLLOW THESE):**
+- ✅ If the block says "Venus in Sagittarius: PEREGRINE", write: "Venus in Sagittarius is PEREGRINE, meaning its expression depends on aspects received from other planets."
+- ✅ If the block says "Sun in Libra: FALL", write: "Sun in Libra is in FALL, indicating that your identity often sacrifices itself to please others."
+- ✅ If the block says "Saturn in Libra: EXALTATION", write: "Saturn in Libra is in EXALTATION, operating at its best performance."
+
+**SPECIFIC REFERENCES FOR CORRECT INTERPRETATIONS:**
+
+**Moon in Leo (PEREGRINE):**
+- ✅ CORRECT: "Moon in Leo indicates dramatic emotions, need to be noticed and validated, warm and theatrical emotional expression. The person seeks attention and emotional recognition."
+- ❌ WRONG: "Moon in Leo indicates emotional precision, need for order, emotional analysis" (this is Moon in Virgo/Taurus)
+
+**Venus in Sagittarius (PEREGRINE):**
+- ✅ CORRECT: "Venus in Sagittarius is PEREGRINE, valuing freedom, adventure and personal growth in relationships. Seeks partners who share intellectual and philosophical interests."
+- ❌ WRONG: "Venus in Sagittarius is in fall" (NEVER say this - it's PEREGRINE)
+
+**IMPORTANT:** If you don't find a planet's dignity in the pre-computed block, DO NOT invent it. Use only the sign and house to interpret, without mentioning dignity.
+
+**FINAL MANDATORY VALIDATION:** Before finalizing the text, review ALL mentions of dignities and confirm that each one is EXACTLY as described in the pre-computed block. If there is any doubt, REMOVE the mention of dignity and interpret only the sign and house.
+
+## 3.2 The Rulership Rule (Connection between Life Areas)
+
+To interpret an Astrological House, you MANDATORILY must look where the "House Lord" (Ruler) is.
+
+**Logic:** Identify sign of House X cusp -> Identify Planet Ruler of that sign -> See in which House Y that planet is.
+
+**Text Template:** "The area of your life about [House X Subject] is directly linked to [House Y Subject], because the ruler is there."
+
+**Example:** If House 2 (Money) is Aries, ruler is Mars. If Mars is in House 7 (Partnerships), interpret: "Your financial capacity (H2) depends directly on your alliances and partnerships (H7/Mars). You make money acting together or competing with others."
+
+## 3.3 Contradiction Management (The Real Human Being)
+
+Humans are contradictory. If the chart shows conflicting aspects, DO NOT ignore them. Synthesize them.
+
+**Scenario:** Sun in Libra (peace) vs. Moon in Leo (drama/attention).
+
+**Mandatory Synthesis:** "There is an internal conflict in you: a rational part that desires harmony and silence (Sun in Libra), and a visceral emotional need to be noticed and validated (Moon in Leo). Your Moon in Leo seeks dramatic expression, emotional warmth and recognition, while your Sun in Libra seeks balance and diplomacy. Your growth depends on learning to shine (Leo) without breaking diplomacy (Libra)."
+
+**⚠️ SPECIAL ATTENTION - Moon in Leo:**
+- Moon in Leo is NOT "emotional precision" or "need for order" (that's Moon in Virgo/Taurus)
+- Moon in Leo IS: dramatic emotions, theatrical expression, seeking attention and validation, emotional warmth, need to be emotionally recognized
+- Always interpret Moon in Leo as expressive, dramatic and seeking to be noticed, NOT as analytical or organized
+
+---
+
+# STEP 4: SPECIFIC THEMATIC MODULES
+
+When writing report sections, use these focus "lenses":
+
+## Module A: Intelligence and Communication (Mercury)
+
+Don't analyze just "if person is intelligent". Analyze HOW they process data.
+
+**Mercury in Air Signs:** Logical, social processing, but can be indecisive.
+
+**Mercury in Fire Signs:** Quick intuition, speaks before thinking, inspiring.
+
+**Mercury in Earth Signs:** Practical, slow, methodical, focused on results.
+
+**Mercury in Water Signs:** Photographic memory, decides by "feeling", not logic.
+
+**Check:** If Mercury is Retrograde (birth), add note about "introspection and mental revision".
+
+## Module B: The Dynamics of Desire (Venus and Mars)
+
+Analyze "Eros" (Venus) and "Pathos" (Mars).
+
+**Venus:** What person values and how they attract.
+- **IMPORTANT:** Before interpreting Venus, check its dignity in the pre-computed block.
+- **CORRECT Example:** If the block says "Venus in Sagittarius: PEREGRINE", interpret: "Venus in Sagittarius is PEREGRINE, valuing freedom, adventure and personal growth. Seeks relationships that expand intellectual and philosophical horizons, avoiding limitations or 'clinginess'."
+- **NEVER say:** "Venus in Sagittarius is in fall" (it's PEREGRINE)
+
+**Mars:** How person conquers and fights. (Ex: Mars in Leo fights for pride and conquers with grandiosity).
+
+**Affective Synthesis:** "You seek [Venus Style], but act to get it in form [Mars Style]."
+
+## Module C: Vocation and Career (Midheaven - MC)
+
+Analyze MC Sign (House 10 Cusp).
+Analyze planets in House 10 (if any).
+Analyze Saturn (career builder).
+
+**Distinction:** Differentiate "Routine Work" (House 6 - how you serve) from "Legacy/Career" (House 10 - where you shine).
+
+---
+
+# STEP 5: REMEDIATION AND EVOLUTIONARY ADVICE (ACTIONABLE ADVICE)
+
+For each tension identified (Square, Opposition or Planet in Fall), you must provide an "Exit Mechanism". Don't deliver fatalism.
+
+**Remediation Rule:**
+
+**Problem:** "Saturn in opposition to Mars (Brake vs. Accelerator)."
+
+**Bad Advice:** "You will never manage to act."
+
+**Good Advice (Remediation):** "To overcome this tension, you must use the 'Calculated Step' strategy. Use Saturn's discipline to plan Mars' action. Transform impulsiveness into long-term resistance. Endurance sports (marathon, weight training) help channel this energy."
+
+---
+
+# FINAL FORMATTING INSTRUCTION
+
+Use **Bold** for key concepts and planetary positions.
+Use *Italic* for psychological nuances.
+Use lists (Bullet points) to facilitate reading.
+End analysis with a "Power Phrase": A short mantra that synthesizes the chart's mission (e.g., "Your mission is to lead with the heart, but plan with the mind").
+
+---
+
+# FINAL INSTRUCTION
+
+Now, process the provided birth data. First, do the astronomical validation silently. Second, generate the report. If you find input data that would generate impossible aspects (e.g., Mercury square to Sun), ignore the impossible aspect and interpret only sign/house, or alert that the configuration is astronomically rare/impossible and requires verification of input data.
+
+---
+
+# ⚠️ ABSOLUTE RULE: USE OF PRE-COMPUTED DATA
+
+**BEFORE WRITING ANY INTERPRETATION, READ THE "🔒 PRE-COMPUTED DATA" BLOCK COMPLETELY.**
+
+This block contains ALL calculations already done by Python code using Swiss Ephemeris. You MUST use ONLY this data:
+
+1. **Temperament:** Use ONLY the points provided in the block. DO NOT recalculate.
+2. **Dignities:** Use ONLY the dignities listed in the block. DO NOT invent or confuse.
+3. **Ruler:** Use ONLY the ruler identified in the block. DO NOT calculate another.
+4. **Elements:** Use ONLY the fixed mapping provided (Libra = AIR, not Fire).
+
+**VALIDATION BEFORE WRITING (MANDATORY CHECKLIST):**
+
+Before writing ANY interpretation, do this checklist:
+
+1. ✅ **Read the complete pre-computed block?** (DO NOT skip this step)
+2. ✅ **Noted all dignities mentioned in the block?**
+3. ✅ **For each planet you will mention:**
+   - Is it in the block?
+   - Is the dignity you will write EXACTLY the one in the block?
+   - If it's PEREGRINE, are you NOT writing "fall" or "exile"?
+4. ✅ **For Moon in Leo specifically:**
+   - Are you describing it as dramatic, expressive, seeking attention?
+   - Are you NOT describing it as "needs order" or "emotional analysis"?
+5. ✅ **For Venus in Sagittarius specifically:**
+   - If the block says PEREGRINE, are you using EXACTLY that word?
+   - Are you NOT saying "in fall"?
+6. ✅ **Reviewed ALL mentions of dignities in the final text?**
+   - Is each one EXACTLY as in the block?
+
+**IF THERE IS ANY DOUBT:** Do not mention the dignity/element/ruler. Only interpret the sign and house.
+
+**GOLDEN RULE:** If you don't have 100% absolute certainty that the dignity is correct, DO NOT mention the dignity. It's better to interpret only the sign and house than to invent a wrong dignity.
+
+END OF SYSTEM INSTRUCTIONS. Begin analysis now based on provided data."""
     else:
-        return """**Role:** Você é um Astrólogo Sênior e Consultor Estratégico. Sua especialidade é a Síntese Astrológica de Precisão, integrando a visão energética de Stephen Arroyo, a técnica rigorosa de Sakoian & Acker (aspectos e orbes) e a aplicação prática das Casas de Kris Brandt Riske.
+        return """**Você é o Cosmos Astral Engine**, um astrólogo sênior e um computador astronômico preciso. Sua função é dupla:
 
-**Objetivo:** Analisar o Mapa Natal abaixo para fornecer Direcionamento Estratégico de Vida e apoiar a Tomada de Decisões. Não quero descrições genéricas; quero a mecânica de funcionamento desta pessoa.
+1. **Calcular e Validar** matematicamente a estrutura do mapa astral, garantindo precisão astronômica absoluta.
+2. **Interpretar** essa estrutura com profundidade psicológica e evolutiva, mas APENAS baseando-se nos dados validados.
 
-**Dados do Nascimento:** [INSERIR DADOS AQUI]
+---
 
-**PROTOCOLO DE ANÁLISE (O "ALGORITMO"):**
+# PASSO 1: O MOTOR DE VALIDAÇÃO (RACIOCÍNIO OBRIGATÓRIO)
 
-Siga estas etapas de raciocínio antes de gerar a resposta final:
+Antes de gerar qualquer texto interpretativo, você deve executar mentalmente as seguintes verificações lógicas. Se houver contradição, a Lógica Astronômica vence a "criatividade".
 
-**Cálculo do Temperamento (Filtro de Arroyo):** Avalie o balanço dos 4 Elementos (Fogo, Terra, Ar, Água). Identifique o elemento dominante (o combustível) e o elemento ausente/fraco (o ponto cego). Use isso para matizar todas as orientações.
+## 1.1 Regras de Ouro da Astronomia (TRAVAS DE SEGURANÇA)
 
-**Hierarquia de Força:** Dê prioridade máxima na interpretação para:
-- O Regente do Ascendente (O Capitão da Vida).
-- Planetas em Casas Angulares (1, 4, 7, 10).
-- Aspectos Partis/Exatos (orbe menor que 2°). Estes são os "gritos" do mapa.
+Você está **OBRIGADO** a validar matematicamente os seguintes aspectos antes de interpretá-los. Verifique a distância em graus:
 
-**Mecânica de Decisão:** Analise Mercúrio (como pensa) e Marte (como age) para explicar como esta pessoa toma decisões e onde ela costuma errar.
+* **Mercúrio x Sol:** A distância máxima é 28°.
+    * *Permitido:* Conjunção (0-10°) ou Sem Aspecto.
+    * *Proibido:* Quadratura (90°), Trígono (120°), Oposição (180°), Sextil (60°).
 
-**REGRAS DE OURO (GUIDELINES):**
+* **Vênus x Sol:** A distância máxima é 48°.
+    * *Permitido:* Conjunção (0-10°), Semi-Sextil (30°), Semi-Quadratura (45°).
+    * *Proibido:* Sextil (60°), Quadratura (90°), Trígono (120°), Oposição (180°).
 
-**Síntese, não Lista:** Nunca liste "Sol em áries, Lua em touro...". Diga: "Sua vontade ariana de iniciar é freada por uma necessidade taurina de segurança..."
+* **Vênus x Mercúrio:** A distância máxima é 76°.
+    * *Permitido:* Conjunção, Sextil.
+    * *Proibido:* Quadratura, Trígono, Oposição.
 
-**Precisão:** Se houver um aspecto tenso (Quadratura/Oposição) envolvendo planetas pessoais, trate isso como um "Ponto de Atenção Crítica".
+## 1.2 Cálculo Real de Aspectos (Geometria Sagrada)
 
-**Linguagem:** Terapêutica, direta, empoderadora. Use metáforas para explicar energias complexas.
+Para afirmar que dois planetas têm um aspecto, calcule a distância absoluta entre eles no zodíaco (0° a 360°). Use esta tabela rigorosa de orbes:
 
-**Sem repetições:** Cada seção deve revelar uma nova camada do indivíduo.
+* **Conjunção (0°):** Orbe +/- 8° (Distância: 0° a 8° ou 352° a 360°)
+* **Sextil (60°):** Orbe +/- 4° (Distância: 56° a 64°) -> *Harmônico*
+* **Quadratura (90°):** Orbe +/- 6° (Distância: 84° a 96°) -> *Tenso*
+* **Trígono (120°):** Orbe +/- 8° (Distância: 112° a 128°) -> *Fluido*
+* **Oposição (180°):** Orbe +/- 8° (Distância: 172° a 188°) -> *Tenso*
+* **Quincúncio (150°):** Orbe +/- 2° (Distância: 148° a 152°) -> *Ajuste*
 
-**Tratamento de Casas:** Se a hora não for exata ou a casa não for informada, foque na psicologia dos planetas nos signos e ignore as áreas da vida (Casas)."""
+> **ATENÇÃO:** Se a distância for, por exemplo, 65° (Leão para Libra), é um Sextil "largo" ou Sem Aspecto. JAMAIS chame isso de Oposição ou Quadratura. Respeite a geometria.
+
+## 1.3 Cálculo de Temperamento (Algoritmo de Pesos)
+
+Não "estime" os elementos. Calcule os pontos antes de escrever a seção de Temperamento:
+
+* **Pontuação:** Sol/Lua/Ascendente = 3 pontos cada. Outros planetas (Mercúrio a Plutão) = 1 ponto cada.
+* **Some os totais:** Fogo, Terra, Ar, Água.
+* **Regra de Interpretação:** Se o usuário tem Lua, Marte e Vênus em signos de Fogo, você **NÃO PODE** dizer que o elemento Fogo está "ausente" ou é "ponto cego". Verifique os dados.
+
+---
+
+# PASSO 2: DIRETRIZES DE INTERPRETAÇÃO (OUTPUT)
+
+Ao escrever o relatório final, siga esta estrutura e tom de voz:
+
+## Tom de Voz
+* **Analítico e Empático:** Use lógica para explicar, mas empatia para aconselhar.
+* **Evolutivo:** Foque no "Para que serve isso?" e não apenas "Como você é".
+* **Não Determinista:** Use "tende a", "pode sentir", "desafio de aprendizado", em vez de "você é assim e ponto".
+
+## Estrutura do Relatório
+1. **Dados Técnicos Validados:** Liste o Sol, Lua, Ascendente e Regente do Ascendente corretamente.
+2. **Análise de Temperamento:** Baseada na contagem real de pontos feita no Passo 1.3. Aponte excessos e faltas REAIS.
+3. **A Tríade Primordial (Sol, Lua, Asc):** Como a vontade consciente (Sol) conversa com a necessidade emocional (Lua) e a máscara social (Asc).
+4. **Mecânica de Decisão (Mercúrio e Marte):**
+    * Analise Mercúrio (processamento de dados) e Marte (motor de ação).
+    * *Crucial:* Só cite aspectos que passaram no filtro do Passo 1.1 e 1.2.
+5. **Afetividade (Vênus e Lua):** Linguagem do amor e nutrição emocional.
+6. **Desafios e Karma (Saturno, Nodos, Quíron):**
+    * Saturno: Onde exige esforço/estrutura.
+    * Nodo Norte: A direção de crescimento (desconfortável mas necessária).
+    * Nodo Sul: O talento inato, mas zona de conforto a ser superada.
+
+---
+
+# PASSO 3: LÓGICA DE SÍNTESE AVANÇADA (CAMADA DE PROFUNDIDADE)
+
+Após validar os dados matemáticos, aplique estas camadas de refinamento para evitar descrições superficiais:
+
+## 3.1 Verificação de Dignidades Essenciais (Estado do Planeta)
+
+Antes de interpretar um planeta, verifique seu "estado de ânimo" cósmico:
+
+**Domicílio:** O planeta está em casa (ex: Marte em Áries/Escorpião, Sol em Leão). Interpretação: A energia flui pura, forte e natural.
+
+**Exaltação:** O planeta é o convidado de honra (ex: Sol em Áries, Saturno em Libra). Interpretação: A energia opera em sua melhor performance, talvez até exagerada.
+
+**Detrimento:** O planeta está no signo oposto ao seu domicílio (ex: Marte em Libra, Vênus em Áries). Interpretação: A energia é desconfortável, precisa agir de forma "indireta" ou "estratégica".
+
+**Queda:** O planeta está no signo oposto à exaltação (ex: Sol em Libra, Lua em Escorpião). Interpretação: O planeta se sente inadequado ou precisa de muito esforço para funcionar bem.
+
+**Peregrino:** Sem dignidade ou debilidade forte. Interpretação: O planeta depende dos aspectos que recebe de outros. Sua expressão é neutra e pode variar conforme os aspectos e conexões no mapa.
+
+**Exemplo Prático:** Se o Sol está em Libra (Queda), não diga apenas "Você é diplomático". Diga: "Sua identidade (Sol) muitas vezes se sacrifica para agradar os outros (Libra), e seu desafio vital é descobrir quem você é quando não há ninguém por perto."
+
+⚠️ **REGRA CRÍTICA SOBRE DIGNIDADES - LEIA COM ATENÇÃO:**
+
+**VOCÊ NÃO DEVE CALCULAR OU INVENTAR DIGNIDADES. USE APENAS OS DADOS PRÉ-CALCULADOS FORNECIDOS.**
+
+No bloco "🔒 DADOS PRÉ-CALCULADOS (TRAVAS DE SEGURANÇA ATIVADAS)" você encontrará uma seção "🏛️ DIGNIDADES PLANETÁRIAS (IDENTIFICADAS POR TABELA FIXA)" que lista EXATAMENTE a dignidade de cada planeta.
+
+**PROCESSO DE VALIDAÇÃO OBRIGATÓRIA (FAÇA ISSO ANTES DE ESCREVER):**
+
+1. **Leia o bloco pré-calculado COMPLETO** antes de começar a escrever
+2. **Anote mentalmente** cada dignidade mencionada no bloco
+3. **Antes de mencionar qualquer dignidade** no texto, pare e verifique:
+   - O planeta está listado no bloco?
+   - A dignidade mencionada no bloco é exatamente a que você vai escrever?
+   - Se NÃO tiver certeza absoluta, NÃO mencione a dignidade
+
+**EXEMPLOS DE ERROS PROIBIDOS (NUNCA FAÇA ISSO):**
+- ❌ NÃO diga "Vênus em Sagitário está em Queda" se o bloco diz "PEREGRINO"
+- ❌ NÃO invente dignidades baseado em "achismo" ou "lógica aparente"
+- ❌ NÃO confunda signos (ex: dizer que Libra é Fogo quando é Ar)
+- ❌ NÃO calcule dignidades - elas já foram calculadas pelo código Python
+- ❌ NÃO use sinônimos (ex: "em exílio" quando o bloco diz "DETRIMENTO")
+- ❌ NÃO diga "em queda" quando o bloco diz "PEREGRINO"
+
+**EXEMPLOS CORRETOS (SIGA ESTES):**
+- ✅ Se o bloco diz "Vênus em Sagitário: PEREGRINO", escreva: "Vênus em Sagitário está PEREGRINO, o que significa que sua expressão depende dos aspectos que recebe de outros planetas."
+- ✅ Se o bloco diz "Sol em Libra: QUEDA", escreva: "Sol em Libra está em QUEDA, indicando que sua identidade muitas vezes se sacrifica para agradar os outros."
+- ✅ Se o bloco diz "Saturno em Libra: EXALTAÇÃO", escreva: "Saturno em Libra está em EXALTAÇÃO, funcionando em sua melhor performance."
+
+**REFERÊNCIAS ESPECÍFICAS PARA INTERPRETAÇÕES CORRETAS:**
+
+**Lua em Leão (PEREGRINO):**
+- ✅ CORRETO: "Lua em Leão indica emoções dramáticas, necessidade de ser notado e validado, expressão calorosa e teatral das emoções. A pessoa busca atenção e reconhecimento emocional."
+- ❌ ERRADO: "Lua em Leão indica precisão emocional, necessidade de ordem, análise emocional" (isso é Lua em Virgem/Touro)
+
+**Vênus em Sagitário (PEREGRINO):**
+- ✅ CORRETO: "Vênus em Sagitário está PEREGRINO, valorizando liberdade, aventura e crescimento pessoal em relacionamentos. Busca parceiros que compartilhem interesses intelectuais e filosóficos."
+- ❌ ERRADO: "Vênus em Sagitário está em queda" (NUNCA diga isso - é PEREGRINO)
+
+**IMPORTANTE:** Se você não encontrar a dignidade de um planeta no bloco pré-calculado, NÃO invente. Use apenas o signo e a casa para interpretar, sem mencionar dignidade.
+
+**VALIDAÇÃO OBRIGATÓRIA FINAL:** Antes de finalizar o texto, revise TODAS as menções a dignidades e confirme que cada uma está EXATAMENTE como descrita no bloco pré-calculado. Se houver qualquer dúvida, REMOVA a menção à dignidade e interprete apenas o signo e a casa.
+
+## 3.2 A Regra da Regência (Conexão entre Áreas da Vida)
+
+Para interpretar uma Casa Astrológica, você OBRIGATORIAMENTE deve olhar onde está o "Dono da Casa" (Regente).
+
+**Lógica:** Identifique o signo da cúspide da Casa X -> Identifique o Planeta Regente desse signo -> Veja em que Casa Y esse planeta está.
+
+**Template de Texto:** "A área da sua vida sobre [Assunto da Casa X] está diretamente ligada a [Assunto da Casa Y], pois o regente está lá."
+
+**Exemplo:** Se a Casa 2 (Dinheiro) é Áries, o regente é Marte. Se Marte está na Casa 7 (Parcerias), interprete: "Sua capacidade financeira (C2) depende diretamente das suas alianças e parcerias (C7/Marte). Você ganha dinheiro agindo em conjunto ou competindo com outros."
+
+## 3.3 Gestão de Contradições (O Ser Humano Real)
+
+Humanos são contraditórios. Se o mapa mostrar aspectos conflitantes, NÃO os ignore. Sintetize-os.
+
+**Cenário:** Sol em Libra (paz) vs. Lua em Leão (drama/atenção).
+
+**Síntese Obrigatória:** "Existe um conflito interno em você: uma parte racional que deseja harmonia e silêncio (Sol em Libra), e uma necessidade emocional visceral de ser notado e validado (Lua em Leão). Sua Lua em Leão busca expressão dramática, calor emocional e reconhecimento, enquanto seu Sol em Libra busca equilíbrio e diplomacia. Seu crescimento depende de aprender a brilhar (Leão) sem quebrar a diplomacia (Libra)."
+
+**⚠️ ATENÇÃO ESPECIAL - Lua em Leão:**
+- Lua em Leão NÃO é "precisão emocional" ou "necessidade de ordem" (isso é Lua em Virgem/Touro)
+- Lua em Leão É: emoções dramáticas, expressão teatral, busca por atenção e validação, calor emocional, necessidade de ser reconhecido emocionalmente
+- Sempre interprete Lua em Leão como expressiva, dramática e que busca ser notada, NÃO como analítica ou organizada
+
+---
+
+# PASSO 4: MÓDULOS TEMÁTICOS ESPECÍFICOS
+
+Ao escrever as seções do relatório, utilize estas "lentes" de foco:
+
+## Módulo A: Inteligência e Comunicação (Mercúrio)
+
+Não analise apenas "se a pessoa é inteligente". Analise COMO ela processa dados.
+
+**Mercúrio em Signos de Ar:** Processamento lógico, social, mas pode ser indeciso.
+
+**Mercúrio em Signos de Fogo:** Intuição rápida, fala antes de pensar, inspirador.
+
+**Mercúrio em Signos de Terra:** Prático, lento, metódico, focado em resultados.
+
+**Mercúrio em Signos de Água:** Memória fotográfica, decide pelo "feeling", não pela lógica.
+
+**Verifique:** Se Mercúrio está Retrógrado (nascimento), adicione a nota sobre "introspecção e revisão mental".
+
+## Módulo B: A Dinâmica do Desejo (Vênus e Marte)
+
+Analise o "Eros" (Vênus) e o "Pathos" (Marte).
+
+**Vênus:** O que a pessoa valoriza e como ela atrai. 
+- **IMPORTANTE:** Antes de interpretar Vênus, verifique sua dignidade no bloco pré-calculado.
+- **Exemplo CORRETO:** Se o bloco diz "Vênus em Sagitário: PEREGRINO", interprete: "Vênus em Sagitário está PEREGRINO, valorizando liberdade, aventura e crescimento pessoal. Busca relacionamentos que expandam horizontes intelectuais e filosóficos, evitando limitações ou 'grude'."
+- **NUNCA diga:** "Vênus em Sagitário está em queda" (é PEREGRINO)
+
+**Marte:** Como a pessoa conquista e briga. (Ex: Marte em Leão briga por orgulho e conquista com grandiosidade).
+
+**Síntese Afetiva:** "Você busca [Estilo de Vênus], mas age para conseguir isso de forma [Estilo de Marte]."
+
+## Módulo C: Vocação e Carreira (Meio do Céu - MC)
+
+Analise o Signo do MC (Cúspide da Casa 10).
+Analise planetas na Casa 10 (se houver).
+Analise Saturno (o construtor da carreira).
+
+**Distinção:** Diferencie "Trabalho Rotineiro" (Casa 6 - como você serve) de "Legado/Carreira" (Casa 10 - onde você brilha).
+
+---
+
+# PASSO 5: REMEDIAÇÃO E CONSELHO EVOLUTIVO (ACTIONABLE ADVICE)
+
+Para cada tensão identificada (Quadratura, Oposição ou Planeta em Queda), você deve fornecer um "Mecanismo de Saída". Não entregue fatalismo.
+
+## Regra da Remediação:
+
+**Problema:** "Saturno em oposição a Marte (Freio vs. Acelerador)."
+
+**Conselho Ruim:** "Você nunca vai conseguir agir."
+
+**Conselho Bom (Remediação):** "Para vencer essa tensão, você deve usar a estratégia do 'Passo Calculado'. Use a disciplina de Saturno para planejar a ação de Marte. Transforme a impulsividade em resistência de longo prazo. Esportes de resistência (maratona, musculação) ajudam a canalizar essa energia."
+
+---
+
+# INSTRUÇÃO DE FORMATAÇÃO FINAL
+
+Use **Negrito** para conceitos chave e posições planetárias.
+Use *Itálico* para nuances psicológicas.
+Use listas (Bullet points) para facilitar a leitura.
+Termine a análise com uma **"Frase de Poder"**: Um mantra curto que sintetiza a missão do mapa (ex: "Sua missão é liderar com o coração, mas planejar com a mente").
+
+---
+
+# INSTRUÇÃO FINAL
+
+Agora, processe os dados de nascimento fornecidos. Primeiro, faça a validação astronômica silenciosa. Segundo, gere o relatório. Se você encontrar dados de input que gerariam aspectos impossíveis (ex: Mercúrio quadrado ao Sol), ignore o aspecto impossível e interprete apenas o signo/casa, ou alerte que a configuração é astronomicamente rara/impossível e requer verificação dos dados de entrada.
+
+---
+
+# ⚠️ REGRA ABSOLUTA: USO DOS DADOS PRÉ-CALCULADOS
+
+**ANTES DE ESCREVER QUALQUER INTERPRETAÇÃO, LEIA O BLOCO "🔒 DADOS PRÉ-CALCULADOS" COMPLETO.**
+
+Este bloco contém TODOS os cálculos já feitos pelo código Python usando Swiss Ephemeris. Você DEVE usar APENAS esses dados:
+
+1. **Temperamento:** Use APENAS os pontos fornecidos no bloco. NÃO recalcule.
+2. **Dignidades:** Use APENAS as dignidades listadas no bloco. NÃO invente ou confunda.
+3. **Regente:** Use APENAS o regente identificado no bloco. NÃO calcule outro.
+4. **Elementos:** Use APENAS o mapeamento fixo fornecido (Libra = AR, não Fogo).
+
+**VALIDAÇÃO ANTES DE ESCREVER (CHECKLIST OBRIGATÓRIO):**
+
+Antes de escrever QUALQUER interpretação, faça este checklist:
+
+1. ✅ **Leu o bloco pré-calculado COMPLETO?** (NÃO pule esta etapa)
+2. ✅ **Anotou todas as dignidades mencionadas no bloco?**
+3. ✅ **Para cada planeta que vai mencionar:**
+   - Verificou se está no bloco?
+   - A dignidade que vai escrever é EXATAMENTE a do bloco?
+   - Se for PEREGRINO, não está escrevendo "queda" ou "exílio"?
+4. ✅ **Para Lua em Leão especificamente:**
+   - Está descrevendo como dramática, expressiva, que busca atenção?
+   - NÃO está descrevendo como "precisa de ordem" ou "análise emocional"?
+5. ✅ **Para Vênus em Sagitário especificamente:**
+   - Se o bloco diz PEREGRINO, está usando EXATAMENTE essa palavra?
+   - NÃO está dizendo "em queda"?
+6. ✅ **Revisou TODAS as menções a dignidades no texto final?**
+   - Cada uma está EXATAMENTE como no bloco?
+
+**SE HOUVER QUALQUER DÚVIDA:** Não mencione a dignidade/elemento/regente. Apenas interprete o signo e a casa.
+
+**REGRA DE OURO:** Se você não tem 100% de certeza absoluta de que a dignidade está correta, NÃO mencione a dignidade. É melhor interpretar apenas o signo e a casa do que inventar uma dignidade errada.
+
+FIM DAS INSTRUÇÕES DO SISTEMA. Comece a análise agora baseada nos dados fornecidos."""
 
 
-def _get_full_chart_context(request: FullBirthChartRequest, lang: str = 'pt') -> str:
+def _validate_chart_request(request: FullBirthChartRequest, lang: str = 'pt') -> Tuple[Dict[str, Any], Optional[str], Optional[str]]:
+    """
+    Valida os dados do mapa astral, retorna relatório de validação E dados pré-calculados.
+    
+    Returns:
+        Tuple[Dict, Optional[str], Optional[str]]: (chart_data_dict, validation_summary, precomputed_data_block)
+    """
+    try:
+        from app.services.chart_validation_tool import (
+            validate_complete_birth_chart,
+            get_validation_summary_for_prompt,
+        )
+        from app.services.precomputed_chart_engine import create_precomputed_data_block
+        from app.services.astrology_calculator import get_zodiac_sign
+        
+        # Construir dicionário de dados do mapa
+        chart_data = {
+            'sun_sign': request.sunSign,
+            'moon_sign': request.moonSign,
+            'ascendant_sign': request.ascendant,
+            'mercury_sign': request.mercurySign,
+            'venus_sign': request.venusSign,
+            'mars_sign': request.marsSign,
+            'jupiter_sign': request.jupiterSign,
+            'saturn_sign': request.saturnSign,
+            'uranus_sign': request.uranusSign,
+            'neptune_sign': request.neptuneSign,
+            'pluto_sign': request.plutoSign,
+            'midheaven_sign': request.midheavenSign,
+            'north_node_sign': request.northNodeSign,
+            'south_node_sign': request.southNodeSign,
+            'chiron_sign': request.chironSign,
+        }
+        
+        # Tentar reconstruir longitudes aproximadas a partir dos signos
+        source_longitudes = {}
+        sign_to_mid_longitude = {
+            'Áries': 15, 'Aries': 15, 'Touro': 45, 'Taurus': 45,
+            'Gêmeos': 75, 'Gemini': 75, 'Câncer': 105, 'Cancer': 105,
+            'Leão': 135, 'Leo': 135, 'Virgem': 165, 'Virgo': 165,
+            'Libra': 195, 'Escorpião': 225, 'Scorpio': 225,
+            'Sagitário': 255, 'Sagittarius': 255, 'Capricórnio': 285, 'Capricorn': 285,
+            'Aquário': 315, 'Aquarius': 315, 'Peixes': 345, 'Pisces': 345,
+        }
+        
+        planet_sign_map = {
+            'sun': ('sun_sign', request.sunSign),
+            'moon': ('moon_sign', request.moonSign),
+            'mercury': ('mercury_sign', request.mercurySign),
+            'venus': ('venus_sign', request.venusSign),
+            'mars': ('mars_sign', request.marsSign),
+            'jupiter': ('jupiter_sign', request.jupiterSign),
+            'saturn': ('saturn_sign', request.saturnSign),
+            'uranus': ('uranus_sign', request.uranusSign),
+            'neptune': ('neptune_sign', request.neptuneSign),
+            'pluto': ('pluto_sign', request.plutoSign),
+            'ascendant': ('ascendant_sign', request.ascendant),
+            'midheaven': ('midheaven_sign', request.midheavenSign),
+            'north_node': ('north_node_sign', request.northNodeSign),
+            'south_node': ('south_node_sign', request.southNodeSign),
+            'chiron': ('chiron_sign', request.chironSign),
+        }
+        
+        for planet_key, (_, sign) in planet_sign_map.items():
+            if sign:
+                mid_lon = sign_to_mid_longitude.get(sign)
+                if mid_lon is not None:
+                    source_longitudes[planet_key] = float(mid_lon)
+        
+        if source_longitudes:
+            chart_data['_source_longitudes'] = source_longitudes
+        
+        # Validar mapa astral completo
+        validated_chart, report = validate_complete_birth_chart(chart_data)
+        
+        # Obter resumo de validação
+        validation_summary = get_validation_summary_for_prompt(report, lang)
+        
+        # Criar bloco de dados pré-calculados (TRAVAS DE SEGURANÇA)
+        precomputed_block = create_precomputed_data_block(chart_data, lang)
+        
+        return validated_chart, validation_summary, precomputed_block
+    
+    except Exception as e:
+        print(f"[WARNING] Erro ao validar mapa astral: {e}")
+        import traceback
+        print(traceback.format_exc())
+        return {}, None, None
+
+
+def _get_full_chart_context(request: FullBirthChartRequest, lang: str = 'pt', validation_summary: Optional[str] = None, precomputed_data: Optional[str] = None) -> str:
     """Gera o contexto completo do mapa astral com todos os corpos celestes."""
     if lang == 'pt':
         # Preparar string de Lilith para evitar backslash em f-string
@@ -1554,7 +2276,15 @@ MAPA ASTRAL COMPLETO DE {request.name.upper()}:
 - Meio do Céu em {request.midheavenSign or 'não calculado'} (Vocação, Reputação)
 - Nodo Norte em {request.northNodeSign or 'não calculado'}{f' na Casa {request.northNodeHouse}' if request.northNodeHouse else ''} (Destino, Evolução)
 - Nodo Sul em {request.southNodeSign or 'não calculado'}{f' na Casa {request.southNodeHouse}' if request.southNodeHouse else ''} (Passado, Zona de Conforto)
-- Quíron em {request.chironSign or 'não calculado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''} (Ferida/Dom de Cura){lilith_str}"""
+- Quíron em {request.chironSign or 'não calculado'}{f' na Casa {request.chironHouse}' if request.chironHouse else ''} (Ferida/Dom de Cura){lilith_str}
+
+---
+🔍 RELATÓRIO DE VALIDAÇÃO MATEMÁTICA:
+{validation_summary or '✅ Dados validados automaticamente pelo sistema.'}
+---
+
+{precomputed_data or ''}
+"""
     else:
         # Preparar string de Lilith para evitar backslash em f-string
         lilith_str = f'\n- Lilith in {request.lilithSign}{f" in House {request.lilithHouse}" if request.lilithHouse else ""}' if request.lilithSign else ''
@@ -1587,15 +2317,23 @@ COMPLETE BIRTH CHART OF {request.name.upper()}:
 - Midheaven in {request.midheavenSign or 'not calculated'} (Vocation, Reputation)
 - North Node in {request.northNodeSign or 'not calculated'}{f' in House {request.northNodeHouse}' if request.northNodeHouse else ''} (Destiny, Evolution)
 - South Node in {request.southNodeSign or 'not calculated'}{f' in House {request.southNodeHouse}' if request.southNodeHouse else ''} (Past, Comfort Zone)
-- Chiron in {request.chironSign or 'not calculated'}{f' in House {request.chironHouse}' if request.chironHouse else ''} (Wound/Healing Gift){lilith_str}"""
+- Chiron in {request.chironSign or 'not calculated'}{f' in House {request.chironHouse}' if request.chironHouse else ''} (Wound/Healing Gift){lilith_str}
+
+---
+🔍 MATHEMATICAL VALIDATION REPORT:
+{validation_summary or '✅ Data automatically validated by the system.'}
+---
+
+{precomputed_data or ''}
+"""
 
 
-def _generate_section_prompt(request: FullBirthChartRequest, section: str) -> Tuple[str, str]:
+def _generate_section_prompt(request: FullBirthChartRequest, section: str, validation_summary: Optional[str] = None, precomputed_data: Optional[str] = None) -> Tuple[str, str]:
     """Gera o prompt específico para cada seção do mapa baseado na nova estrutura fornecida."""
     lang = request.language or 'pt'
     
-    # Contexto completo do mapa para referência
-    full_context = _get_full_chart_context(request, lang)
+    # Contexto completo do mapa para referência (inclui validação E dados pré-calculados)
+    full_context = _get_full_chart_context(request, lang, validation_summary, precomputed_data)
     
     # Data de nascimento formatada para inserção no prompt
     birth_data_str = f"Data: {request.birthDate}, Hora: {request.birthTime}, Local: {request.birthPlace}"
@@ -1780,10 +2518,18 @@ DADOS RELEVANTES:
 - Vênus em {request.venusSign or 'não informado'}{f' na Casa {request.venusHouse}' if request.venusHouse else ''}
 - Descendente (oposto ao Ascendente {request.ascendant})
 
+⚠️ **REGRA CRÍTICA SOBRE DIGNIDADES DE VÊNUS:**
+- **VOCÊ NÃO DEVE CALCULAR OU INVENTAR A DIGNIDADE DE VÊNUS**
+- **CONSULTE O BLOCO "🔒 DADOS PRÉ-CALCULADOS" FORNECIDO ACIMA**
+- **Se o bloco diz "Vênus em Sagitário: PEREGRINO", use EXATAMENTE isso - NÃO diga "Queda"**
+- **Exemplo CORRETO:** "Vênus em Sagitário está em PEREGRINO, o que significa..."
+- **Exemplo INCORRETO:** "Vênus está em Queda em Sagitário" (NUNCA diga isso se o bloco diz PEREGRINO)
+- **Se você não encontrar a dignidade no bloco pré-calculado, NÃO invente - apenas interprete o signo e a casa**
+
 IMPORTANTE:
 - Não repita informações já mencionadas em outras seções
 - NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - use apenas os dados fornecidos ou omita a informação
-- Analise Vênus com técnica de Dignidades/Debilidades (Astrologia Clássica)
+- Analise Vênus com técnica de Dignidades/Debilidades (Astrologia Clássica) - MAS USE APENAS OS DADOS DO BLOCO PRÉ-CALCULADO
 - Analise padrões de relacionamento com profundidade psicológica"""
         else:
             prompt = f"""{full_context}
@@ -1801,10 +2547,18 @@ RELEVANT DATA:
 - Venus in {request.venusSign or 'not provided'}{f' in House {request.venusHouse}' if request.venusHouse else ''}
 - Descendant (opposite to Ascendant {request.ascendant})
 
+⚠️ **CRITICAL RULE ABOUT VENUS DIGNITIES:**
+- **YOU MUST NOT CALCULATE OR INVENT VENUS'S DIGNITY**
+- **CONSULT THE "🔒 PRE-COMPUTED DATA" BLOCK PROVIDED ABOVE**
+- **If the block says "Venus in Sagittarius: PEREGRINE", use EXACTLY that - DO NOT say "Fall"**
+- **CORRECT Example:** "Venus in Sagittarius is in PEREGRINE, which means..."
+- **INCORRECT Example:** "Venus is in Fall in Sagittarius" (NEVER say this if the block says PEREGRINE)
+- **If you don't find the dignity in the pre-computed block, DO NOT invent it - only interpret the sign and house**
+
 IMPORTANT:
 - Do not repeat information already mentioned in other sections
 - NEVER write "House not provided", "in House not provided" or any variation - use only the provided data or omit the information
-- Analyze Venus with Dignities/Debilities technique (Classical Astrology)
+- Analyze Venus with Dignities/Debilities technique (Classical Astrology) - BUT USE ONLY THE DATA FROM THE PRE-COMPUTED BLOCK
 - Analyze relationship patterns with psychological depth"""
     
     elif section == 'karma':
@@ -1879,12 +2633,20 @@ CRITICAL IMPORTANT:
 
 * **Conselho Final:** Uma diretriz prática e empoderadora para a evolução pessoal e tomada de decisão.
 
+⚠️ **REGRA CRÍTICA SOBRE DIGNIDADES:**
+- **VOCÊ NÃO DEVE INVENTAR OU INFERIR DIGNIDADES**
+- **CONSULTE O BLOCO "🔒 DADOS PRÉ-CALCULADOS" FORNECIDO ACIMA para TODAS as dignidades**
+- **Se mencionar "planetas em Queda", use APENAS os planetas listados como QUEDA no bloco pré-calculado**
+- **NÃO inclua planetas que estão como PEREGRINO na lista de "planetas em Queda"**
+- **Exemplo:** Se o bloco diz "Vênus em Sagitário: PEREGRINO", NÃO mencione Vênus como "planeta em Queda"
+- **Use APENAS os dados do bloco pré-calculado - NÃO invente ou infira dignidades**
+
 IMPORTANTE:
 - Use "conselhos" (português), NUNCA "consejo" (espanhol). Use sempre português brasileiro.
 - NÃO repita informações já detalhadas nas seções anteriores
 - NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação
 - Faça uma síntese integradora que conecte TODOS os elementos já analisados
-- Identifique pontos técnicos específicos (Stelliums, Dignidades, Aspectos exatos)
+- Identifique pontos técnicos específicos (Stelliums, Dignidades, Aspectos exatos) - MAS USE APENAS OS DADOS DO BLOCO PRÉ-CALCULADO
 - Ofereça uma diretriz estratégica e empoderadora
 - Foque em tomada de decisão prática e evolução pessoal"""
         else:
@@ -1898,11 +2660,19 @@ IMPORTANTE:
 
 * **Final Counsel:** A practical and empowering directive for personal evolution and decision-making.
 
+⚠️ **CRITICAL RULE ABOUT DIGNITIES:**
+- **YOU MUST NOT INVENT OR INFER DIGNITIES**
+- **CONSULT THE "🔒 PRE-COMPUTED DATA" BLOCK PROVIDED ABOVE for ALL dignities**
+- **If mentioning "planets in Fall", use ONLY the planets listed as FALL in the pre-computed block**
+- **DO NOT include planets that are listed as PEREGRINE in the "planets in Fall" list**
+- **Example:** If the block says "Venus in Sagittarius: PEREGRINE", DO NOT mention Venus as a "planet in Fall"
+- **Use ONLY the data from the pre-computed block - DO NOT invent or infer dignities**
+
 IMPORTANT:
 - DO NOT repeat information already detailed in previous sections
 - NEVER write "House not provided", "in House not provided" or any variation
 - Make an integrating synthesis that connects ALL elements already analyzed
-- Identify specific technical points (Stelliums, Dignities, Exact Aspects)
+- Identify specific technical points (Stelliums, Dignities, Exact Aspects) - BUT USE ONLY THE DATA FROM THE PRE-COMPUTED BLOCK
 - Offer a strategic and empowering directive
 - Focus on practical decision-making and personal evolution"""
     
@@ -1929,43 +2699,84 @@ def generate_birth_chart_section(
     - karma: Expansão, Estrutura e Karma - Júpiter, Saturno, Nodos, Quíron, Lilith
     - synthesis: Síntese e Orientação Estratégica - Pontos Fortes, Desafios e Conselho Final
     """
+    import traceback
+    import os
+    from datetime import datetime
+    
+    request_id = datetime.now().strftime("%Y%m%d%H%M%S%f")[:20]
+    lang = request.language or 'pt'
+    
+    def log(level: str, message: str):
+        """Helper para logging estruturado"""
+        timestamp = datetime.now().isoformat()
+        print(f"[{timestamp}] [{level}] [REQ-{request_id}] [SECTION-{request.section or 'unknown'}] {message}")
+    
     try:
+        log("INFO", f"Iniciando geração de seção '{request.section}' para {request.name}")
+        
         if not request.section:
+            log("ERROR", "Seção não especificada")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Especifique uma seção: power, triad, personal, houses, karma, synthesis"
             )
         
-        rag_service = get_rag_service()
-        lang = request.language or 'pt'
+        # Verificar RAG service (não é mais obrigatório - temos fallbacks)
+        rag_service = None
+        try:
+            rag_service = get_rag_service()
+            if rag_service:
+                log("INFO", "RAG service disponível")
+            else:
+                log("WARNING", "RAG service não disponível - usando fallbacks")
+        except Exception as e:
+            log("WARNING", f"Erro ao obter RAG service: {str(e)} - continuando com fallbacks")
         
-        # Verificar se o RAG service está funcionando
-        if not rag_service:
+        # Não falhar se RAG não estiver disponível - temos fallbacks robustos
+        
+        # Tentar carregar índice se RAG service estiver disponível
+        has_index = False
+        if rag_service:
+            try:
+                if hasattr(rag_service, 'index'):
+                    has_index = rag_service.index is not None
+                elif hasattr(rag_service, 'documents'):
+                    has_index = len(rag_service.documents) > 0
+                
+                if not has_index:
+                    log("WARNING", "Índice RAG vazio, tentando carregar...")
+                    if hasattr(rag_service, 'load_index'):
+                        if not rag_service.load_index():
+                            log("WARNING", "Não foi possível carregar índice RAG. Continuando com base local.")
+                    else:
+                        log("WARNING", "Método load_index não disponível. Continuando com base local.")
+            except Exception as e:
+                log("WARNING", f"Erro ao verificar índice RAG: {str(e)}")
+        
+        # Validar dados do mapa astral e criar bloco de dados pré-calculados
+        try:
+            validated_chart, validation_summary, precomputed_data = _validate_chart_request(request, lang)
+            log("INFO", "Dados do mapa astral validados com sucesso")
+        except Exception as e:
+            log("ERROR", f"Erro ao validar dados do mapa: {str(e)}")
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Serviço RAG não disponível. Verifique a configuração."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Erro ao validar dados do mapa astral: {str(e)}"
             )
         
-        # Tentar carregar índice se não estiver carregado
-        has_index = False
-        if hasattr(rag_service, 'index'):
-            has_index = rag_service.index is not None
-        elif hasattr(rag_service, 'documents'):
-            has_index = len(rag_service.documents) > 0
-        
-        if not has_index:
-            print("[WARNING] Índice RAG vazio, tentando carregar...")
-            if hasattr(rag_service, 'load_index'):
-                if not rag_service.load_index():
-                    print("[WARNING] Não foi possível carregar índice RAG. Continuando com base local.")
-            else:
-                print("[WARNING] Método load_index não disponível. Continuando com base local.")
-        
         # Obter prompt mestre e prompt da seção
-        master_prompt = _get_master_prompt(lang)
-        title, section_prompt = _generate_section_prompt(request, request.section)
+        try:
+            master_prompt = _get_master_prompt(lang)
+            title, section_prompt = _generate_section_prompt(request, request.section, validation_summary, precomputed_data)
+            log("INFO", f"Prompts gerados: título='{title}'")
+        except Exception as e:
+            log("ERROR", f"Erro ao gerar prompts: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao preparar prompts: {str(e)}"
+            )
         
-        # Buscar contexto relevante do RAG
+        # Buscar contexto relevante do RAG (se disponível)
         search_queries = {
             'power': f"regente do mapa ascendente {request.ascendant} elementos fogo terra ar água qualidades cardeal fixo mutável temperamento",
             'triad': f"Sol Lua Ascendente personalidade tríade {request.sunSign} {request.moonSign} {request.ascendant} dinâmica",
@@ -1979,11 +2790,15 @@ def generate_birth_chart_section(
         
         # Buscar contexto do RAG com tratamento de erro
         rag_results = []
-        try:
-            rag_results = rag_service.search(query, top_k=10)
-        except Exception as e:
-            print(f"[WARNING] Erro ao buscar no RAG: {e}")
-            # Continuar sem RAG se houver erro
+        if rag_service and has_index:
+            try:
+                log("INFO", f"Buscando contexto no RAG para query: {query[:50]}...")
+                rag_results = rag_service.search(query, top_k=10)
+                log("INFO", f"RAG retornou {len(rag_results)} resultados")
+            except Exception as e:
+                log("WARNING", f"Erro ao buscar no RAG: {str(e)} - continuando sem RAG")
+        else:
+            log("INFO", "Pulando busca RAG (serviço não disponível ou índice vazio)")
         
         # Preparar contexto
         context_text = "\n\n".join([doc.get('text', '') for doc in rag_results[:8] if doc.get('text')])
@@ -2013,7 +2828,21 @@ def generate_birth_chart_section(
                 context_limit = min(len(context_text), 3000)
                 context_snippet = context_text[:context_limit] if context_text else "Informações astrológicas gerais sobre o tema."
                 
-                full_user_prompt = f"""{section_prompt}
+                full_user_prompt = f"""⚠️ **LEIA PRIMEIRO - INSTRUÇÃO CRÍTICA:**
+
+Antes de escrever qualquer interpretação, você DEVE ler e usar APENAS os dados do bloco "🔒 DADOS PRÉ-CALCULADOS" fornecido abaixo. 
+
+**NÃO CALCULE, NÃO INVENTE, NÃO CONFUNDA:**
+- Dignidades: Use APENAS as listadas no bloco (ex: se diz "Vênus em Sagitário: PEREGRINO", use EXATAMENTE isso)
+- Temperamento: Use APENAS os pontos fornecidos no bloco
+- Regente: Use APENAS o regente identificado no bloco
+- Elementos: Use APENAS o mapeamento fixo (Libra = AR, não Fogo)
+
+Se você não encontrar um dado no bloco pré-calculado, NÃO invente. Apenas interprete o signo e a casa.
+
+---
+
+{section_prompt}
 
 ---
 
@@ -2053,11 +2882,11 @@ IMPORTANTE FINAL:
                 )
                 
             except Exception as e:
-                print(f"[ERROR] Erro ao gerar com Groq: {e}")
-                import traceback
-                print(f"[ERROR] Traceback: {traceback.format_exc()}")
+                log("ERROR", f"Erro ao gerar com Groq: {str(e)}")
+                log("ERROR", f"Traceback: {traceback.format_exc()}")
                 # Tentar fallback com RAG apenas
                 if rag_results and len(rag_results) > 0:
+                    log("INFO", f"Tentando fallback: RAG apenas ({len(rag_results)} resultados)")
                     fallback_content = "\n\n".join([doc['text'] for doc in rag_results[:3]])
                     if fallback_content and len(fallback_content) > 100:
                         return FullBirthChartResponse(
@@ -2088,10 +2917,45 @@ IMPORTANTE FINAL:
                         generated_by="local_kb"
                     )
         except Exception as e:
-            print(f"[ERROR] Erro ao usar base local: {e}")
+            log("ERROR", f"Erro ao usar base local: {str(e)}")
         
-        # Último fallback: mensagem de erro
-        error_msg = "Não foi possível gerar a análise no momento. Por favor, tente novamente." if lang == 'pt' else "Could not generate the analysis at this time. Please try again."
+        # Último fallback: mensagem de erro útil
+        log("WARNING", "Todos os métodos de geração falharam - retornando mensagem de erro")
+        error_msg_pt = f"""Não foi possível gerar a análise completa no momento. 
+
+**Dados do seu mapa astral:**
+- Sol: {request.sunSign}
+- Lua: {request.moonSign}
+- Ascendente: {request.ascendant}
+
+**Status do sistema:** Alguns serviços podem estar temporariamente indisponíveis.
+
+**Recomendações:**
+1. Verifique sua conexão com a internet
+2. Aguarde alguns instantes e tente novamente
+3. Se o problema persistir, entre em contato com o suporte
+4. Acesse `/api/birth-chart/diagnostics` para verificar o status dos serviços
+
+**Request ID:** {request_id}"""
+        
+        error_msg_en = f"""Could not generate the complete analysis at this time.
+
+**Your birth chart data:**
+- Sun: {request.sunSign}
+- Moon: {request.moonSign}
+- Ascendant: {request.ascendant}
+
+**System status:** Some services may be temporarily unavailable.
+
+**Recommendations:**
+1. Check your internet connection
+2. Wait a few moments and try again
+3. If the problem persists, contact support
+4. Access `/api/birth-chart/diagnostics` to check service status
+
+**Request ID:** {request_id}"""
+        
+        error_msg = error_msg_pt if lang == 'pt' else error_msg_en
         return FullBirthChartResponse(
             section=request.section,
             title=title,
@@ -2102,9 +2966,11 @@ IMPORTANTE FINAL:
     except HTTPException:
         raise
     except Exception as e:
+        log("ERROR", f"Erro crítico ao gerar seção do mapa: {str(e)}")
+        log("ERROR", f"Traceback completo: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao gerar seção do mapa: {str(e)}"
+            detail=f"Erro ao gerar seção do mapa: {str(e)}. Request ID: {request_id}. Verifique os logs para mais detalhes."
         )
 
 

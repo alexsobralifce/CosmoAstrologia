@@ -225,17 +225,51 @@ def calculate_future_transits(
     birth_observer.lon = str(longitude)
     birth_observer.date = birth_datetime.strftime('%Y/%m/%d %H:%M:%S')
     
-    # Calcular posições planetárias do mapa natal
-    natal_positions = {}
-    planets_to_check = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
+    # FONTE ÚNICA DE VERDADE: Usar dados do mapa natal do cache
+    # Isso garante que usamos as mesmas posições calculadas anteriormente
+    from app.services.chart_data_cache import get_or_calculate_chart
+    from app.services.astrology_calculator import calculate_birth_chart
     
-    for planet_name in planets_to_check:
-        try:
-            longitude = calculate_planet_position(birth_observer, planet_name)
-            natal_positions[planet_name] = longitude
-        except Exception as e:
-            print(f"[WARNING] Erro ao calcular posição natal de {planet_name}: {e}")
-            continue
+    # Obter mapa natal completo do cache (fonte única)
+    natal_chart = get_or_calculate_chart(
+        birth_date=birth_date,
+        birth_time=birth_time,
+        latitude=latitude,
+        longitude=longitude,
+        calculate_func=calculate_birth_chart
+    )
+    
+    # Extrair longitudes do mapa natal (fonte única de verdade)
+    natal_positions = {}
+    if "_source_longitudes" in natal_chart:
+        # Usar longitudes da fonte única
+        source_lons = natal_chart["_source_longitudes"]
+        planet_key_map = {
+            'sun': 'sun',
+            'moon': 'moon',
+            'mercury': 'mercury',
+            'venus': 'venus',
+            'mars': 'mars',
+            'jupiter': 'jupiter',
+            'saturn': 'saturn',
+            'uranus': 'uranus',
+            'neptune': 'neptune',
+            'pluto': 'pluto'
+        }
+        for planet_name in ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']:
+            key = planet_key_map.get(planet_name)
+            if key and key in source_lons:
+                natal_positions[planet_name] = source_lons[key]
+    else:
+        # Fallback: calcular diretamente se não tiver cache
+        planets_to_check = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
+        for planet_name in planets_to_check:
+            try:
+                longitude = calculate_planet_position(birth_observer, planet_name)
+                natal_positions[planet_name] = longitude
+            except Exception as e:
+                print(f"[WARNING] Erro ao calcular posição natal de {planet_name}: {e}")
+                continue
     
     # Planetas lentos que fazem trânsitos importantes
     slow_planets = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
@@ -250,13 +284,18 @@ def calculate_future_transits(
         'ascendant': None  # Será calculado separadamente
     }
     
-    # Calcular ascendente natal
-    try:
-        from app.services.astrology_calculator import calculate_ascendant
-        natal_ascendant = calculate_ascendant(birth_observer)
+    # Obter ascendente do mapa natal (fonte única)
+    if "_source_longitudes" in natal_chart and "ascendant" in natal_chart["_source_longitudes"]:
+        natal_ascendant = natal_chart["_source_longitudes"]["ascendant"]
         natal_positions['ascendant'] = natal_ascendant
-    except Exception as e:
-        print(f"[WARNING] Erro ao calcular ascendente natal: {e}")
+    else:
+        # Fallback: calcular diretamente
+        try:
+            from app.services.astrology_calculator import calculate_ascendant
+            natal_ascendant = calculate_ascendant(birth_observer)
+            natal_positions['ascendant'] = natal_ascendant
+        except Exception as e:
+            print(f"[WARNING] Erro ao calcular ascendente natal: {e}")
     
     transits = []
     today = datetime.now()

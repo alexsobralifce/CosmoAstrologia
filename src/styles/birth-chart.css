@@ -591,10 +591,99 @@
 }
 
 .birth-chart-note-description {
-  font-size: 0.875rem;
   color: hsl(var(--muted-foreground));
   line-height: 1.6;
   margin: 0;
+}
+
+/* ============================================================================
+ * BOTÃO GERAR PDF
+ * ============================================================================ */
+.birth-chart-pdf-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid hsl(var(--border));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.birth-chart-pdf-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  min-width: 280px;
+}
+
+.birth-chart-pdf-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.birth-chart-pdf-button:hover::before {
+  left: 100%;
+}
+
+.birth-chart-pdf-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.95) 0%, hsl(var(--primary) / 0.75) 100%);
+}
+
+.birth-chart-pdf-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.birth-chart-pdf-icon {
+  flex-shrink: 0;
+  color: hsl(var(--primary-foreground));
+}
+
+.birth-chart-pdf-text {
+  flex: 1;
+  text-align: center;
+  color: hsl(var(--primary-foreground));
+}
+
+.birth-chart-pdf-download-icon {
+  flex-shrink: 0;
+  color: hsl(var(--primary-foreground));
+  opacity: 0.8;
+  transition: transform 0.3s ease;
+}
+
+.birth-chart-pdf-button:hover .birth-chart-pdf-download-icon {
+  transform: translateY(2px);
+}
+
+.birth-chart-pdf-description {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  max-width: 600px;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* ============================================================================

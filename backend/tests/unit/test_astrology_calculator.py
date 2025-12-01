@@ -85,7 +85,7 @@ class TestAstrologyCalculator:
             result = get_zodiac_sign(longitude)
             
             # Assert
-                assert result["sign"] in ZODIAC_SIGNS, f"Signo inválido para longitude {longitude}"
+            assert result["sign"] in ZODIAC_SIGNS, f"Signo inválido para longitude {longitude}"
             assert isinstance(result["degree"], (int, float))
             assert 0 <= result["degree"] < 30
     

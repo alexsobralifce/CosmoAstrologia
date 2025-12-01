@@ -2304,7 +2304,8 @@ def _validate_chart_request(request: FullBirthChartRequest, lang: str = 'pt') ->
         validation_summary = get_validation_summary_for_prompt(report, lang)
         
         # Criar bloco de dados pré-calculados (TRAVAS DE SEGURANÇA)
-        precomputed_block = create_precomputed_data_block(chart_data, lang)
+        # Usar validated_chart que contém aspectos calculados
+        precomputed_block = create_precomputed_data_block(validated_chart, lang)
         
         return validated_chart, validation_summary, precomputed_block
     

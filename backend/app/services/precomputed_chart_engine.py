@@ -234,6 +234,112 @@ def get_chart_ruler(ascendant_sign: str, chart_data: Dict[str, Any]) -> Dict[str
     }
 
 
+def calculate_stelliums(chart_data: Dict[str, Any], language: str = 'pt') -> List[Dict[str, Any]]:
+    """
+    Calcula stelliums (3+ planetas no mesmo signo).
+    
+    Returns:
+        Lista de dicts com signo e planetas no stellium
+    """
+    from collections import defaultdict
+    
+    # Mapear planetas para signos
+    planet_sign_map = {
+        'sun_sign': 'Sol',
+        'moon_sign': 'Lua',
+        'mercury_sign': 'Mercúrio',
+        'venus_sign': 'Vênus',
+        'mars_sign': 'Marte',
+        'jupiter_sign': 'Júpiter',
+        'saturn_sign': 'Saturno',
+        'uranus_sign': 'Urano',
+        'neptune_sign': 'Netuno',
+        'pluto_sign': 'Plutão',
+    }
+    
+    # Agrupar planetas por signo
+    sign_planets = defaultdict(list)
+    for sign_key, planet_name in planet_sign_map.items():
+        sign = chart_data.get(sign_key)
+        if sign:
+            sign_planets[sign].append(planet_name)
+    
+    # Identificar stelliums (3+ planetas)
+    stelliums = []
+    for sign, planets in sign_planets.items():
+        if len(planets) >= 3:
+            stelliums.append({
+                'sign': sign,
+                'planets': planets,
+                'count': len(planets)
+            })
+    
+    return stelliums
+
+
+def get_validated_aspects(chart_data: Dict[str, Any], language: str = 'pt') -> List[Dict[str, Any]]:
+    """
+    Obtém aspectos validados do chart_data (se disponíveis).
+    
+    Returns:
+        Lista de aspectos validados
+    """
+    validated_aspects = chart_data.get('_validated_aspects', [])
+    
+    if not validated_aspects:
+        return []
+    
+    # Mapear nomes de planetas
+    planet_name_map_pt = {
+        'sun': 'Sol', 'moon': 'Lua', 'mercury': 'Mercúrio', 'venus': 'Vênus',
+        'mars': 'Marte', 'jupiter': 'Júpiter', 'saturn': 'Saturno',
+        'uranus': 'Urano', 'neptune': 'Netuno', 'pluto': 'Plutão'
+    }
+    
+    aspect_name_map_pt = {
+        'conjunction': 'Conjunção',
+        'sextile': 'Sextil',
+        'square': 'Quadratura',
+        'trine': 'Trígono',
+        'opposition': 'Oposição',
+        'quincunx': 'Quincúncio'
+    }
+    
+    aspect_name_map_en = {
+        'conjunction': 'Conjunction',
+        'sextile': 'Sextile',
+        'square': 'Square',
+        'trine': 'Trine',
+        'opposition': 'Opposition',
+        'quincunx': 'Quincunx'
+    }
+    
+    formatted_aspects = []
+    for aspect in validated_aspects:
+        planet1 = aspect.get('planet1', '')
+        planet2 = aspect.get('planet2', '')
+        aspect_type = aspect.get('aspect', '')
+        
+        if language == 'pt':
+            planet1_name = planet_name_map_pt.get(planet1, planet1.capitalize())
+            planet2_name = planet_name_map_pt.get(planet2, planet2.capitalize())
+            aspect_name = aspect_name_map_pt.get(aspect_type, aspect_type)
+        else:
+            planet1_name = planet1.capitalize()
+            planet2_name = planet2.capitalize()
+            aspect_name = aspect_name_map_en.get(aspect_type, aspect_type)
+        
+        formatted_aspects.append({
+            'planet1': planet1_name,
+            'planet2': planet2_name,
+            'aspect': aspect_name,
+            'type': aspect_type,
+            'distance': aspect.get('distance', 0)
+        })
+    
+    return formatted_aspects
+
+
 def create_precomputed_data_block(chart_data: Dict[str, Any], language: str = 'pt') -> str:
     """
     Cria bloco de dados PRÉ-CALCULADOS para o prompt.
@@ -254,7 +360,7 @@ def create_precomputed_data_block(chart_data: Dict[str, Any], language: str = 'p
         ascendant_sign = chart_data.get('ascendant_sign', 'Não informado')
         ruler_info = get_chart_ruler(ascendant_sign, chart_data)
         
-        # Identificar dignidades dos planetas principais
+        # Identificar dignidades de TODOS os planetas (incluindo transpessoais)
         planets_to_check = [
             ('sun_sign', 'Sol'),
             ('moon_sign', 'Lua'),
@@ -263,6 +369,9 @@ def create_precomputed_data_block(chart_data: Dict[str, Any], language: str = 'p
             ('mars_sign', 'Marte'),
             ('jupiter_sign', 'Júpiter'),
             ('saturn_sign', 'Saturno'),
+            ('uranus_sign', 'Urano'),
+            ('neptune_sign', 'Netuno'),
+            ('pluto_sign', 'Plutão'),
         ]
         
         dignities_list = []
@@ -278,6 +387,25 @@ def create_precomputed_data_block(chart_data: Dict[str, Any], language: str = 'p
                     'peregrine': 'PEREGRINO',
                 }
                 dignities_list.append(f"  • {planet_name} em {sign}: {dignity_names[dignity]}")
+        
+        # Calcular stelliums
+        stelliums = calculate_stelliums(chart_data, 'pt')
+        stelliums_text = []
+        if stelliums:
+            for st in stelliums:
+                planets_str = ', '.join(st['planets'])
+                stelliums_text.append(f"  • STELLIUM em {st['sign']}: {planets_str} ({st['count']} planetas)")
+        else:
+            stelliums_text.append("  • Nenhum stellium identificado (3+ planetas no mesmo signo)")
+        
+        # Obter aspectos validados
+        aspects = get_validated_aspects(chart_data, 'pt')
+        aspects_text = []
+        if aspects:
+            for asp in aspects:
+                aspects_text.append(f"  • {asp['planet1']} {asp['aspect']} {asp['planet2']} (distância: {asp['distance']:.1f}°)")
+        else:
+            aspects_text.append("  • Aspectos não calculados (requer longitudes precisas)")
         
         block = f"""
 ═══════════════════════════════════════════════════════════════
@@ -320,6 +448,24 @@ Regente em: {ruler_info['sign'] or 'Não calculado'}
 {chr(10).join(dignities_list)}
 
 ───────────────────────────────────────────────────────────────
+⭐ STELLIUMS (3+ PLANETAS NO MESMO SIGNO)
+───────────────────────────────────────────────────────────────
+
+{chr(10).join(stelliums_text)}
+
+⚠️ IMPORTANTE: Stelliums são identificados apenas quando há 3 ou mais planetas no mesmo signo.
+Se não houver stellium listado acima, NÃO invente um.
+
+───────────────────────────────────────────────────────────────
+🔗 ASPECTOS VALIDADOS (CALCULADOS MATEMATICAMENTE)
+───────────────────────────────────────────────────────────────
+
+{chr(10).join(aspects_text)}
+
+⚠️ CRÍTICO: Use APENAS os aspectos listados acima. NÃO invente aspectos.
+Se não houver aspectos listados, NÃO mencione aspectos específicos na interpretação.
+
+───────────────────────────────────────────────────────────────
 🔍 MAPEAMENTO FIXO DE ELEMENTOS (NÃO PODE SER ALTERADO)
 ───────────────────────────────────────────────────────────────
 
@@ -344,7 +490,7 @@ AR: Gêmeos, LIBRA, Aquário  ← LIBRA É AR!
         ascendant_sign = chart_data.get('ascendant_sign', 'Not provided')
         ruler_info = get_chart_ruler(ascendant_sign, chart_data)
         
-        # Identify dignities
+        # Identify dignities of ALL planets (including transpersonal)
         planets_to_check = [
             ('sun_sign', 'Sun'),
             ('moon_sign', 'Moon'),
@@ -353,6 +499,9 @@ AR: Gêmeos, LIBRA, Aquário  ← LIBRA É AR!
             ('mars_sign', 'Mars'),
             ('jupiter_sign', 'Jupiter'),
             ('saturn_sign', 'Saturn'),
+            ('uranus_sign', 'Uranus'),
+            ('neptune_sign', 'Neptune'),
+            ('pluto_sign', 'Pluto'),
         ]
         
         dignities_list = []
@@ -368,6 +517,25 @@ AR: Gêmeos, LIBRA, Aquário  ← LIBRA É AR!
                     'peregrine': 'PEREGRINE',
                 }
                 dignities_list.append(f"  • {planet_name} in {sign}: {dignity_names[dignity]}")
+        
+        # Calculate stelliums
+        stelliums = calculate_stelliums(chart_data, 'en')
+        stelliums_text = []
+        if stelliums:
+            for st in stelliums:
+                planets_str = ', '.join(st['planets'])
+                stelliums_text.append(f"  • STELLIUM in {st['sign']}: {planets_str} ({st['count']} planets)")
+        else:
+            stelliums_text.append("  • No stelliums identified (3+ planets in same sign)")
+        
+        # Get validated aspects
+        aspects = get_validated_aspects(chart_data, 'en')
+        aspects_text = []
+        if aspects:
+            for asp in aspects:
+                aspects_text.append(f"  • {asp['planet1']} {asp['aspect']} {asp['planet2']} (distance: {asp['distance']:.1f}°)")
+        else:
+            aspects_text.append("  • Aspects not calculated (requires precise longitudes)")
         
         block = f"""
 ═══════════════════════════════════════════════════════════════
@@ -408,6 +576,24 @@ Ruler in: {ruler_info['sign'] or 'Not calculated'}
 ───────────────────────────────────────────────────────────────
 
 {chr(10).join(dignities_list)}
+
+───────────────────────────────────────────────────────────────
+⭐ STELLIUMS (3+ PLANETS IN SAME SIGN)
+───────────────────────────────────────────────────────────────
+
+{chr(10).join(stelliums_text)}
+
+⚠️ IMPORTANT: Stelliums are identified only when there are 3 or more planets in the same sign.
+If no stellium is listed above, DO NOT invent one.
+
+───────────────────────────────────────────────────────────────
+🔗 VALIDATED ASPECTS (MATHEMATICALLY CALCULATED)
+───────────────────────────────────────────────────────────────
+
+{chr(10).join(aspects_text)}
+
+⚠️ CRITICAL: Use ONLY the aspects listed above. DO NOT invent aspects.
+If no aspects are listed, DO NOT mention specific aspects in the interpretation.
 
 ───────────────────────────────────────────────────────────────
 🔍 FIXED ELEMENT MAPPING (CANNOT BE CHANGED)

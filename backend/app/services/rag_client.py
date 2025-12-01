@@ -2,6 +2,7 @@
 Cliente HTTP para o RAG Service (microsserviço).
 """
 import httpx
+import os
 from typing import Optional, List, Dict, Any
 from app.core.config import settings
 
@@ -183,6 +184,23 @@ def get_rag_client() -> Optional[RAGClient]:
             print("[RAG-Client] RAG_SERVICE_URL não configurado. RAG service não estará disponível.")
             return None
         
+        # Verificar se está usando localhost em produção
+        is_production = (
+            os.getenv("RAILWAY_ENVIRONMENT") is not None or
+            os.getenv("VERCEL") is not None or
+            os.getenv("PRODUCTION") == "true" or
+            "postgresql" in str(getattr(settings, 'DATABASE_URL', '')).lower()
+        )
+        
+        if is_production and "localhost" in rag_service_url:
+            print("=" * 80)
+            print("🚨 ERRO CRÍTICO: RAG_SERVICE_URL está usando localhost em produção!")
+            print(f"   URL atual: {rag_service_url}")
+            print("   Configure RAG_SERVICE_URL no Railway com a URL do RAG service")
+            print("   Exemplo: https://rag-service-production.up.railway.app")
+            print("=" * 80)
+        
+        print(f"[RAG-Client] Inicializando cliente RAG com URL: {rag_service_url}")
         _rag_client = RAGClient(base_url=rag_service_url)
     
     return _rag_client

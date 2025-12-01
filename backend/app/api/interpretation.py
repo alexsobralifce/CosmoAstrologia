@@ -11,7 +11,10 @@ import re
 from app.core.database import get_db
 from app.services.rag_service_fastembed import get_rag_service
 from app.services.transits_calculator import calculate_future_transits
-from app.services.astrology_calculator import calculate_solar_return
+# Importar função de revolução solar do swiss ephemeris (mais precisa)
+from app.services.swiss_ephemeris_calculator import calculate_solar_return
+# Fallback para método antigo se necessário
+from app.services.astrology_calculator import calculate_solar_return as calculate_solar_return_fallback
 from app.services.numerology_calculator import NumerologyCalculator
 from app.api.auth import get_current_user
 from app.models.database import BirthChart
@@ -866,7 +869,7 @@ async def get_planet_interpretation(
                 print(f"[PLANET API] Contexto do mapa: Sol={request.sunSign}, Lua={request.moonSign}, Asc={request.ascendant}")
                 
                 chat_completion = groq_client.chat.completions.create(
-                    model="llama-3.1-70b-versatile",
+                    model="llama-3.3-70b-versatile",
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
@@ -1532,7 +1535,7 @@ async def get_daily_advice(
                     try:
                         context_text = "\n\n".join([doc.get('text', '') for doc in rag_results[:5] if doc.get('text')])
                         chat_completion = groq_client.chat.completions.create(
-                            model="llama-3.1-70b-versatile",
+                            model="llama-3.3-70b-versatile",
                             messages=[
                                 {"role": "system", "content": "Você é um astrólogo experiente."},
                                 {"role": "user", "content": f"Conselho astrológico sobre {request.category} considerando Lua na casa {request.moonHouse}. Contexto: {context_text[:2000]}"}
@@ -1702,10 +1705,13 @@ You are **FORBIDDEN** to hallucinate the following aspects. Check the distance i
     * *Allowed:* Conjunction, Sextile.
     * *Forbidden:* Square, Trine, Opposition.
 
-## 1.2 Real Aspect Calculation (Sacred Geometry)
+## 1.2 Aspect Validation (Use Pre-Computed Data Only)
 
-To state that two planets have an aspect, calculate the absolute distance between them in the zodiac (0° to 360°). Use this rigorous orb table:
+⚠️ **CRITICAL:** You MUST NOT calculate aspects. All aspects have already been calculated by Python code using Swiss Ephemeris.
 
+**Your ONLY function:** Use the aspects listed in the "🔒 PRE-COMPUTED DATA" block. If an aspect is NOT listed in that block, it does NOT exist. Do NOT calculate or estimate aspects.
+
+**Aspect Orbs (for reference only - DO NOT calculate):**
 * **Conjunction (0°):** Orb +/- 8° (Distance: 0° to 8° or 352° to 360°)
 * **Sextile (60°):** Orb +/- 4° (Distance: 56° to 64°) -> *Harmonic*
 * **Square (90°):** Orb +/- 6° (Distance: 84° to 96°) -> *Tense*
@@ -1713,15 +1719,22 @@ To state that two planets have an aspect, calculate the absolute distance betwee
 * **Opposition (180°):** Orb +/- 8° (Distance: 172° to 188°) -> *Tense*
 * **Quincunx (150°):** Orb +/- 2° (Distance: 148° to 152°) -> *Adjustment*
 
-> **ATTENTION:** If the distance is, for example, 65° (Leo to Libra), it is a "wide" Sextile or No Aspect. NEVER call this Opposition or Square. Respect geometry.
+> **ATTENTION:** Use ONLY the aspects listed in the pre-computed block. If an aspect is not there, it does NOT exist. NEVER calculate or estimate aspects.
 
-## 1.3 Temperament Calculation (Weight Algorithm)
+## 1.3 Temperament (Use Pre-Computed Data Only)
 
-Don't "estimate" elements. Calculate points before writing the Temperament section:
+⚠️ **CRITICAL:** You MUST NOT calculate temperament. All temperament calculations have already been done by Python code.
 
-* **Scoring:** Sun/Moon/Ascendant = 3 points each. Other planets (Mercury to Pluto) = 1 point each.
-* **Sum totals:** Fire, Earth, Air, Water.
-* **Interpretation Rule:** If the user has Moon, Mars and Venus in Fire signs, you **CANNOT** say that Fire element is "absent" or is a "blind spot". Check the data.
+**Your ONLY function:** Use the temperament data from the "🔒 PRE-COMPUTED DATA" block:
+- Use EXACTLY the points listed (Fire, Earth, Air, Water)
+- Use EXACTLY the dominant element listed
+- Use EXACTLY the lacking element listed (or "None" if all present)
+
+**Scoring System (for reference only - DO NOT calculate):**
+* Sun/Moon/Ascendant = 3 points each
+* Other planets (Mercury to Pluto) = 1 point each
+
+**Interpretation Rule:** Use ONLY the data from the pre-computed block. If the block says "Water: 8 points" and "DOMINANT ELEMENT: Water", you MUST say Water is dominant. Do NOT recalculate or estimate.
 
 ---
 
@@ -1735,12 +1748,12 @@ When writing the final report, follow this structure and tone of voice:
 * **Non-Deterministic:** Use "tends to", "may feel", "learning challenge", instead of "you are like this period".
 
 ## Report Structure
-1. **Validated Technical Data:** List Sun, Moon, Ascendant and Ascendant Ruler correctly.
-2. **Temperament Analysis:** Based on real point count done in Step 1.3. Point out REAL excesses and lacks.
+1. **Validated Technical Data:** List Sun, Moon, Ascendant and Ascendant Ruler correctly (from pre-computed block).
+2. **Temperament Analysis:** Use EXACTLY the points and dominant element from the pre-computed block. Do NOT recalculate.
 3. **The Primordial Triad (Sun, Moon, Asc):** How conscious will (Sun) converses with emotional need (Moon) and social mask (Asc).
 4. **Decision Mechanics (Mercury and Mars):**
     * Analyze Mercury (data processing) and Mars (action engine).
-    * *Crucial:* Only cite aspects that passed the filter of Steps 1.1 and 1.2.
+    * *Crucial:* Only cite aspects that are listed in the pre-computed block. Do NOT calculate aspects.
 5. **Affectivity (Venus and Moon):** Language of love and emotional nourishment.
 6. **Challenges and Karma (Saturn, Nodes, Chiron):**
     * Saturn: Where it demands effort/structure.
@@ -1984,10 +1997,13 @@ Você está **OBRIGADO** a validar matematicamente os seguintes aspectos antes d
     * *Permitido:* Conjunção, Sextil.
     * *Proibido:* Quadratura, Trígono, Oposição.
 
-## 1.2 Cálculo Real de Aspectos (Geometria Sagrada)
+## 1.2 Validação de Aspectos (Use APENAS Dados Pré-Calculados)
 
-Para afirmar que dois planetas têm um aspecto, calcule a distância absoluta entre eles no zodíaco (0° a 360°). Use esta tabela rigorosa de orbes:
+⚠️ **CRÍTICO:** Você NÃO DEVE calcular aspectos. Todos os aspectos já foram calculados pelo código Python usando Swiss Ephemeris.
 
+**Sua ÚNICA função:** Use os aspectos listados no bloco "🔒 DADOS PRÉ-CALCULADOS". Se um aspecto NÃO está listado nesse bloco, ele NÃO existe. NÃO calcule ou estime aspectos.
+
+**Orbes de Aspectos (apenas para referência - NÃO calcular):**
 * **Conjunção (0°):** Orbe +/- 8° (Distância: 0° a 8° ou 352° a 360°)
 * **Sextil (60°):** Orbe +/- 4° (Distância: 56° a 64°) -> *Harmônico*
 * **Quadratura (90°):** Orbe +/- 6° (Distância: 84° a 96°) -> *Tenso*
@@ -1995,15 +2011,22 @@ Para afirmar que dois planetas têm um aspecto, calcule a distância absoluta en
 * **Oposição (180°):** Orbe +/- 8° (Distância: 172° a 188°) -> *Tenso*
 * **Quincúncio (150°):** Orbe +/- 2° (Distância: 148° a 152°) -> *Ajuste*
 
-> **ATENÇÃO:** Se a distância for, por exemplo, 65° (Leão para Libra), é um Sextil "largo" ou Sem Aspecto. JAMAIS chame isso de Oposição ou Quadratura. Respeite a geometria.
+> **ATENÇÃO:** Use APENAS os aspectos listados no bloco pré-calculado. Se um aspecto não está lá, ele NÃO existe. JAMAIS calcule ou estime aspectos.
 
-## 1.3 Cálculo de Temperamento (Algoritmo de Pesos)
+## 1.3 Temperamento (Use APENAS Dados Pré-Calculados)
 
-Não "estime" os elementos. Calcule os pontos antes de escrever a seção de Temperamento:
+⚠️ **CRÍTICO:** Você NÃO DEVE calcular temperamento. Todos os cálculos de temperamento já foram feitos pelo código Python.
 
-* **Pontuação:** Sol/Lua/Ascendente = 3 pontos cada. Outros planetas (Mercúrio a Plutão) = 1 ponto cada.
-* **Some os totais:** Fogo, Terra, Ar, Água.
-* **Regra de Interpretação:** Se o usuário tem Lua, Marte e Vênus em signos de Fogo, você **NÃO PODE** dizer que o elemento Fogo está "ausente" ou é "ponto cego". Verifique os dados.
+**Sua ÚNICA função:** Use os dados de temperamento do bloco "🔒 DADOS PRÉ-CALCULADOS":
+- Use EXATAMENTE os pontos listados (Fogo, Terra, Ar, Água)
+- Use EXATAMENTE o elemento dominante listado
+- Use EXATAMENTE o elemento ausente listado (ou "Nenhum" se todos presentes)
+
+**Sistema de Pontuação (apenas para referência - NÃO calcular):**
+* Sol/Lua/Ascendente = 3 pontos cada
+* Outros planetas (Mercúrio a Plutão) = 1 ponto cada
+
+**Regra de Interpretação:** Use APENAS os dados do bloco pré-calculado. Se o bloco diz "Água: 8 pontos" e "ELEMENTO DOMINANTE: Água", você DEVE dizer que Água é dominante. NÃO recalcule ou estime.
 
 ---
 
@@ -2017,12 +2040,12 @@ Ao escrever o relatório final, siga esta estrutura e tom de voz:
 * **Não Determinista:** Use "tende a", "pode sentir", "desafio de aprendizado", em vez de "você é assim e ponto".
 
 ## Estrutura do Relatório
-1. **Dados Técnicos Validados:** Liste o Sol, Lua, Ascendente e Regente do Ascendente corretamente.
-2. **Análise de Temperamento:** Baseada na contagem real de pontos feita no Passo 1.3. Aponte excessos e faltas REAIS.
+1. **Dados Técnicos Validados:** Liste o Sol, Lua, Ascendente e Regente do Ascendente corretamente (do bloco pré-calculado).
+2. **Análise de Temperamento:** Use EXATAMENTE os pontos e elemento dominante do bloco pré-calculado. NÃO recalcule.
 3. **A Tríade Primordial (Sol, Lua, Asc):** Como a vontade consciente (Sol) conversa com a necessidade emocional (Lua) e a máscara social (Asc).
 4. **Mecânica de Decisão (Mercúrio e Marte):**
     * Analise Mercúrio (processamento de dados) e Marte (motor de ação).
-    * *Crucial:* Só cite aspectos que passaram no filtro do Passo 1.1 e 1.2.
+    * *Crucial:* Só cite aspectos que estão listados no bloco pré-calculado. NÃO calcule aspectos.
 5. **Afetividade (Vênus e Lua):** Linguagem do amor e nutrição emocional.
 6. **Desafios e Karma (Saturno, Nodos, Quíron):**
     * Saturno: Onde exige esforço/estrutura.
@@ -2419,6 +2442,32 @@ def _generate_section_prompt(request: FullBirthChartRequest, section: str, valid
 
 **1. A ENGENHARIA DA SUA ENERGIA (TEMPERAMENTO)**
 
+🚨 **INSTRUÇÃO CRÍTICA - LEIA ANTES DE ESCREVER:**
+
+Você DEVE usar APENAS os dados do bloco "🔒 DADOS PRÉ-CALCULADOS" fornecido acima. NÃO calcule, NÃO estime, NÃO invente.
+
+**VALIDAÇÃO OBRIGATÓRIA ANTES DE ESCREVER:**
+1. ✅ Localize o bloco "📊 TEMPERAMENTO (CALCULADO MATEMATICAMENTE)"
+2. ✅ Leia os pontos EXATOS: Fogo, Terra, Ar, Água
+3. ✅ Identifique o ELEMENTO DOMINANTE listado no bloco
+4. ✅ Identifique o ELEMENTO AUSENTE (se houver) listado no bloco
+5. ✅ Use EXATAMENTE esses números e elementos - NÃO recalcule
+
+**EXEMPLO DE USO CORRETO:**
+Se o bloco diz:
+  • Fogo: 5 pontos
+  • Terra: 2 pontos
+  • Ar: 2 pontos
+  • Água: 8 pontos
+  ELEMENTO DOMINANTE: Água
+
+Você DEVE escrever: "O mapa apresenta predominância do elemento Água, com 8 pontos, seguido pelo elemento Fogo, com 5 pontos..."
+
+**NUNCA FAÇA:**
+❌ Dizer "Fogo dominante com 8 pontos" se o bloco diz "Água: 8 pontos"
+❌ Dizer "Água ausente" se o bloco mostra "Água: 8 pontos"
+❌ Recalcular os pontos - use APENAS os do bloco
+
 Comece sua resposta com: "Análise do Mapa Astral de {request.name}"
 
 Em seguida, inclua uma seção intitulada: "Cálculo do Temperamento (Filtro de Arroyo)"
@@ -2426,18 +2475,21 @@ Em seguida, inclua uma seção intitulada: "Cálculo do Temperamento (Filtro de 
 Explique como o balanço de elementos afeta a vitalidade e a psicologia básica.
 
 **Análise Obrigatória:**
-- Avalie o balanço dos 4 Elementos (Fogo, Terra, Ar, Água)
-- Identifique o elemento dominante (o combustível) e o elemento ausente/fraco (o ponto cego)
+- Use APENAS os pontos do bloco pré-calculado (NÃO recalcule)
+- Identifique o elemento dominante EXATAMENTE como listado no bloco
+- Identifique o elemento ausente/fraco EXATAMENTE como listado no bloco (ou "nenhum" se todos têm pontos)
 - Analise as modalidades (Cardeal, Fixo, Mutável)
 
 **Insight Prático:** Como lidar com a falta ou excesso de um elemento no dia a dia.
 
-**O Regente do Ascendente:** Identifique o planeta regente do Ascendente {request.ascendant} e analise sua condição (Signo, Casa, Aspectos). Onde ele está e como ele direciona o foco principal da vida. Ele é um aliado ou um desafio para o nativo?
+**O Regente do Ascendente:** Use APENAS o regente identificado no bloco "👑 REGENTE DO MAPA". Analise sua condição (Signo, Casa, Aspectos). Onde ele está e como ele direciona o foco principal da vida. Ele é um aliado ou um desafio para o nativo?
 
 IMPORTANTE:
 - SEMPRE comece com "Análise do Mapa Astral de {request.name}"
 - SEMPRE inclua a seção "Cálculo do Temperamento (Filtro de Arroyo)" com conteúdo detalhado
 - Use "conselhos" (português), NUNCA "consejo" (espanhol)
+- NÃO recalcule temperamento - use APENAS os dados do bloco pré-calculado
+- NÃO invente elementos ausentes se o bloco mostra que todos têm pontos
 - Não repita informações já mencionadas em outras seções
 - NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - se a casa não estiver disponível, OMITA completamente a menção à casa
 - Foque no temperamento como motor de motivação e ação
@@ -2448,18 +2500,47 @@ IMPORTANTE:
 
 **1. THE ENGINEERING OF YOUR ENERGY (TEMPERAMENT)**
 
+🚨 **CRITICAL INSTRUCTION - READ BEFORE WRITING:**
+
+You MUST use ONLY the data from the "🔒 PRE-COMPUTED DATA" block provided above. DO NOT calculate, DO NOT estimate, DO NOT invent.
+
+**MANDATORY VALIDATION BEFORE WRITING:**
+1. ✅ Locate the block "📊 TEMPERAMENT (MATHEMATICALLY CALCULATED)"
+2. ✅ Read the EXACT points: Fire, Earth, Air, Water
+3. ✅ Identify the DOMINANT ELEMENT listed in the block
+4. ✅ Identify the LACKING ELEMENT (if any) listed in the block
+5. ✅ Use EXACTLY these numbers and elements - DO NOT recalculate
+
+**CORRECT USAGE EXAMPLE:**
+If the block says:
+  • Fire: 5 points
+  • Earth: 2 points
+  • Air: 2 points
+  • Water: 8 points
+  DOMINANT ELEMENT: Water
+
+You MUST write: "The chart shows predominance of the Water element, with 8 points, followed by the Fire element, with 5 points..."
+
+**NEVER DO:**
+❌ Say "Fire dominant with 8 points" if the block says "Water: 8 points"
+❌ Say "Water absent" if the block shows "Water: 8 points"
+❌ Recalculate the points - use ONLY those from the block
+
 Explain how the balance of elements affects vitality and basic psychology.
 
 **Mandatory Analysis:**
-- Evaluate the balance of the 4 Elements (Fire, Earth, Air, Water)
-- Identify the dominant element (the fuel) and the absent/weak element (the blind spot)
+- Use ONLY the points from the pre-computed block (DO NOT recalculate)
+- Identify the dominant element EXACTLY as listed in the block
+- Identify the absent/weak element EXACTLY as listed in the block (or "none" if all have points)
 - Analyze the modalities (Cardinal, Fixed, Mutable)
 
 **Practical Insight:** How to deal with the lack or excess of an element in daily life.
 
-**The Ascendant Ruler:** Identify the planet ruling the Ascendant {request.ascendant} and analyze its condition (Sign, House, Aspects). Where is it and how does it direct the main focus of life. Is it an ally or a challenge for the native?
+**The Ascendant Ruler:** Use ONLY the ruler identified in the "👑 CHART RULER" block. Analyze its condition (Sign, House, Aspects). Where is it and how does it direct the main focus of life. Is it an ally or a challenge for the native?
 
 IMPORTANT:
+- DO NOT recalculate temperament - use ONLY the data from the pre-computed block
+- DO NOT invent absent elements if the block shows all have points
 - Do not repeat information already mentioned in other sections
 - NEVER write "House not provided", "in House not provided" or any variation - if the house is not available, COMPLETELY OMIT mentioning the house
 - Focus on temperament as a driver of motivation and action
@@ -2939,9 +3020,28 @@ async def generate_birth_chart_section(
 
 Antes de escrever qualquer interpretação, você DEVE ler e usar APENAS os dados do bloco "🔒 DADOS PRÉ-CALCULADOS" fornecido abaixo. 
 
+**🚨 VALIDAÇÃO OBRIGATÓRIA PARA TEMPERAMENTO:**
+1. Localize o bloco "📊 TEMPERAMENTO (CALCULADO MATEMATICAMENTE)"
+2. Leia os pontos EXATOS: Fogo, Terra, Ar, Água
+3. Identifique o ELEMENTO DOMINANTE listado
+4. Identifique o ELEMENTO AUSENTE listado (ou "Nenhum" se todos têm pontos)
+5. Use EXATAMENTE esses números - NÃO recalcule, NÃO estime
+
+**EXEMPLO CORRETO:**
+Se o bloco diz:
+  • Fogo: 5 pontos
+  • Água: 8 pontos
+  • ELEMENTO DOMINANTE: Água
+Você DEVE escrever: "O mapa apresenta predominância do elemento Água, com 8 pontos..."
+
+**ERROS PROIBIDOS:**
+❌ Dizer "Fogo dominante com 8 pontos" se o bloco diz "Água: 8 pontos"
+❌ Dizer "Água ausente" se o bloco mostra "Água: 8 pontos"
+❌ Recalcular os pontos - use APENAS os do bloco
+
 **NÃO CALCULE, NÃO INVENTE, NÃO CONFUNDA:**
 - Dignidades: Use APENAS as listadas no bloco (ex: se diz "Vênus em Sagitário: PEREGRINO", use EXATAMENTE isso)
-- Temperamento: Use APENAS os pontos fornecidos no bloco
+- Temperamento: Use APENAS os pontos fornecidos no bloco - NÃO recalcule
 - Regente: Use APENAS o regente identificado no bloco
 - Elementos: Use APENAS o mapeamento fixo (Libra = AR, não Fogo)
 
@@ -3198,11 +3298,11 @@ class SolarReturnInterpretationRequest(BaseModel):
     natal_sun_sign: str
     natal_ascendant: Optional[str] = None
     
-    # Dados da revolução solar
-    solar_return_ascendant: str
-    solar_return_sun_house: int
-    solar_return_moon_sign: str
-    solar_return_moon_house: int
+    # Dados da revolução solar (podem ser fornecidos ou recalculados)
+    solar_return_ascendant: Optional[str] = None
+    solar_return_sun_house: Optional[int] = None
+    solar_return_moon_sign: Optional[str] = None
+    solar_return_moon_house: Optional[int] = None
     solar_return_venus_sign: Optional[str] = None
     solar_return_venus_house: Optional[int] = None
     solar_return_mars_sign: Optional[str] = None
@@ -3213,6 +3313,12 @@ class SolarReturnInterpretationRequest(BaseModel):
     solar_return_midheaven: Optional[str] = None
     target_year: Optional[int] = None
     language: Optional[str] = 'pt'
+    
+    # Dados para recálculo (opcional - se fornecido, recalcula internamente)
+    birth_date: Optional[str] = None  # ISO format
+    birth_time: Optional[str] = None  # HH:MM
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 @router.post("/solar-return/calculate")
@@ -3290,6 +3396,48 @@ async def get_solar_return_interpretation(
         rag_service = get_rag_service()
         lang = request.language or 'pt'
         
+        # RECALCULAR DADOS SE DISPONÍVEL (FONTE ÚNICA DE VERDADE)
+        # Se dados de nascimento estiverem disponíveis, recalcular revolução solar
+        recalculated_data = None
+        if (request.birth_date and request.birth_time and 
+            request.latitude is not None and request.longitude is not None):
+            try:
+                print(f"[SOLAR RETURN] Recalculando dados usando Swiss Ephemeris...")
+                birth_date = datetime.fromisoformat(request.birth_date.replace('Z', '+00:00'))
+                
+                recalculated_data = calculate_solar_return(
+                    birth_date=birth_date,
+                    birth_time=request.birth_time,
+                    latitude=request.latitude,
+                    longitude=request.longitude,
+                    target_year=request.target_year
+                )
+                print(f"[SOLAR RETURN] Dados recalculados com sucesso. Precisão: {recalculated_data.get('sun_return_precision', 'N/A')} graus")
+            except Exception as e:
+                print(f"[WARNING] Erro ao recalcular revolução solar: {e}. Usando dados fornecidos.")
+                recalculated_data = None
+        
+        # Usar dados recalculados se disponível, senão usar dados fornecidos
+        solar_return_ascendant = recalculated_data.get("ascendant_sign") if recalculated_data else request.solar_return_ascendant
+        solar_return_sun_house = recalculated_data.get("sun_house") if recalculated_data else request.solar_return_sun_house
+        solar_return_moon_sign = recalculated_data.get("moon_sign") if recalculated_data else request.solar_return_moon_sign
+        solar_return_moon_house = recalculated_data.get("moon_house") if recalculated_data else request.solar_return_moon_house
+        solar_return_venus_sign = recalculated_data.get("venus_sign") if recalculated_data else request.solar_return_venus_sign
+        solar_return_venus_house = recalculated_data.get("venus_house") if recalculated_data else request.solar_return_venus_house
+        solar_return_mars_sign = recalculated_data.get("mars_sign") if recalculated_data else request.solar_return_mars_sign
+        solar_return_mars_house = recalculated_data.get("mars_house") if recalculated_data else request.solar_return_mars_house
+        solar_return_jupiter_sign = recalculated_data.get("jupiter_sign") if recalculated_data else request.solar_return_jupiter_sign
+        solar_return_jupiter_house = recalculated_data.get("jupiter_house") if recalculated_data else request.solar_return_jupiter_house
+        solar_return_saturn_sign = recalculated_data.get("saturn_sign") if recalculated_data else request.solar_return_saturn_sign
+        solar_return_midheaven = recalculated_data.get("midheaven_sign") if recalculated_data else request.solar_return_midheaven
+        
+        # Validar que temos dados mínimos necessários
+        if not solar_return_ascendant or not solar_return_sun_house or not solar_return_moon_sign or not solar_return_moon_house:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Dados insuficientes para interpretação. Forneça dados da revolução solar ou dados de nascimento para recálculo."
+            )
+        
         # Verificar se o Groq está disponível
         groq_client = _get_groq_client()
         has_groq = groq_client is not None
@@ -3311,25 +3459,25 @@ async def get_solar_return_interpretation(
         # Nota: Aspectos tensos principais seriam calculados se tivéssemos mais dados do mapa natal
         # Por enquanto, focamos no que temos disponível
         
-        # Construir dados da revolução solar
-        solar_return_data = f"""Ascendente da Revolução Solar (RS): {request.solar_return_ascendant}
-Casa onde cai o Sol na RS: Casa {request.solar_return_sun_house}
-Lua na RS (Signo e Casa): {request.solar_return_moon_sign} na Casa {request.solar_return_moon_house}"""
+        # Construir dados da revolução solar (usando dados validados/recalculados)
+        solar_return_data = f"""Ascendente da Revolução Solar (RS): {solar_return_ascendant}
+Casa onde cai o Sol na RS: Casa {solar_return_sun_house}
+Lua na RS (Signo e Casa): {solar_return_moon_sign} na Casa {solar_return_moon_house}"""
         
-        if request.solar_return_venus_sign:
-            solar_return_data += f"\nVênus na RS: {request.solar_return_venus_sign}{f' na Casa {request.solar_return_venus_house}' if request.solar_return_venus_house else ''}"
+        if solar_return_venus_sign:
+            solar_return_data += f"\nVênus na RS: {solar_return_venus_sign}{f' na Casa {solar_return_venus_house}' if solar_return_venus_house else ''}"
         
-        if request.solar_return_mars_sign:
-            solar_return_data += f"\nMarte na RS: {request.solar_return_mars_sign}{f' na Casa {request.solar_return_mars_house}' if request.solar_return_mars_house else ''}"
+        if solar_return_mars_sign:
+            solar_return_data += f"\nMarte na RS: {solar_return_mars_sign}{f' na Casa {solar_return_mars_house}' if solar_return_mars_house else ''}"
         
-        if request.solar_return_jupiter_sign:
-            solar_return_data += f"\nJúpiter na RS: {request.solar_return_jupiter_sign}{f' na Casa {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''}"
+        if solar_return_jupiter_sign:
+            solar_return_data += f"\nJúpiter na RS: {solar_return_jupiter_sign}{f' na Casa {solar_return_jupiter_house}' if solar_return_jupiter_house else ''}"
         
-        if request.solar_return_midheaven:
-            solar_return_data += f"\nMeio do Céu da RS: {request.solar_return_midheaven}"
+        if solar_return_midheaven:
+            solar_return_data += f"\nMeio do Céu da RS: {solar_return_midheaven}"
         
-        if request.solar_return_saturn_sign:
-            solar_return_data += f"\nSaturno na RS: {request.solar_return_saturn_sign}"
+        if solar_return_saturn_sign:
+            solar_return_data += f"\nSaturno na RS: {solar_return_saturn_sign}"
         
         # Calcular em qual Casa Natal cai o Ascendente da RS (sobreposição)
         # Nota: Isso requereria cálculo astrológico completo. Por enquanto, deixamos o prompt orientar o modelo
@@ -3366,30 +3514,30 @@ Siga rigorosamente a formatação e as restrições de conteúdo de cada seção
 
 2. O Foco da Consciência (O Sol na Casa da RS)
    FOCUS EXCLUSIVO: A área da vida que exige presença e vitalidade.
-   - Analise a Casa da RS onde o Sol está posicionado (Casa {request.solar_return_sun_house}). Esta é a "Missão do Ano".
+   - Analise a Casa da RS onde o Sol está posicionado (Casa {solar_return_sun_house}). Esta é a "Missão do Ano".
    - Explique por que essa área drenará mais energia e onde a pessoa brilhará mais.
    - Dê uma estratégia de decisão: O que priorizar nesta área específica.
    - Restrição: NÃO repita informações sobre o temperamento do Ascendente.
 
 3. O Clima Emocional (A Lua da RS)
    FOCUS EXCLUSIVO: Nutrição, instabilidade e vida doméstica.
-   - Interprete o Signo e a Casa da Lua na RS ({request.solar_return_moon_sign} na Casa {request.solar_return_moon_house}).
+   - Interprete o Signo e a Casa da Lua na RS ({solar_return_moon_sign} na Casa {solar_return_moon_house}).
    - Identifique a área onde a pessoa estará mais irracional ou flutuante (visão de Arroyo).
    - Indique onde ela encontrará refúgio emocional seguro.
    - Restrição: NÃO mencione metas profissionais ou financeiras aqui.
 
 4. Relacionamentos e Valores (Vênus na RS)
    FOCUS EXCLUSIVO: Trocas afetivas, prazer e magnetismo social.
-   - Interprete a posição de Vênus ({request.solar_return_venus_sign if request.solar_return_venus_sign else 'não disponível'}{f' na Casa {request.solar_return_venus_house}' if request.solar_return_venus_house else ''}) para definir o "sabor" das interações sociais.
+   - Interprete a posição de Vênus ({solar_return_venus_sign if solar_return_venus_sign else 'não disponível'}{f' na Casa {solar_return_venus_house}' if solar_return_venus_house else ''}) para definir o "sabor" das interações sociais.
    - O que a pessoa valorizará mais nas parcerias este ano? (Liberdade? Segurança? Status?).
    - Se Vênus estiver retrógrado, adicione um alerta sobre revisões afetivas.
    - Restrição: NÃO misture com as necessidades emocionais lunares (tópico 3).
 
 5. Estratégia Profissional e Financeira (Marte, Júpiter e MC)
    FOCUS EXCLUSIVO: Ação, expansão, dinheiro e metas públicas.
-   - Use Marte ({request.solar_return_mars_sign if request.solar_return_mars_sign else 'não disponível'}{f' na Casa {request.solar_return_mars_house}' if request.solar_return_mars_house else ''}) para indicar onde aplicar força e coragem.
-   - Use Júpiter ({request.solar_return_jupiter_sign if request.solar_return_jupiter_sign else 'não disponível'}{f' na Casa {request.solar_return_jupiter_house}' if request.solar_return_jupiter_house else ''}) para indicar onde haverá sorte ou facilidade de expansão.
-   - Analise o Meio do Céu da RS ({request.solar_return_midheaven if request.solar_return_midheaven else 'não disponível'}) para definir a meta pública do ano.
+   - Use Marte ({solar_return_mars_sign if solar_return_mars_sign else 'não disponível'}{f' na Casa {solar_return_mars_house}' if solar_return_mars_house else ''}) para indicar onde aplicar força e coragem.
+   - Use Júpiter ({solar_return_jupiter_sign if solar_return_jupiter_sign else 'não disponível'}{f' na Casa {solar_return_jupiter_house}' if solar_return_jupiter_house else ''}) para indicar onde haverá sorte ou facilidade de expansão.
+   - Analise o Meio do Céu da RS ({solar_return_midheaven if solar_return_midheaven else 'não disponível'}) para definir a meta pública do ano.
    - Restrição: Se Marte/Júpiter estiverem na Casa 6 ou 7, foque apenas no impacto deles na carreira/ação, não na saúde ou casamento.
 
 6. Saúde e Rotina (Casa 6 da RS)
@@ -3401,7 +3549,7 @@ Siga rigorosamente a formatação e as restrições de conteúdo de cada seção
 
 7. O Grande Teste e a Dica de Mestre (Saturno e Repetições)
    FOCUS EXCLUSIVO: O maior desafio, a lição kármica e a maturação.
-   - Localize Saturno na RS ({request.solar_return_saturn_sign if request.solar_return_saturn_sign else 'não disponível'}): Onde a vida vai pedir paciência, restrição e estrutura?
+   - Localize Saturno na RS ({solar_return_saturn_sign if solar_return_saturn_sign else 'não disponível'}): Onde a vida vai pedir paciência, restrição e estrutura?
    - ALERTA DE REPETIÇÃO (CRÍTICO): Verifique se algum aspecto difícil do Mapa Natal se repete na RS. Se sim, escreva: "Alerta de Padrão Ativado: Este é um ano crítico para resolver seu problema crônico de [tema], pois o padrão natal foi reativado."
    - Transforme o desafio em uma oportunidade de mestria.
    - Restrição: Não repita os pequenos desafios do dia a dia (Casa 6), foque no grande aprendizado.
@@ -3564,11 +3712,12 @@ CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
                 
                 print(f"[SOLAR RETURN] Prompt length: {len(full_user_prompt)} chars")
                 print(f"[SOLAR RETURN] System prompt length: {len(system_prompt)} chars")
-                print(f"[SOLAR RETURN] Model: llama-3.1-70b-versatile")
+                print(f"[SOLAR RETURN] Model: llama-3.3-70b-versatile")
                 
                 # Tentar chamar Groq com modelo principal
                 models_to_try = [
-                    "llama-3.1-70b-versatile",
+                    "llama-3.3-70b-versatile",
+                    "llama-3.2-90b-text-preview",
                     "llama-3.1-8b-instant",
                     "mixtral-8x7b-32768"
                 ]
@@ -3889,6 +4038,9 @@ class NumerologyMapResponse(BaseModel):
     pinnacles: List[Dict[str, Any]]
     challenges: List[Dict[str, Any]]
     personal_year: Dict[str, Any]
+    birth_grid: Dict[str, Any]  # Inclui grid, arrows_strength, arrows_weakness, missing_numbers
+    life_cycle: Dict[str, Any]
+    karmic_debts: List[int]
 
 
 @router.get("/numerology/map", response_model=NumerologyMapResponse)
@@ -3900,9 +4052,15 @@ async def get_numerology_map(
     Calcula o mapa numerológico completo do usuário autenticado.
     Usa o nome completo e data de nascimento do mapa astral primário.
     """
+    import time
+    start_time = time.time()
+    
     try:
+        print(f"[NUMEROLOGY] Iniciando cálculo do mapa numerológico...")
+        
         # Obter usuário autenticado
         user = get_current_user(authorization, db)
+        print(f"[NUMEROLOGY] Usuário obtido: {user.id if user else 'None'}")
         
         # Buscar mapa astral primário do usuário
         birth_chart = db.query(BirthChart).filter(
@@ -3916,12 +4074,36 @@ async def get_numerology_map(
                 detail="Mapa astral não encontrado. Complete o onboarding primeiro."
             )
         
+        print(f"[NUMEROLOGY] Mapa astral encontrado: {birth_chart.name}, {birth_chart.birth_date} (tipo: {type(birth_chart.birth_date)})")
+        
+        # Converter birth_date para datetime se necessário
+        from datetime import datetime, date
+        if isinstance(birth_chart.birth_date, datetime):
+            birth_date = birth_chart.birth_date
+        elif isinstance(birth_chart.birth_date, date):
+            birth_date = datetime.combine(birth_chart.birth_date, datetime.min.time())
+        elif isinstance(birth_chart.birth_date, str):
+            # Tentar parsear string ISO
+            try:
+                birth_date = datetime.fromisoformat(birth_chart.birth_date.replace('Z', '+00:00'))
+            except:
+                # Tentar formato simples
+                birth_date = datetime.strptime(birth_chart.birth_date.split('T')[0], '%Y-%m-%d')
+        else:
+            raise ValueError(f"Tipo de data não suportado: {type(birth_chart.birth_date)}")
+        
+        print(f"[NUMEROLOGY] Data convertida: {birth_date}")
+        
         # Calcular mapa numerológico
+        print(f"[NUMEROLOGY] Iniciando cálculo...")
         calculator = NumerologyCalculator()
         numerology_map = calculator.calculate_full_numerology_map(
             full_name=birth_chart.name,
-            birth_date=birth_chart.birth_date
+            birth_date=birth_date
         )
+        
+        elapsed_time = time.time() - start_time
+        print(f"[NUMEROLOGY] Cálculo concluído em {elapsed_time:.2f}s")
         
         return NumerologyMapResponse(**numerology_map)
         
@@ -3929,7 +4111,8 @@ async def get_numerology_map(
         raise
     except Exception as e:
         import traceback
-        print(f"[ERROR] Erro ao calcular mapa numerológico: {e}")
+        elapsed_time = time.time() - start_time
+        print(f"[ERROR] Erro ao calcular mapa numerológico após {elapsed_time:.2f}s: {e}")
         print(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -4148,22 +4331,80 @@ async def get_numerology_interpretation(
         lang = request.language or 'pt'
         
         if lang == 'pt':
-            system_prompt = """Papel e Contexto: Aja como um Numerólogo Pitagórico experiente e também Astrólogo. Sua abordagem deve sintetizar as melhores referências mundiais: a precisão técnica e síntese de Matthew Oliver Goodwin, a profundidade psicológica e terapêutica de Hans Decoz, a visão holística de saúde de David A. Phillips e a geometria sagrada/ciclos de vida de Faith Javane & Dusty Bunker.
+            system_prompt = """Você é um Numerólogo Pitagórico profissional e experiente, especializado em transformar números em narrativas profundas e terapêuticas. Sua missão é contar a história de vida única de cada pessoa através dos números, usando uma linguagem clara, acessível e envolvente.
 
-IMPORTANTE CRÍTICO:
-- Use APENAS conhecimento NUMEROLÓGICO fornecido no contexto
-- NÃO mencione planetas, signos, casas ou qualquer conceito astrológico (exceto quando explicitamente solicitado para conexão com Tarot/Planetas)
-- Foque em números, cálculos numerológicos, significados dos números e ciclos numerológicos
-- Se o contexto não contiver informações numerológicas suficientes, informe isso claramente
-- Linguagem simples, prática e esclarecedora (evite "numerologês" excessivo sem explicação)
-- Tom de empoderamento e autoconhecimento
-- Os números são ferramentas de livre arbítrio, não sentença imutável"""
+SUA ABORDAGEM PROFISSIONAL:
+Você sintetiza as melhores referências mundiais da numerologia:
+- A precisão técnica e síntese de Matthew Oliver Goodwin
+- A profundidade psicológica e terapêutica de Hans Decoz  
+- A visão holística de saúde e bem-estar de David A. Phillips
+- A geometria sagrada e ciclos de vida de Faith Javane & Dusty Bunker
+
+REGRAS CRÍTICAS DE ESCRITA - LEIA COM ATENÇÃO:
+
+🎯 MISSÃO PRINCIPAL: CONTAR UMA HISTÓRIA, NÃO LISTAR INFORMAÇÕES
+- NÃO faça listas técnicas ou descrições secas de números
+- CONTE uma narrativa fluida e envolvente, como se estivesse escrevendo a biografia numerológica desta pessoa
+- Cada número deve ser apresentado como parte de uma história maior, conectando passado, presente e futuro
+- Use metáforas, analogias e exemplos práticos do dia a dia para tornar os conceitos acessíveis
+- Transforme cada conceito numerológico em uma história que a pessoa possa se reconhecer
+
+📖 LINGUAGEM E ESTILO:
+- Use TERMOS SIMPLES e de FÁCIL ENTENDIMENTO - explique qualquer termo técnico na primeira vez que aparecer
+- Evite "numerologês" excessivo - se usar um termo técnico, explique imediatamente o que significa
+- Escreva como se estivesse conversando com um amigo inteligente, não como um manual técnico
+- Use linguagem rica e envolvente, mas sempre clara e acessível
+- Cada parágrafo deve fluir naturalmente para o próximo, criando uma narrativa contínua
+
+🔗 CONEXÃO E NARRATIVA:
+- Conecte TODOS os números em uma história coesa - mostre como eles se relacionam
+- Revele a jornada única desta pessoa através dos números
+- Mostre como passado (lições cármicas), presente (ciclo atual) e futuro (maturidade) se conectam
+- Crie uma narrativa que faça sentido como um todo, não apenas partes isoladas
+
+💡 EXEMPLOS E APLICAÇÕES PRÁTICAS:
+- SEMPRE dê exemplos concretos e práticos de como cada energia se manifesta na vida real
+- Use situações do dia a dia que a pessoa possa reconhecer
+- Mostre como aplicar o conhecimento numerológico na prática
+- Dê orientações acionáveis, não apenas descrições teóricas
+
+⚖️ ANÁLISE EQUILIBRADA:
+- Para cada número, explique tanto as qualidades positivas quanto os desafios a serem trabalhados
+- Seja honesto mas empoderador - mostre os desafios como oportunidades de crescimento
+- Use tom terapêutico e acolhedor, não punitivo ou fatalista
+
+🎯 FOCO NUMEROLÓGICO:
+- Use APENAS conhecimento NUMEROLÓGICO fornecido no contexto RAG
+- NÃO mencione planetas, signos, casas ou conceitos astrológicos (exceto quando explicitamente solicitado para conexão Tarot/Planetas)
+- Priorize as informações do contexto RAG, mas use seu conhecimento numerológico profissional quando necessário
+
+📏 EXTENSÃO E PROFUNDIDADE:
+- O texto total deve ter NO MÍNIMO 2500 palavras
+- Cada seção deve ter conteúdo COMPLETO e DETALHADO (mínimo de parágrafos indicados no roteiro)
+- Seja EXTREMAMENTE específico e detalhado - evite generalidades
+- Cada número merece uma análise profunda e narrativa, não apenas uma frase
+
+💪 EMPODERAMENTO:
+- Tom de empoderamento e autoconhecimento profundo
+- Reforce que os números são ferramentas de livre arbítrio, não sentença imutável
+- Mostre como usar o conhecimento numerológico para crescer e evoluir
+- Termine com uma mensagem de esperança e possibilidade de transformação"""
             
             # Preparar strings com backslashes antes do f-string para evitar erro de sintaxe
             pinnacles_text = ''.join([f"• Pináculo {i+1} ({p['period']}): {p['number']}\n" for i, p in enumerate(numerology_map['pinnacles'])])
             challenges_text = ''.join([f"• Desafio {i+1} ({c['period']}): {c['number']}\n" for i, c in enumerate(numerology_map['challenges'])])
             
-            user_prompt = f"""Objetivo: Realizar uma consulta de numerologia completa, profunda e acolhedora para o cliente abaixo. A linguagem deve ser simples, prática e esclarecedora (evite o "numerologês" excessivo sem explicação). O tom deve ser de empoderamento e autoconhecimento.
+            user_prompt = f"""🎯 OBJETIVO PRINCIPAL: Criar um ESTUDO NUMEROLÓGICO PROFISSIONAL que conte a HISTÓRIA DE VIDA desta pessoa através dos números.
+
+IMPORTANTE: Você NÃO está fazendo uma lista técnica de números. Você está CONTANDO UMA HISTÓRIA - a biografia numerológica única desta pessoa. Cada número deve ser apresentado como parte de uma narrativa maior, usando linguagem clara, acessível e envolvente.
+
+REGRAS DE ESCRITA:
+- Use TERMOS SIMPLES e de FÁCIL ENTENDIMENTO - explique qualquer conceito técnico na primeira vez
+- CONTE uma história fluida, não liste informações
+- Dê EXEMPLOS PRÁTICOS e CONCRETOS de como cada energia aparece na vida real
+- Conecte todos os números em uma narrativa coesa
+- Seja ESPECÍFICO e DETALHADO - mínimo de 2500 palavras no total
+- Use linguagem rica mas sempre CLARA e ACESSÍVEL
 
 Dados do Cliente:
 • Nome Completo (Certidão): {numerology_map['full_name']}
@@ -4196,92 +4437,111 @@ Ciclo de Vida Atual: {numerology_map['life_cycle']['cycle']} (Número: {numerolo
 CONHECIMENTO NUMEROLÓGICO DE REFERÊNCIA (Use estas informações como base para sua interpretação):
 {context_text}
 
-IMPORTANTE: Use as informações acima do RAG para fundamentar sua interpretação. Se houver informações específicas sobre os números calculados, incorpore-as naturalmente na resposta. Se não houver informações suficientes sobre algum número específico, use seu conhecimento geral de numerologia, mas sempre priorize as informações do contexto fornecido.
+📚 INSTRUÇÕES SOBRE O USO DO CONTEXTO RAG:
+- PRIORIZE as informações do contexto RAG acima - elas são baseadas em fontes especializadas
+- Se houver informações específicas sobre os números calculados, INCORPORE-AS NATURALMENTE na narrativa
+- Se não houver informações suficientes sobre algum número específico, use seu conhecimento profissional de numerologia (Goodwin, Decoz, Phillips, Javane & Bunker)
+- SEMPRE transforme as informações técnicas em narrativas acessíveis e práticas
+- Use os exemplos e descrições do contexto RAG, mas adapte-os para contar a história desta pessoa específica
 
 ---
 
-Roteiro da Consulta (Siga estritamente esta ordem incremental):
+Roteiro da Consulta - CONTE A HISTÓRIA DE VIDA (Siga estritamente esta ordem, mas conecte tudo em uma narrativa fluida):
 
-PARTE 1: A ESSÊNCIA (QUEM VOCÊ É)
+**PARTE 1: A ESSÊNCIA - QUEM VOCÊ É (A História de Origem)**
 
-Baseado na "Síntese dos Elementos Nucleares" de Goodwin e Decoz. Não leia os números isoladamente. Analise a relação entre eles.
+Baseado na "Síntese dos Elementos Nucleares" de Goodwin e Decoz. NÃO leia os números isoladamente. Analise a relação entre eles e CONTE uma história coesa.
 
-Caminho de Vida (A Missão): Qual é a estrada principal desta pessoa? O que ela veio aprender?
+Comece criando uma narrativa sobre a essência desta pessoa. Conecte os números principais em uma história que revele sua natureza fundamental:
 
-Expressão (A Bagagem): Quais talentos naturais e ferramentas ela trouxe para percorrer essa estrada?
+1. **Caminho de Vida (A Missão)**: Conte a história da estrada principal desta pessoa de forma narrativa e envolvente. O que ela veio aprender nesta vida? Use linguagem simples e acessível para explicar o que significa este número. Descreva em detalhes como este número molda sua jornada, seus desafios e oportunidades. Dê exemplos práticos e concretos de situações do dia a dia onde isso se manifesta (ex: "Você pode notar isso quando...", "Isso aparece especialmente em situações como..."). Explique tanto as qualidades positivas quanto os desafios, sempre de forma empoderadora. (MÍNIMO 3 parágrafos completos e densos)
 
-Análise de Conflito (Goodwin): Verifique se a Expressão apoia ou conflita com o Caminho de Vida (Ex: Um Caminho de Líder com Expressão de Seguidor). Explique como harmonizar isso.
+2. **Expressão (A Bagagem)**: Conte a história dos talentos naturais e ferramentas que ela trouxe para percorrer essa estrada. Use metáforas e analogias simples para explicar o que significa este número. Como esses dons se manifestam na prática? Dê exemplos concretos e específicos de situações reais onde esses talentos aparecem (ex: "Você pode usar isso quando...", "Isso se mostra especialmente em..."). Como ela pode usar melhor essas ferramentas no dia a dia? Dê orientações práticas e acionáveis. (MÍNIMO 3 parágrafos completos e densos)
 
-Desejo da Alma (O Motor Interno): O que a motiva profundamente? O que ela deseja quando ninguém está olhando?
+3. **A Dança Entre Missão e Talento**: Analise se a Expressão apoia ou conflita com o Caminho de Vida. Conte essa relação como uma história - como essa dinâmica cria tensões ou harmonias na vida dela? Dê exemplos práticos e específicos de situações onde isso aparece (ex: "Você pode sentir isso quando...", "Isso se manifesta especialmente em..."). Como harmonizar essa relação? Dê orientações práticas e específicas de como trabalhar essa dinâmica. (MÍNIMO 2 parágrafos completos)
 
-Personalidade (A Máscara): Como os outros a veem na primeira impressão?
+4. **Desejo da Alma (O Motor Interno)**: Conte a história do que a motiva profundamente de forma íntima e acolhedora. O que ela deseja quando ninguém está olhando? Use linguagem simples para explicar este conceito. Descreva como esse desejo secreto influencia suas escolhas e comportamentos no dia a dia. Dê exemplos práticos e específicos de como isso aparece na vida real (ex: "Você pode perceber isso quando...", "Isso se mostra especialmente em situações como..."). (MÍNIMO 2 parágrafos completos)
 
-Comparação (Decoz): A "Máscara" é muito diferente da "Alma"? Se sim, explique se isso gera sentimentos de incompreensão.
+5. **Personalidade (A Máscara)**: Conte como os outros a veem na primeira impressão de forma narrativa. Descreva essa máscara em detalhes - como ela se apresenta ao mundo? Use linguagem clara e acessível. Dê exemplos específicos de situações onde essa personalidade aparece (ex: "As pessoas podem notar isso quando...", "Isso se mostra especialmente em..."). (MÍNIMO 2 parágrafos completos)
 
-Dia de Nascimento (O Modificador): Qual talento específico do dia ajuda no Caminho de Vida?
+6. **A Tensão Entre Máscara e Alma**: A "Máscara" é muito diferente da "Alma"? Conte a história dessa diferença de forma acolhedora e terapêutica. Como isso gera sentimentos de incompreensão ou conflito interno? Dê exemplos práticos e específicos de situações onde isso aparece. Como integrar essas duas partes? Dê orientações práticas e acionáveis. (MÍNIMO 2 parágrafos completos)
 
-PARTE 2: VIRTUDES, DEFEITOS E PADRÕES (COMO VOCÊ FUNCIONA)
+7. **Dia de Nascimento (O Modificador)**: Conte como o talento específico do dia ajuda no Caminho de Vida de forma narrativa. Use linguagem simples para explicar este conceito. Dê exemplos práticos e específicos de como esse dom diário se manifesta na vida real (ex: "Você pode usar isso quando...", "Isso aparece especialmente em..."). Como pode ser usado para apoiar a missão? Dê orientações práticas. (MÍNIMO 2 parágrafos completos)
 
-Baseado nas Grades de Phillips e Psicologia de Decoz.
+**PARTE 2: VIRTUDES, DEFEITOS E PADRÕES - COMO VOCÊ FUNCIONA (A História dos Padrões)**
 
-A Grade de Nascimento (Setas de Individualidade):
+Baseado nas Grades de Phillips e Psicologia de Decoz. Conte a história de como esta pessoa funciona internamente.
+
+1. **A Grade de Nascimento (Setas de Individualidade) - A História dos Padrões Comportamentais**:
 
 Identifique na grade 3x3 se há Setas de Força (linhas cheias) ou Setas de Fraqueza (linhas vazias).
 
-Traduza isso em comportamento: Ela tem determinação? Procrastinação? Sensibilidade excessiva? Dê uma dica prática para equilibrar.
+Conte a história desses padrões de forma narrativa e acessível. Use linguagem simples para explicar o que são as setas de força e fraqueza. Como essas setas se manifestam no comportamento diário? Dê exemplos práticos, concretos e detalhados de situações reais onde esses padrões aparecem (ex: "Você pode notar isso quando...", "Isso se mostra especialmente em situações como..."). Se há setas de força, conte como isso cria determinação, foco ou outras qualidades, com exemplos específicos. Se há setas de fraqueza, conte como isso cria procrastinação, sensibilidade excessiva ou outros desafios, sempre de forma empoderadora. Dê orientações práticas, específicas e acionáveis para equilibrar esses padrões. (MÍNIMO 3 parágrafos completos e densos)
 
-Lições e Dívidas Cármicas:
+2. **Lições e Dívidas Cármicas - A História dos Obstáculos Repetitivos**:
 
-Há números de Dívida Cármica (13, 14, 16, 19) nos números principais? Se sim, explique o obstáculo repetitivo e como superá-lo (visão terapêutica, não punitiva).
+Há números de Dívida Cármica (13, 14, 16, 19) nos números principais? Se sim, conte a história desse obstáculo repetitivo de forma acolhedora e terapêutica. Use linguagem simples para explicar o que significa uma dívida cármica (sem usar jargão técnico sem explicação). Descreva em detalhes como essa dívida cármica se manifesta na vida dela - dê exemplos concretos e específicos de situações reais onde isso aparece (ex: "Você pode perceber isso quando...", "Isso se mostra especialmente em..."). Explique a origem cármica de forma terapêutica e não punitiva, e como superá-la com consciência e trabalho interno. Dê orientações práticas, específicas e acionáveis. (MÍNIMO 3 parágrafos completos se houver dívidas)
 
-Lições Cármicas: Quais números faltam no nome? O que ela precisa aprender "na raça" nesta vida?
+Lições Cármicas: Quais números faltam no nome? Conte a história do que ela precisa aprender "na raça" nesta vida de forma empoderadora. Use linguagem simples para explicar o que são lições cármicas. Descreva como essas lições aparecem como desafios repetitivos na vida prática. Dê exemplos práticos, concretos e específicos de situações reais onde essas lições se apresentam (ex: "Você pode notar isso quando...", "Isso aparece especialmente em..."). Como trabalhar conscientemente essas lições? Dê orientações práticas e acionáveis. (MÍNIMO 2 parágrafos completos se houver lições)
 
-Saúde e Temperamento (Phillips):
+3. **Saúde e Temperamento (Phillips) - A História da Energia Vital**:
 
-Analise brevemente os Planos de Expressão (Mental, Físico, Emocional, Intuitivo). Onde está o foco de energia? Dê uma recomendação breve de bem-estar baseada nisso.
+Analise os Planos de Expressão (Mental, Físico, Emocional, Intuitivo). Use linguagem simples para explicar o que são os planos de expressão (sem usar jargão técnico sem explicação). Conte a história de onde está o foco de energia desta pessoa de forma narrativa. Descreva como isso se manifesta no dia a dia - dê exemplos práticos, concretos e específicos de situações reais (ex: "Você pode notar isso quando...", "Isso se mostra especialmente em..."). Onde há excesso ou falta de energia? Dê recomendações específicas, detalhadas e acionáveis de bem-estar baseadas nessa análise. (MÍNIMO 2 parágrafos completos)
 
-PARTE 3: O MAPA DA JORNADA (PARA ONDE VOCÊ VAI)
+**PARTE 3: O MAPA DA JORNADA - PARA ONDE VOCÊ VAI (A História do Destino)**
 
-Baseado no Triângulo Divino de Javane & Bunker.
+Baseado no Triângulo Divino de Javane & Bunker. Conte a história do destino e da jornada desta pessoa.
 
-O Grande Cenário (Triângulo Divino):
+1. **O Grande Cenário (Triângulo Divino) - A História do Ciclo de Vida**:
 
-Descreva o ciclo de vida atual da pessoa (Juventude, Poder ou Sabedoria).
+Conte a história do ciclo de vida atual da pessoa (Juventude, Poder ou Sabedoria) de forma narrativa e envolvente. Use linguagem simples para explicar o que significa estar neste ciclo específico. Descreva em detalhes como isso se manifesta na vida prática. Dê exemplos concretos, específicos e práticos de situações e temas que aparecem neste ciclo (ex: "Você pode notar isso quando...", "Isso se mostra especialmente em..."). O que ela está aprendendo? O que está desenvolvendo? Como este ciclo se relaciona com os ciclos anteriores e futuros? Conecte tudo em uma narrativa fluida. (MÍNIMO 3 parágrafos completos e densos)
 
-Conexão Astrológica/Tarot: Associe o número do ciclo atual ao Arcano Maior do Tarot correspondente e ao Planeta regente. Explique o que isso significa para o momento de vida dela (Ex: Ciclo 7 = O Carro/Vitória pelo controle mental e espiritualidade).
+2. **Conexão Astrológica/Tarot - A História do Símbolo do Ciclo**:
 
-PARTE 4: PREVISÃO E MOMENTO ATUAL (CLIMA METEOROLÓGICO)
+Associe o número do ciclo atual ao Arcano Maior do Tarot correspondente e ao Planeta regente. Conte a história do que esse símbolo significa para o momento de vida dela de forma narrativa e acessível. Use linguagem simples para explicar a conexão com o Tarot (sem usar jargão técnico sem explicação). Descreva em detalhes como essa energia se manifesta na vida prática. Dê exemplos práticos, concretos e específicos de situações reais onde essa energia aparece (ex: "Você pode notar isso quando...", "Isso se mostra especialmente em..."). (Ex: Ciclo 7 = O Carro/Vitória pelo controle mental e espiritualidade - conte como isso aparece na vida prática dela com exemplos específicos). (MÍNIMO 2 parágrafos completos)
 
-Baseado nos Pináculos de Goodwin e Ciclos de Decoz.
+3. **A Maturidade - A História do Desenvolvimento Final**:
 
-Pináculos e Desafios Atuais:
+Conte a história do Número da Maturidade de forma narrativa e inspiradora. Use linguagem simples para explicar o que significa o número da maturidade. O que ela está desenvolvendo para a segunda metade da vida? Como esse número se relaciona com o Caminho de Vida? Descreva em detalhes como essa energia de maturidade se manifesta e o que ela está aprendendo a integrar. Dê exemplos práticos, concretos e específicos de como isso aparece na vida real (ex: "Você pode perceber isso quando...", "Isso se mostra especialmente em..."). (MÍNIMO 2 parágrafos completos)
+
+**PARTE 4: PREVISÃO E MOMENTO ATUAL - O AGORA (A História do Presente)**
+
+Baseado nos Pináculos de Goodwin e Ciclos de Decoz. Conte a história do momento atual desta pessoa.
+
+1. **Pináculos e Desafios Atuais - A História do Cenário Presente**:
 
 Identifique o Pináculo e o Desafio atuais baseado na idade da pessoa ({numerology_map['life_cycle']['age']} anos).
 
-Qual é o cenário externo atual (Pináculo)? O que a vida está oferecendo neste momento?
+Conte a história do cenário externo atual (Pináculo) de forma narrativa e empoderadora. Use linguagem simples para explicar o que é um Pináculo. O que a vida está oferecendo neste momento? Descreva em detalhes as oportunidades, energias e temas que estão presentes. Dê exemplos práticos, concretos e específicos de como isso se manifesta na vida real (ex: "Você pode esperar isso em...", "Isso aparece especialmente quando...", "Áreas da vida afetadas incluem..."). O que ela pode esperar? Quais portas estão se abrindo? Seja específico e detalhado. (MÍNIMO 3 parágrafos completos e densos)
 
-Qual é o obstáculo atual (Desafio)? O que está testando a pessoa agora?
+Conte a história do obstáculo atual (Desafio) de forma acolhedora e terapêutica. Use linguagem simples para explicar o que é um Desafio numerológico. O que está testando a pessoa agora? Descreva em detalhes como esse desafio aparece na vida prática. Dê exemplos concretos e específicos de situações reais onde esse desafio se manifesta (ex: "Você pode perceber isso quando...", "Isso se mostra especialmente em..."). Qual é a lição por trás desse desafio? Como trabalhar conscientemente com ele? Dê orientações práticas e acionáveis. (MÍNIMO 2 parágrafos completos)
 
-Síntese: Como aproveitar o Pináculo apesar do Desafio? Dê orientações práticas e específicas.
+Síntese: Conte como aproveitar o Pináculo apesar do Desafio de forma narrativa e empoderadora. Dê orientações práticas, específicas, detalhadas e acionáveis. Crie uma narrativa de como essas duas energias trabalham juntas e como ela pode navegar essa situação. Use exemplos práticos de como aplicar isso no dia a dia. (MÍNIMO 2 parágrafos completos)
 
-Ano Pessoal (O Agora):
+2. **Ano Pessoal (O Agora) - A História do Ano Atual**:
 
 A pessoa está no Ano Pessoal {numerology_map['personal_year']['number']} ({numerology_map['personal_year']['year']}).
 
-Dê 3 conselhos práticos e específicos para este ano (Ex: "É hora de plantar", ou "É hora de finalizar", ou "Cuidado com contratos"). Seja concreto e acionável.
+Conte a história completa deste ano pessoal de forma narrativa e envolvente. Use linguagem simples e acessível para explicar o que significa este ano pessoal. Descreva em detalhes as energias, temas e oportunidades deste ano. O que está sendo trabalhado? O que está sendo desenvolvido? O que está sendo liberado? Dê exemplos práticos, concretos e específicos de situações e áreas da vida onde isso aparece (ex: "Você pode esperar isso em...", "Isso se manifesta especialmente quando...", "Áreas da vida afetadas incluem..."). (MÍNIMO 3 parágrafos completos e densos)
 
-CONCLUSÃO TERAPÊUTICA
+Dê 5-7 conselhos práticos, específicos e acionáveis para este ano. Seja concreto, detalhado e claro (Ex: "É hora de plantar sementes em relacionamentos - isso significa investir tempo em conhecer novas pessoas e fortalecer vínculos existentes", ou "É hora de finalizar projetos antigos que não servem mais - revise seus compromissos e libere o que não está alinhado com seus objetivos atuais", ou "Cuidado com contratos e compromissos - revise tudo antes de assinar, especialmente em [área específica]"). Para cada conselho, explique o contexto, por que é importante agora e como aplicá-lo na prática. (MÍNIMO 3 parágrafos completos)
 
-Finalize com uma mensagem de síntese positiva. Reforce que os números são ferramentas de livre arbítrio e não uma sentença imutável.
+**CONCLUSÃO TERAPÊUTICA - A SÍNTESE DA HISTÓRIA**
 
-IMPORTANTE:
+Finalize criando uma síntese narrativa, positiva e inspiradora que conecte todos os elementos da história numerológica desta pessoa. Conte como todos os números se unem para criar uma jornada única e significativa, usando linguagem simples e acessível. Reforce que os números são ferramentas de livre arbítrio e não uma sentença imutável - explique isso de forma clara e empoderadora. Dê uma mensagem final de empoderamento, esperança e possibilidade de transformação, mostrando como ela pode usar esse conhecimento para crescer e evoluir. Use exemplos práticos de como aplicar esse autoconhecimento no dia a dia. (MÍNIMO 3 parágrafos completos e densos)
+
+IMPORTANTE - REGRAS DE ESCRITA:
 - Use formatação com títulos em negrito (formato: **PARTE 1: A ESSÊNCIA**)
 - Separe parágrafos com quebras de linha duplas
-- Seja específico e prático, não genérico
-- Use linguagem acolhedora e empoderadora
-- Cada parte deve ter conteúdo completo e detalhado
+- Seja EXTREMAMENTE específico e detalhado - não genérico
+- Use linguagem rica, envolvente e acolhedora
+- Cada parte deve ter conteúdo COMPLETO e DETALHADO (mínimo de parágrafos indicados acima)
 - Para cada número, explique tanto suas qualidades positivas quanto os desafios a serem trabalhados (análise equilibrada)
-- Organize as informações de forma clara, evitando repetições"""
+- SEMPRE dê exemplos práticos e concretos de como as energias se manifestam na vida
+- Conecte os números em uma narrativa fluida - não apenas liste informações
+- O texto total deve ter NO MÍNIMO 2500 palavras
+- Organize as informações de forma clara, evitando repetições
+- Conte a HISTÓRIA DE VIDA através dos números, não apenas liste significados técnicos"""
         else:
             # English version
             system_prompt = """Role and Context: Act as an experienced Pythagorean Numerologist and also an Astrologer. Your approach must synthesize the best world references: the technical precision and synthesis of Matthew Oliver Goodwin, the psychological and therapeutic depth of Hans Decoz, the holistic health vision of David A. Phillips, and the sacred geometry/life cycles of Faith Javane & Dusty Bunker.
@@ -4418,8 +4678,9 @@ IMPORTANT:
 - Organize information clearly, avoiding repetitions"""
         
         # Gerar interpretação com Groq usando prompts customizados
+        # IMPORTANTE: Tentar usar Groq mesmo com pouco contexto - o modelo tem conhecimento numerológico
         groq_client = _get_groq_client()
-        if groq_client and context_documents:
+        if groq_client:
             try:
                 # Chamar Groq diretamente com prompts customizados
                 chat_completion = groq_client.chat.completions.create(
@@ -4427,9 +4688,9 @@ IMPORTANT:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    model="llama-3.1-8b-instant",
+                    model="llama-3.3-70b-versatile",  # Modelo maior para interpretações mais detalhadas
                     temperature=0.7,
-                    max_tokens=4000,  # Aumentado para interpretações completas
+                    max_tokens=8000,  # Aumentado significativamente para estudos completos e detalhados
                     top_p=0.9,
                 )
                 
@@ -4454,6 +4715,16 @@ IMPORTANT:
                     for doc in context_documents[:5]
                 ]
                 
+                # Converter sources (mesmo que vazio, vamos tentar)
+                sources_list = [
+                    SourceItem(
+                        source=doc.get('source', 'knowledge_base'),
+                        page=doc.get('page', 1),
+                        relevance=doc.get('score', 0.5)
+                    )
+                    for doc in context_documents[:5]
+                ] if context_documents else []
+                
                 return NumerologyInterpretationResponse(
                     interpretation=interpretation_text or "Não foi possível gerar a interpretação.",
                     sources=sources_list,
@@ -4466,9 +4737,8 @@ IMPORTANT:
                 print(traceback.format_exc())
                 # Continuar para o fallback em caso de erro
         
-        # Fallback: gerar interpretação básica (se não houver Groq ou contexto)
-        if not context_text or len(context_text.strip()) < 100:
-            print("[WARNING] Usando fallback básico - RAG não retornou contexto suficiente")
+        # Fallback: gerar interpretação básica (se não houver Groq)
+        print("[WARNING] Usando fallback básico - Groq não disponível ou erro na geração")
         
         fallback_text = f"""PARTE 1: A ESSÊNCIA (QUEM VOCÊ É)
 
@@ -4514,4 +4784,627 @@ Os números são ferramentas de autoconhecimento e livre arbítrio. Use estas in
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao gerar interpretação numerológica: {str(e)}"
+        )
+
+
+class BirthGridQuantitiesRequest(BaseModel):
+    """Request para interpretação das quantidades na grade de nascimento."""
+    grid: Dict[int, int]  # {número: quantidade}
+    language: Optional[str] = 'pt'
+
+
+class BirthGridQuantitiesResponse(BaseModel):
+    """Response com interpretação das quantidades na grade."""
+    explanation: str
+    sources: List[SourceItem]
+    query_used: str
+
+
+@router.post("/numerology/birth-grid-quantities", response_model=BirthGridQuantitiesResponse)
+async def get_birth_grid_quantities_interpretation(
+    request: BirthGridQuantitiesRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Obtém interpretação sobre o significado das quantidades na grade de nascimento.
+    Busca informações dos livros de numerologia no RAG.
+    """
+    try:
+        rag_service = get_rag_service()
+        lang = request.language or 'pt'
+        
+        # Construir queries para buscar informações sobre a Grade de Nascimento e quantidades
+        queries = [
+            # Queries mais específicas sobre Grade Numerológica
+            "grade numerológica nome data nascimento",
+            "numerological grid name birth date",
+            "grade 3x3 numerologia números",
+            "birth grid 3x3 numerology numbers",
+            # Queries sobre quantidades e frequências
+            "número aparece muitas vezes grade numerologia",
+            "number appears many times grid numerology",
+            "quantidade números grade nascimento significado",
+            "grid numbers quantity meaning numerology",
+            # Queries sobre ausência de números
+            "número ausente grade numerologia falta",
+            "missing number grid numerology absence",
+            # Queries sobre excesso de números
+            "excesso número grade numerologia energia",
+            "excess number grid numerology energy",
+            # Queries gerais sobre grade
+            "grade de nascimento numerologia",
+            "birth grid numerology",
+            "numerologia grade quantidade",
+            "numerology grid quantity"
+        ]
+        
+        # Buscar no RAG com mais documentos
+        all_results = []
+        seen_texts = set()
+        
+        if rag_service:
+            for query in queries:
+                try:
+                    results = rag_service.search(
+                        query=query,
+                        top_k=10,  # Aumentado de 5 para 10
+                        expand_query=True,
+                        category='numerology'
+                    )
+                    for doc in results:
+                        doc_text = doc.get('text', '').strip()
+                        if doc_text and doc_text not in seen_texts and len(doc_text) > 20:
+                            seen_texts.add(doc_text)
+                            all_results.append(doc)
+                except Exception as e:
+                    print(f"[WARNING] Erro ao buscar query '{query}': {e}")
+                    continue
+        
+        # Ordenar por relevância e pegar mais resultados
+        all_results = sorted(
+            all_results,
+            key=lambda x: x.get('score', 0),
+            reverse=True
+        )[:20]  # Aumentado de 10 para 20
+        
+        # Preparar contexto - limpar texto antes de enviar ao Groq
+        raw_context_parts = []
+        for doc in all_results:
+            if doc.get('text'):
+                # Limpar espaços estranhos entre letras
+                text = doc.get('text', '')
+                text = re.sub(r'(\w)\s+(\w)', r'\1\2', text)
+                text = re.sub(r'\s+', ' ', text).strip()
+                raw_context_parts.append(text)
+        
+        # Contexto limpo sem referências inline
+        context_text = "\n\n".join(raw_context_parts)
+        
+        # Preparar dados da grade para o prompt
+        grid_summary = []
+        for num in sorted(request.grid.keys()):
+            count = request.grid[num]
+            if count > 0:
+                grid_summary.append(f"Número {num}: aparece {count} vez(es)")
+        
+        grid_summary_text = "\n".join(grid_summary) if grid_summary else "Nenhum número presente"
+        
+        # Função auxiliar para gerar explicação de fallback
+        def _generate_quantities_fallback(grid: Dict[int, int], lang: str) -> str:
+            """Gera explicação baseada no conhecimento do sistema quando Groq não está disponível."""
+            number_meanings = {
+                1: "Ação, Liderança, Independência, Ego, Identidade Pessoal",
+                2: "Dualidade, Sentimentos, Diplomacia, Cooperação, Sensibilidade",
+                3: "Criatividade, Comunicação, Expressão, Alegria, Sociabilidade",
+                4: "Estabilidade, Organização, Trabalho, Praticidade, Disciplina",
+                5: "Liberdade, Mudança, Versatilidade, Aventura, Curiosidade",
+                6: "Responsabilidade, Família, Amor, Harmonia, Cuidado",
+                7: "Espiritualidade, Introspecção, Análise, Sabedoria, Intuição",
+                8: "Poder, Materialismo, Organização, Autoridade, Transformação",
+                9: "Compaixão, Serviço, Sabedoria, Generosidade, Humanitarismo"
+            }
+            
+            present_numbers = {num: count for num, count in grid.items() if count > 0}
+            missing_numbers = [num for num in range(1, 10) if grid.get(num, 0) == 0]
+            
+            if lang == 'pt':
+                explanation = "## Significado das Quantidades na Grade de Nascimento\n\n"
+                explanation += "A Grade Numerológica mostra quantas vezes cada número (1 a 9) aparece no seu nome completo e data de nascimento. A quantidade indica a intensidade da energia de cada número na sua vida.\n\n"
+                
+                explanation += "### Números Presentes na Sua Grade:\n\n"
+                for num, count in sorted(present_numbers.items()):
+                    meaning = number_meanings.get(num, "")
+                    if count == 1:
+                        explanation += f"**Número {num}** (aparece {count} vez): {meaning}\n"
+                        explanation += f"Este número está presente na sua grade, indicando que a energia do {num} está ativa na sua vida. Você possui as qualidades relacionadas a este número, mas pode precisar desenvolvê-las mais.\n\n"
+                    elif count <= 3:
+                        explanation += f"**Número {num}** (aparece {count} vezes): {meaning}\n"
+                        explanation += f"Este número aparece com frequência moderada, indicando que a energia do {num} está bem presente e equilibrada na sua vida. Você tem acesso natural a essas qualidades.\n\n"
+                    else:
+                        explanation += f"**Número {num}** (aparece {count} vezes): {meaning}\n"
+                        explanation += f"Este número aparece muitas vezes na sua grade, indicando uma energia muito forte do {num}. Isso pode ser uma grande força, mas também pode indicar um desequilíbrio - você pode estar usando demais ou de forma excessiva essas qualidades.\n\n"
+                
+                if missing_numbers:
+                    explanation += "### Números Ausentes (Lições a Desenvolver):\n\n"
+                    explanation += "Os números que não aparecem na sua grade indicam áreas onde você precisa desenvolver mais. Estas são lições cármicas - qualidades que você precisa aprender e integrar nesta vida.\n\n"
+                    for num in missing_numbers:
+                        meaning = number_meanings.get(num, "")
+                        explanation += f"**Número {num} ausente**: {meaning}\n"
+                        explanation += f"A ausência do número {num} indica que você precisa desenvolver essas qualidades. Esta é uma área de crescimento pessoal importante para você.\n\n"
+                
+                explanation += "### Fluxo de Energia:\n\n"
+                explanation += "Quando alguns números aparecem muitas vezes e outros poucas vezes, há um fluxo de energia. Os números mais presentes tendem a dominar, enquanto os menos presentes precisam ser desenvolvidos para criar equilíbrio.\n\n"
+                explanation += "**Dica**: Trabalhe conscientemente para desenvolver os números ausentes e equilibrar os números que aparecem em excesso."
+            else:
+                explanation = "## Meaning of Quantities in the Birth Grid\n\n"
+                explanation += "The Numerological Grid shows how many times each number (1 to 9) appears in your full name and birth date. The quantity indicates the intensity of each number's energy in your life.\n\n"
+                
+                explanation += "### Numbers Present in Your Grid:\n\n"
+                for num, count in sorted(present_numbers.items()):
+                    meaning = number_meanings.get(num, "")
+                    if count == 1:
+                        explanation += f"**Number {num}** (appears {count} time): {meaning}\n"
+                        explanation += f"This number is present in your grid, indicating that the energy of {num} is active in your life. You possess qualities related to this number, but may need to develop them more.\n\n"
+                    elif count <= 3:
+                        explanation += f"**Number {num}** (appears {count} times): {meaning}\n"
+                        explanation += f"This number appears with moderate frequency, indicating that the energy of {num} is well present and balanced in your life. You have natural access to these qualities.\n\n"
+                    else:
+                        explanation += f"**Number {num}** (appears {count} times): {meaning}\n"
+                        explanation += f"This number appears many times in your grid, indicating a very strong energy of {num}. This can be a great strength, but may also indicate an imbalance - you may be using these qualities too much or excessively.\n\n"
+                
+                if missing_numbers:
+                    explanation += "### Missing Numbers (Lessons to Develop):\n\n"
+                    explanation += "Numbers that do not appear in your grid indicate areas where you need to develop more. These are karmic lessons - qualities you need to learn and integrate in this life.\n\n"
+                    for num in missing_numbers:
+                        meaning = number_meanings.get(num, "")
+                        explanation += f"**Number {num} missing**: {meaning}\n"
+                        explanation += f"The absence of number {num} indicates that you need to develop these qualities. This is an important area of personal growth for you.\n\n"
+                
+                explanation += "### Energy Flow:\n\n"
+                explanation += "When some numbers appear many times and others few times, there is an energy flow. The most present numbers tend to dominate, while the least present ones need to be developed to create balance.\n\n"
+                explanation += "**Tip**: Consciously work to develop missing numbers and balance numbers that appear in excess."
+            
+            return explanation
+        
+        # Gerar explicação com Groq - SEMPRE tentar, mesmo com pouco contexto
+        # O system prompt já tem conhecimento suficiente sobre Grade Numerológica
+        groq_client = _get_groq_client()
+        
+        # Se Groq não estiver disponível, usar fallback baseado no conhecimento do sistema
+        if not groq_client:
+            print("[INFO] Groq não disponível, gerando explicação de fallback baseada no conhecimento do sistema")
+            fallback_explanation = _generate_quantities_fallback(request.grid, lang)
+            return BirthGridQuantitiesResponse(
+                explanation=fallback_explanation,
+                sources=[],
+                query_used="quantidades na grade de nascimento"
+            )
+        
+        if groq_client:
+            try:
+                if lang == 'pt':
+                    system_prompt = """Você é um numerólogo experiente especializado em interpretação de grades de nascimento. Sua função é explicar:
+1. O que é a Grade de Nascimento na numerologia
+2. O significado das quantidades (quantas vezes cada número aparece) na grade de nascimento
+
+CONCEITO FUNDAMENTAL DA GRADE NUMEROLÓGICA:
+A Grade Numerológica é uma grade 3x3 (números de 1 a 9) que pode ser utilizada para o nome completo ou para a data de nascimento. A cada vez que um número aparecer no nome ou data, circulamos o número correspondente na grade. A presença de 3 números numa linha vertical, horizontal ou diagonal denota qualidades em potencial. Normalmente encontramos pelo menos uma linha completa numa grade.
+
+SIGNIFICADO DAS QUANTIDADES NA GRADE:
+- Quando um número aparece na grade: indica que a energia desse número está presente e ativa
+- Quando um número NÃO aparece na grade (ausente): indica falta dessa energia, problemas relacionados a essa área, ou necessidade de desenvolver essas qualidades
+- Quando um número aparece MUITAS vezes (excesso): indica que essa energia está muito presente, mas pode ser mal utilizada ou desequilibrada
+- Fluxo de energia: quando temos mais números de um tipo e menos de outro, a energia flui do número mais presente para o menos presente (ex: 5 números 1 e 2 números 2 = energia flui do 1 para o 2)
+
+CARACTERÍSTICAS DOS NÚMEROS:
+1 - Ação / o Ser / Ego / Liderança / Recursos Pessoais / Identidade Pessoal / Independência Pessoal
+2 - Dualidade / Sentimentos / Carinho / A Mente Consciente / Tato / Diplomacia
+3 - Criatividade Pessoal / Comunicação / Poder de Persuasão / Expressão do Ser / Prestação de Serviço
+4 - Pensamento Lógico / Espírito Prático / Instintos / O Concreto / O Mundo Material / O trabalho duro / Praticidade
+5 - Os Sentidos / Expansão de Consciência / Flexibilidade / Tolerância / Aprendizagem / Mudanças / Liberdade
+6 - Criatividade Intelectual / Imaginação / Fantasia / Pensamento Abstrato / Teoria / Família / Responsabilidade / Amor / Harmonia
+7 - Estabelecer Limites / Tempo / Ligações Materiais / Os Limites do Mundo Material / A Ponte para o Reino Espiritual / Análise / Pesquisa
+8 - Mente Inconsciente / Transformação do Material / Espaço Sem Tempo / Equilíbrio / Dharma: fazer o que tem que ser feito / Organização / Poder Mental
+9 - Criatividade Espiritual / Amor Divino / Talentos Inatos / Acabamento / Karma: recompensa pelas ações de vidas passadas / Entrega / Doação
+
+Baseie-se APENAS nas informações fornecidas dos livros de numerologia, mas use o conhecimento acima sobre a Grade Numerológica como base conceitual.
+
+REGRAS CRÍTICAS:
+- Use APENAS informações dos livros fornecidos no contexto quando disponíveis
+- Use o conhecimento sobre Grade Numerológica acima para explicar o conceito
+- NÃO invente ou adivinhe informações específicas sobre quantidades
+- Se não houver informações suficientes no contexto, use o conhecimento geral sobre presença/ausência/excesso
+- PRIMEIRO explique o que é a Grade de Nascimento usando o conceito acima
+- DEPOIS explique de forma prática e clara o que significa ter números com diferentes quantidades
+- Explique tanto a presença quanto a ausência de números
+- Explique o fluxo de energia entre números quando houver desequilíbrios
+- Foque em exemplos práticos e aplicações na vida real
+- Formate o texto de forma clara e legível, com parágrafos bem estruturados
+- NÃO inclua referências a fontes ou páginas no texto final
+- O texto pode vir com espaços estranhos - corrija e formate corretamente"""
+                    
+                    user_prompt = f"""GRADE DE NASCIMENTO - EXPLICAÇÃO COMPLETA:
+
+DADOS DA GRADE:
+{grid_summary_text}
+
+INFORMAÇÕES DOS LIVROS DE NUMEROLOGIA:
+{context_text if context_text and len(context_text.strip()) > 50 else "Nenhuma informação específica encontrada nos livros, mas use o conhecimento numerológico geral sobre Grade Numerológica."}
+
+---
+
+INSTRUÇÕES:
+
+1. PRIMEIRO: Explique o que é a Grade de Nascimento na numerologia. Use o conceito fundamental fornecido no system prompt: é uma grade 3x3 onde se marca quantas vezes cada número (1-9) aparece no nome ou data de nascimento. A presença de 3 números numa linha (vertical, horizontal ou diagonal) denota qualidades em potencial.
+
+2. DEPOIS: Explique o significado das quantidades na grade de nascimento. Para cada número presente:
+   - Explique o que significa ter esse número presente (energia ativa)
+   - Explique o que significa ter esse número ausente (falta dessa energia, problemas relacionados, necessidade de desenvolvimento)
+   - Explique o que significa ter excesso desse número (energia muito presente, mas pode ser mal utilizada)
+   - Analise o fluxo de energia entre números quando houver desequilíbrios (mais de um número, menos de outro)
+
+3. ANÁLISE ESPECÍFICA: Para os números que aparecem na grade fornecida, explique:
+   - O que significa ter esse número presente e em que quantidade
+   - Como essa energia se manifesta na vida da pessoa
+   - Quais são as qualidades e desafios relacionados
+
+4. NÚMEROS AUSENTES: Para os números que NÃO aparecem na grade, explique:
+   - O que significa a ausência desse número
+   - Quais problemas ou dificuldades isso pode indicar
+   - O que a pessoa precisa desenvolver nessa área
+
+IMPORTANTE:
+- Use APENAS as informações dos livros fornecidos acima quando disponíveis
+- Use o conhecimento sobre Grade Numerológica do system prompt para explicar o conceito
+- Se o texto tiver espaços estranhos entre letras, corrija e formate corretamente
+- Formate o texto de forma clara, com parágrafos bem estruturados
+- NÃO inclua referências a fontes ou páginas no texto final
+- Se não houver informações suficientes sobre quantidades específicas, explique o conceito geral baseado no conhecimento sobre presença/ausência/excesso
+- Estruture a resposta com:
+  * Seção sobre "O que é a Grade de Nascimento"
+  * Seção sobre "Análise dos Números Presentes"
+  * Seção sobre "Números Ausentes (Lições a Desenvolver)"
+  * Seção sobre "Fluxo de Energia e Equilíbrio"
+"""
+                else:
+                    system_prompt = """You are an experienced numerologist specialized in birth grid interpretation. Your function is to explain:
+1. What is the Birth Grid in numerology
+2. The meaning of quantities (how many times each number appears) in the birth grid
+
+FUNDAMENTAL CONCEPT OF THE NUMEROLOGICAL GRID:
+The Numerological Grid is a 3x3 grid (numbers 1 to 9) that can be used for the full name or birth date. Each time a number appears in the name or date, we circle the corresponding number in the grid. The presence of 3 numbers in a vertical, horizontal or diagonal line denotes potential qualities. Normally we find at least one complete line in a grid.
+
+MEANING OF QUANTITIES IN THE GRID:
+- When a number appears in the grid: indicates that the energy of that number is present and active
+- When a number does NOT appear in the grid (absent): indicates lack of this energy, problems related to this area, or need to develop these qualities
+- When a number appears MANY times (excess): indicates that this energy is very present, but may be misused or unbalanced
+- Energy flow: when we have more numbers of one type and fewer of another, energy flows from the more present number to the less present one (ex: 5 number 1s and 2 number 2s = energy flows from 1 to 2)
+
+CHARACTERISTICS OF NUMBERS:
+1 - Action / the Being / Ego / Leadership / Personal Resources / Personal Identity / Personal Independence
+2 - Duality / Feelings / Affection / The Conscious Mind / Tact / Diplomacy
+3 - Personal Creativity / Communication / Power of Persuasion / Expression of Being / Service
+4 - Logical Thinking / Practical Spirit / Instincts / The Concrete / The Material World / Hard work / Practicality
+5 - The Senses / Consciousness Expansion / Flexibility / Tolerance / Learning / Changes / Freedom
+6 - Intellectual Creativity / Imagination / Fantasy / Abstract Thinking / Theory / Family / Responsibility / Love / Harmony
+7 - Establishing Limits / Time / Material Connections / The Limits of the Material World / The Bridge to the Spiritual Realm / Analysis / Research
+8 - Unconscious Mind / Material Transformation / Space Without Time / Balance / Dharma: doing what needs to be done / Organization / Mental Power
+9 - Spiritual Creativity / Divine Love / Inborn Talents / Completion / Karma: reward for actions from past lives / Surrender / Giving
+
+Base your explanation ONLY on the information provided from numerology books, but use the knowledge above about the Numerological Grid as a conceptual basis.
+
+CRITICAL RULES:
+- Use ONLY information from the books provided in the context when available
+- Use the knowledge about Numerological Grid above to explain the concept
+- DO NOT invent or guess specific information about quantities
+- If there is not enough information in the context, use general knowledge about presence/absence/excess
+- FIRST explain what the Birth Grid is using the concept above
+- THEN explain in a practical and clear way what it means to have numbers with different quantities
+- Explain both the presence and absence of numbers
+- Explain the energy flow between numbers when there are imbalances
+- Focus on practical examples and real-life applications"""
+                    
+                    user_prompt = f"""BIRTH GRID - COMPLETE EXPLANATION:
+
+GRID DATA:
+{grid_summary_text}
+
+NUMEROLOGY BOOKS INFORMATION:
+{context_text}
+
+---
+
+INSTRUCTIONS:
+
+1. FIRST: Explain what the Birth Grid is in numerology. Use the fundamental concept provided in the system prompt: it is a 3x3 grid where we mark how many times each number (1-9) appears in the name or birth date. The presence of 3 numbers in a line (vertical, horizontal or diagonal) denotes potential qualities.
+
+2. THEN: Explain the meaning of quantities in the birth grid. For each number present:
+   - Explain what it means to have this number present (active energy)
+   - Explain what it means to have this number absent (lack of this energy, related problems, need for development)
+   - Explain what it means to have excess of this number (energy very present, but may be misused)
+   - Analyze the energy flow between numbers when there are imbalances (more of one number, less of another)
+
+3. SPECIFIC ANALYSIS: For the numbers that appear in the provided grid, explain:
+   - What it means to have this number present and in what quantity
+   - How this energy manifests in the person's life
+   - What are the related qualities and challenges
+
+4. ABSENT NUMBERS: For numbers that do NOT appear in the grid, explain:
+   - What the absence of this number means
+   - What problems or difficulties this may indicate
+   - What the person needs to develop in this area
+
+IMPORTANT:
+- Use ONLY the information from the books provided above when available
+- Use the knowledge about Numerological Grid from the system prompt to explain the concept
+- If the text has strange spaces between letters, correct and format properly
+- Format the text clearly, with well-structured paragraphs
+- DO NOT include references to sources or pages in the final text
+- If there is not enough information about specific quantities, explain the general concept based on knowledge about presence/absence/excess
+- Structure the response with:
+  * Section on "What is the Birth Grid"
+  * Section on "Analysis of Present Numbers"
+  * Section on "Absent Numbers (Lessons to Develop)"
+  * Section on "Energy Flow and Balance" """
+                
+                chat_completion = groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.7,
+                    max_tokens=2000,
+                    top_p=0.9,
+                )
+                
+                explanation_text = chat_completion.choices[0].message.content
+                if explanation_text:
+                    explanation_text = explanation_text.strip()
+                    # Remover referências explícitas a fontes
+                    explanation_text = re.sub(r'\[Fonte:[^\]]+\]', '', explanation_text)
+                    explanation_text = re.sub(r'Página\s+\d+', '', explanation_text)
+                    explanation_text = re.sub(r'Referências?:.*', '', explanation_text, flags=re.IGNORECASE | re.DOTALL)
+                    explanation_text = re.sub(r'---.*', '', explanation_text, flags=re.DOTALL)
+                    # Limpar espaços extras
+                    explanation_text = re.sub(r'\n{3,}', '\n\n', explanation_text)
+                    explanation_text = _deduplicate_text(explanation_text)
+                
+                # Converter sources
+                sources_list = [
+                    SourceItem(
+                        source=doc.get('source', 'knowledge_base'),
+                        page=doc.get('page', 1),
+                        relevance=doc.get('score', 0.5)
+                    )
+                    for doc in all_results[:5]
+                ]
+                
+                return BirthGridQuantitiesResponse(
+                    explanation=explanation_text or "Não foi possível gerar a explicação.",
+                    sources=sources_list,
+                    query_used=f"quantidades na grade de nascimento"
+                )
+            except Exception as e:
+                print(f"[ERROR] Erro ao gerar explicação com Groq: {e}")
+                import traceback
+                print(traceback.format_exc())
+        
+        # Fallback: SEMPRE tentar com Groq usando o conhecimento do system prompt
+        # O system prompt já tem conhecimento suficiente sobre Grade Numerológica
+        if groq_client:
+            try:
+                if lang == 'pt':
+                    # Usar o mesmo system_prompt completo que já tem todo o conhecimento
+                    system_prompt = """Você é um numerólogo experiente especializado em interpretação de grades de nascimento. Sua função é explicar:
+1. O que é a Grade de Nascimento na numerologia
+2. O significado das quantidades (quantas vezes cada número aparece) na grade de nascimento
+
+CONCEITO FUNDAMENTAL DA GRADE NUMEROLÓGICA:
+A Grade Numerológica é uma grade 3x3 (números de 1 a 9) que pode ser utilizada para o nome completo ou para a data de nascimento. A cada vez que um número aparecer no nome ou data, circulamos o número correspondente na grade. A presença de 3 números numa linha vertical, horizontal ou diagonal denota qualidades em potencial. Normalmente encontramos pelo menos uma linha completa numa grade.
+
+SIGNIFICADO DAS QUANTIDADES NA GRADE:
+- Quando um número aparece na grade: indica que a energia desse número está presente e ativa
+- Quando um número NÃO aparece na grade (ausente): indica falta dessa energia, problemas relacionados a essa área, ou necessidade de desenvolver essas qualidades
+- Quando um número aparece MUITAS vezes (excesso): indica que essa energia está muito presente, mas pode ser mal utilizada ou desequilibrada
+- Fluxo de energia: quando temos mais números de um tipo e menos de outro, a energia flui do número mais presente para o menos presente (ex: 5 números 1 e 2 números 2 = energia flui do 1 para o 2)
+
+CARACTERÍSTICAS DOS NÚMEROS:
+1 - Ação / o Ser / Ego / Liderança / Recursos Pessoais / Identidade Pessoal / Independência Pessoal
+2 - Dualidade / Sentimentos / Carinho / A Mente Consciente / Tato / Diplomacia
+3 - Criatividade Pessoal / Comunicação / Poder de Persuasão / Expressão do Ser / Prestação de Serviço
+4 - Pensamento Lógico / Espírito Prático / Instintos / O Concreto / O Mundo Material / O trabalho duro / Praticidade
+5 - Os Sentidos / Expansão de Consciência / Flexibilidade / Tolerância / Aprendizagem / Mudanças / Liberdade
+6 - Criatividade Intelectual / Imaginação / Fantasia / Pensamento Abstrato / Teoria / Família / Responsabilidade / Amor / Harmonia
+7 - Estabelecer Limites / Tempo / Ligações Materiais / Os Limites do Mundo Material / A Ponte para o Reino Espiritual / Análise / Pesquisa
+8 - Mente Inconsciente / Transformação do Material / Espaço Sem Tempo / Equilíbrio / Dharma: fazer o que tem que ser feito / Organização / Poder Mental
+9 - Criatividade Espiritual / Amor Divino / Talentos Inatos / Acabamento / Karma: recompensa pelas ações de vidas passadas / Entrega / Doação
+
+REGRAS CRÍTICAS:
+- Use o conhecimento sobre Grade Numerológica acima para explicar o conceito
+- Explique de forma prática e clara o que significa ter números com diferentes quantidades
+- Explique tanto a presença quanto a ausência de números
+- Explique o fluxo de energia entre números quando houver desequilíbrios
+- Foque em exemplos práticos e aplicações na vida real
+- Formate o texto de forma clara e legível, com parágrafos bem estruturados
+- NÃO inclua referências a fontes ou páginas no texto final"""
+                    
+                    # Preparar informações dos livros (extrair para variável para evitar backslash em f-string)
+                    books_info = ''
+                    if context_text and len(context_text.strip()) > 50:
+                        books_info = f'INFORMAÇÕES DOS LIVROS DE NUMEROLOGIA:\n{context_text}\n\n---\n\n'
+                    
+                    user_prompt = f"""GRADE DE NASCIMENTO - EXPLICAÇÃO COMPLETA:
+
+DADOS DA GRADE:
+{grid_summary_text}
+
+{books_info}
+
+INSTRUÇÕES:
+
+1. PRIMEIRO: Explique o que é a Grade de Nascimento na numerologia usando o conceito fundamental fornecido.
+
+2. DEPOIS: Explique o significado das quantidades na grade de nascimento. Para cada número presente:
+   - Explique o que significa ter esse número presente (energia ativa)
+   - Explique o que significa ter esse número ausente (falta dessa energia, problemas relacionados, necessidade de desenvolvimento)
+   - Explique o que significa ter excesso desse número (energia muito presente, mas pode ser mal utilizada)
+   - Analise o fluxo de energia entre números quando houver desequilíbrios
+
+3. ANÁLISE ESPECÍFICA: Para os números que aparecem na grade fornecida, explique:
+   - O que significa ter esse número presente e em que quantidade
+   - Como essa energia se manifesta na vida da pessoa
+   - Quais são as qualidades e desafios relacionados
+
+4. NÚMEROS AUSENTES: Para os números que NÃO aparecem na grade, explique:
+   - O que significa a ausência desse número
+   - Quais problemas ou dificuldades isso pode indicar
+   - O que a pessoa precisa desenvolver nessa área
+
+IMPORTANTE:
+- Use o conhecimento sobre Grade Numerológica do system prompt
+- Se houver informações dos livros acima, incorpore-as naturalmente
+- Formate o texto de forma clara, com parágrafos bem estruturados
+- NÃO inclua referências a fontes ou páginas no texto final
+- Estruture a resposta com:
+  * Seção sobre "O que é a Grade de Nascimento"
+  * Seção sobre "Análise dos Números Presentes"
+  * Seção sobre "Números Ausentes (Lições a Desenvolver)"
+  * Seção sobre "Fluxo de Energia e Equilíbrio"
+"""
+                else:
+                    # Versão em inglês - usar o mesmo conhecimento do system prompt
+                    system_prompt = """You are an experienced numerologist specialized in birth grid interpretation. Your function is to explain:
+1. What is the Birth Grid in numerology
+2. The meaning of quantities (how many times each number appears) in the birth grid
+
+FUNDAMENTAL CONCEPT OF THE NUMEROLOGICAL GRID:
+The Numerological Grid is a 3x3 grid (numbers 1 to 9) that can be used for the full name or birth date. Each time a number appears in the name or date, we circle the corresponding number in the grid. The presence of 3 numbers in a vertical, horizontal or diagonal line denotes potential qualities. Normally we find at least one complete line in a grid.
+
+MEANING OF QUANTITIES IN THE GRID:
+- When a number appears in the grid: indicates that the energy of that number is present and active
+- When a number does NOT appear in the grid (absent): indicates lack of this energy, problems related to this area, or need to develop these qualities
+- When a number appears MANY times (excess): indicates that this energy is very present, but may be misused or unbalanced
+- Energy flow: when we have more numbers of one type and fewer of another, energy flows from the more present number to the less present one (ex: 5 number 1s and 2 number 2s = energy flows from 1 to 2)
+
+CHARACTERISTICS OF NUMBERS:
+1 - Action / the Being / Ego / Leadership / Personal Resources / Personal Identity / Personal Independence
+2 - Duality / Feelings / Affection / The Conscious Mind / Tact / Diplomacy
+3 - Personal Creativity / Communication / Power of Persuasion / Expression of Being / Service
+4 - Logical Thinking / Practical Spirit / Instincts / The Concrete / The Material World / Hard work / Practicality
+5 - The Senses / Consciousness Expansion / Flexibility / Tolerance / Learning / Changes / Freedom
+6 - Intellectual Creativity / Imagination / Fantasy / Abstract Thinking / Theory / Family / Responsibility / Love / Harmony
+7 - Establishing Limits / Time / Material Connections / The Limits of the Material World / The Bridge to the Spiritual Realm / Analysis / Research
+8 - Unconscious Mind / Material Transformation / Space Without Time / Balance / Dharma: doing what needs to be done / Organization / Mental Power
+9 - Spiritual Creativity / Divine Love / Inborn Talents / Completion / Karma: reward for actions from past lives / Surrender / Giving
+
+CRITICAL RULES:
+- Use the knowledge about Numerological Grid above to explain the concept
+- Explain in a practical and clear way what it means to have numbers with different quantities
+- Explain both the presence and absence of numbers
+- Explain the energy flow between numbers when there are imbalances
+- Focus on practical examples and real-life applications
+- Format the text clearly, with well-structured paragraphs
+- DO NOT include references to sources or pages in the final text"""
+                    
+                    # Preparar informações dos livros (extrair para variável para evitar backslash em f-string)
+                    books_info_en = ''
+                    if context_text and len(context_text.strip()) > 50:
+                        books_info_en = f'NUMEROLOGY BOOKS INFORMATION:\n{context_text}\n\n---\n\n'
+                    
+                    user_prompt = f"""BIRTH GRID - COMPLETE EXPLANATION:
+
+GRID DATA:
+{grid_summary_text}
+
+{books_info_en}
+
+INSTRUCTIONS:
+
+1. FIRST: Explain what the Birth Grid is in numerology using the fundamental concept provided.
+
+2. THEN: Explain the meaning of quantities in the birth grid. For each number present:
+   - Explain what it means to have this number present (active energy)
+   - Explain what it means to have this number absent (lack of this energy, related problems, need for development)
+   - Explain what it means to have excess of this number (energy very present, but may be misused)
+   - Analyze the energy flow between numbers when there are imbalances
+
+3. SPECIFIC ANALYSIS: For the numbers that appear in the provided grid, explain:
+   - What it means to have this number present and in what quantity
+   - How this energy manifests in the person's life
+   - What are the related qualities and challenges
+
+4. ABSENT NUMBERS: For numbers that do NOT appear in the grid, explain:
+   - What the absence of this number means
+   - What problems or difficulties this may indicate
+   - What the person needs to develop in this area
+
+IMPORTANT:
+- Use the knowledge about Numerological Grid from the system prompt
+- If there is information from the books above, incorporate it naturally
+- Format the text clearly, with well-structured paragraphs
+- DO NOT include references to sources or pages in the final text
+- Structure the response with:
+  * Section on "What is the Birth Grid"
+  * Section on "Analysis of Present Numbers"
+  * Section on "Absent Numbers (Lessons to Develop)"
+  * Section on "Energy Flow and Balance" """
+                
+                chat_completion = groq_client.chat.completions.create(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    model="llama-3.3-70b-versatile",
+                    temperature=0.7,
+                    max_tokens=2500,  # Aumentado para permitir respostas mais completas
+                    top_p=0.9,
+                )
+                
+                explanation_text = chat_completion.choices[0].message.content
+                if explanation_text:
+                    explanation_text = explanation_text.strip()
+                    # Remover referências
+                    explanation_text = re.sub(r'\[Fonte:[^\]]+\]', '', explanation_text)
+                    explanation_text = re.sub(r'Página\s+\d+', '', explanation_text)
+                    explanation_text = re.sub(r'Referências?:.*', '', explanation_text, flags=re.IGNORECASE | re.DOTALL)
+                    explanation_text = re.sub(r'---.*', '', explanation_text, flags=re.DOTALL)
+                    explanation_text = re.sub(r'\n{3,}', '\n\n', explanation_text)
+                    
+                    return BirthGridQuantitiesResponse(
+                        explanation=explanation_text,
+                        sources=[],
+                        query_used="quantidades na grade de nascimento"
+                    )
+            except Exception as e:
+                print(f"[ERROR] Erro ao gerar explicação com Groq: {e}")
+                import traceback
+                traceback.print_exc()
+                # Se Groq falhar, usar fallback baseado no conhecimento do sistema
+                print("[INFO] Usando fallback baseado no conhecimento do sistema devido a erro no Groq")
+                fallback_explanation = _generate_quantities_fallback(request.grid, lang)
+                return BirthGridQuantitiesResponse(
+                    explanation=fallback_explanation,
+                    sources=[],
+                    query_used="quantidades na grade de nascimento"
+                )
+        
+        # Último fallback: usar explicação baseada no conhecimento do sistema
+        # Isso só deve acontecer se Groq não estiver disponível (já tratado acima)
+        print("[INFO] Gerando explicação de fallback baseada no conhecimento do sistema")
+        fallback_explanation = _generate_quantities_fallback(request.grid, lang)
+        
+        return BirthGridQuantitiesResponse(
+            explanation=fallback_explanation,
+            sources=[],
+            query_used="quantidades na grade de nascimento"
+        )
+        
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao obter interpretação de quantidades: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao obter interpretação de quantidades: {str(e)}"
         )

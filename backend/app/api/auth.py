@@ -70,6 +70,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         # Verificar se o usuário já existe
         existing_user = db.query(User).filter(User.email == user_data.email).first()
         if existing_user:
+            db.rollback()  # Garantir rollback antes de levantar exceção
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email já cadastrado"
@@ -102,6 +103,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
             import traceback
             print(f"[ERROR] Erro ao calcular mapa astral: {str(e)}")
             print(traceback.format_exc())
+            db.rollback()  # Garantir rollback antes de levantar exceção
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erro ao calcular mapa astral: {str(e)}"
@@ -137,17 +139,30 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
             is_primary=True
         )
         db.add(db_birth_chart)
-        db.commit()
-        db.refresh(db_user)
-        db.refresh(db_birth_chart)
+        
+        try:
+            db.commit()
+            db.refresh(db_user)
+            db.refresh(db_birth_chart)
+        except Exception as e:
+            db.rollback()
+            import traceback
+            print(f"[ERROR] Erro ao commitar transação: {str(e)}")
+            print(traceback.format_exc())
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao salvar dados: {str(e)}"
+            )
         
         # Criar token JWT
         access_token = create_access_token(data={"sub": db_user.email})
         
         return {"access_token": access_token, "token_type": "bearer"}
     except HTTPException:
+        # HTTPException já foi tratada acima, apenas re-raise
         raise
     except Exception as e:
+        db.rollback()  # Garantir rollback em caso de erro inesperado
         import traceback
         print(f"[ERROR] Erro geral no registro: {str(e)}")
         print(traceback.format_exc())

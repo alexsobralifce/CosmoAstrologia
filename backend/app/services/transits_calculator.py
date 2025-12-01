@@ -334,6 +334,7 @@ def calculate_future_transits(
                         is_significant = False
                         transit_type = None
                         
+                        # TODOS os tipos de aspectos são significativos
                         # Conjunções e oposições são sempre significativas
                         if aspect_type in ['conjunção', 'oposição']:
                             is_significant = True
@@ -349,6 +350,11 @@ def calculate_future_transits(
                                 transit_type = 'square'
                             else:
                                 transit_type = 'trine'
+                        
+                        # Sextis também são importantes (aspecto harmonioso menor)
+                        elif aspect_type == 'sextil':
+                            is_significant = True
+                            transit_type = 'sextile'
                         
                         # Retorno de Saturno (conjunção exata)
                         if slow_planet == 'saturn' and aspect_type == 'conjunção' and angle < 1.0:
@@ -631,6 +637,26 @@ Encare os desafios como oportunidades de crescimento. Se o trânsito afeta seu S
 • Se afeta Vênus: "Um relacionamento promissor apareceu, mas exigia compromissos que precisava considerar cuidadosamente."
 • Se afeta Marte: "Queria iniciar vários projetos ao mesmo tempo, mas aprendi que focar em um de cada vez traz melhores resultados." """,
 
+        ('Júpiter', 'sextil'): f"""**O que é um {aspect_display}?**
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. É um aspecto harmonioso menor que oferece oportunidades de crescimento.
+
+**Como isso impacta sua rotina:**
+• Oportunidades de expansão aparecem de forma suave e natural
+• Você sente uma leve expansão de confiança e otimismo
+• Período favorável para pequenos desenvolvimentos e melhorias
+• Coisas tendem a fluir melhor, mas de forma mais sutil que um trígono
+• Menos tensão e mais facilidade nas áreas relacionadas ao seu {natal_point}
+
+**O que fazer na prática:**
+Aproveite as oportunidades que aparecem. Se o trânsito afeta seu Sol, invista em pequenos projetos pessoais. Se afeta sua Lua, cuide das suas emoções. Se afeta Mercúrio, comunique-se e aprenda. Se afeta Vênus, invista em relacionamentos. Se afeta Marte, aja com confiança.
+
+**Exemplos práticos:**
+• Se afeta seu Sol: "Oportunidades de crescimento apareceram de forma natural e consegui avançar em projetos pessoais."
+• Se afeta sua Lua: "Me sinto mais equilibrado emocionalmente e confiante no dia a dia."
+• Se afeta Mercúrio: "Minha comunicação melhorou e consegui aprender coisas novas com facilidade."
+• Se afeta Vênus: "Meus relacionamentos estão mais harmoniosos e me sinto mais criativo."
+• Se afeta Marte: "Tenho energia para agir e minhas ações têm gerado resultados positivos." """,
+
         ('Júpiter', 'trígono'): f"""**O que é uma {aspect_display}?**
 Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. É um aspecto harmonioso que facilita o fluxo de energia.
 
@@ -710,6 +736,26 @@ Seja persistente e disciplinado. Se o trânsito afeta seu Sol, trabalhe com paci
 • Se afeta Mercúrio: "Minha comunicação enfrentou limitações práticas. Tive que ser mais organizado e claro em minhas palavras."
 • Se afeta Vênus: "Um relacionamento passou por dificuldades reais. Tive que trabalhar com paciência para construir algo sólido."
 • Se afeta Marte: "Minha energia para agir foi limitada por obstáculos práticos. Aprendi a trabalhar com disciplina e persistência." """,
+
+        ('Saturno', 'sextil'): f"""**O que é um {aspect_display}?**
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. Saturno oferece oportunidades suaves de estruturação.
+
+**Como isso impacta sua rotina:**
+• Oportunidades de organização aparecem de forma suave e natural
+• Você sente uma leve necessidade de estruturar melhor a área relacionada ao seu {natal_point}
+• Período favorável para pequenos ajustes e melhorias organizacionais
+• Disciplina e consistência fluem de forma mais fácil, mas de forma mais sutil que um trígono
+• A energia de Saturno trabalha a seu favor de forma suave, trazendo maturidade sem pressão excessiva
+
+**O que fazer na prática:**
+Aproveite para fazer pequenos ajustes organizacionais. Se o trânsito afeta seu Sol, organize projetos pessoais. Se afeta sua Lua, estabeleça rotinas emocionais. Se afeta Mercúrio, organize estudos. Se afeta Vênus, estruture relacionamentos. Se afeta Marte, canalize energia de forma organizada.
+
+**Exemplos práticos:**
+• Se afeta seu Sol: "Consegui organizar meus projetos pessoais de forma natural. As estruturas que criei funcionaram bem."
+• Se afeta sua Lua: "Estabeleci rotinas emocionais saudáveis que melhoraram minha qualidade de vida."
+• Se afeta Mercúrio: "Organizei meus estudos e comunicação de forma sistemática, e tudo fluiu bem."
+• Se afeta Vênus: "Estruturei meus relacionamentos de forma madura e isso trouxe estabilidade."
+• Se afeta Marte: "Canalizei minha energia de forma organizada e consegui realizar objetivos importantes." """,
 
         ('Saturno', 'trígono'): f"""**O que é uma {aspect_display}?**
 Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. Saturno facilita estruturação e organização.
@@ -871,6 +917,26 @@ Seja prático e discernente. Se o trânsito afeta seu Sol, busque clareza sobre 
 • Se afeta Vênus: "Descobri ilusões em meus relacionamentos. Tive que ver as pessoas como realmente são, não como eu queria que fossem."
 • Se afeta Marte: "Minha forma de agir foi afetada por confusão e falta de direção. Aprendi a canalizar energia de forma mais consciente e prática." """,
 
+        ('Netuno', 'sextil'): f"""**O que é um {aspect_display}?**
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. Netuno oferece oportunidades suaves de inspiração e criatividade.
+
+**Como isso impacta sua rotina:**
+• Oportunidades de inspiração e criatividade aparecem de forma suave e natural
+• Você sente uma leve conexão com algo maior na área relacionada ao seu {natal_point}
+• Período favorável para pequenas explorações espirituais e criativas
+• Intuição e criatividade fluem de forma mais fácil, mas de forma mais sutil que um trígono
+• A energia de Netuno trabalha a seu favor de forma suave, trazendo inspiração sem confusão excessiva
+
+**O que fazer na prática:**
+Aproveite para explorar criatividade e espiritualidade. Se o trânsito afeta seu Sol, explore sua espiritualidade. Se afeta sua Lua, conecte-se com suas emoções de forma compassiva. Se afeta Mercúrio, use criatividade na comunicação. Se afeta Vênus, invista em arte e relacionamentos. Se afeta Marte, canalize energia de forma criativa.
+
+**Exemplos práticos:**
+• Se afeta seu Sol: "Explorei minha espiritualidade de forma natural. Sinto conexão com algo maior."
+• Se afeta sua Lua: "Conectei-me com minhas emoções de forma compassiva. Sinto mais compaixão."
+• Se afeta Mercúrio: "Usei criatividade na comunicação de forma natural. Minhas palavras se tornaram mais inspiradas."
+• Se afeta Vênus: "Investi em arte e relacionamentos de forma inspirada. Sinto conexões mais profundas."
+• Se afeta Marte: "Canalizei minha energia de forma criativa. Sinto que estou servindo a algo maior." """,
+
         ('Netuno', 'trígono'): f"""**O que é uma {aspect_display}?**
 Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. Netuno facilita inspiração artística e conexão espiritual.
 
@@ -950,6 +1016,26 @@ Encare crises como oportunidades de transformação. Se o trânsito afeta seu So
 • Se afeta Mercúrio: "Minha forma de pensar foi completamente renovada através de uma crise. Tive que reconstruir tudo do zero."
 • Se afeta Vênus: "Meus relacionamentos passaram por uma crise transformadora. Tive que deixar ir o que não servia mais."
 • Se afeta Marte: "Minha forma de agir foi completamente transformada através de uma crise. Aprendi a usar poder de forma construtiva." """,
+
+        ('Plutão', 'sextil'): f"""**O que é um {aspect_display}?**
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. Plutão oferece oportunidades suaves de transformação e renovação.
+
+**Como isso impacta sua rotina:**
+• Oportunidades de transformação aparecem de forma suave e natural
+• Você sente uma leve necessidade de renovar a área relacionada ao seu {natal_point}
+• Período favorável para pequenas transformações e renovações
+• Transformações fluem de forma mais fácil, mas de forma mais sutil que um trígono
+• A energia de Plutão trabalha a seu favor de forma suave, trazendo renovação sem crises profundas
+
+**O que fazer na prática:**
+Aproveite para fazer pequenas transformações. Se o trânsito afeta seu Sol, permita transformações positivas. Se afeta sua Lua, renove padrões emocionais. Se afeta Mercúrio, renove pensamento. Se afeta Vênus, transforme relacionamentos positivamente. Se afeta Marte, canalize poder de forma construtiva.
+
+**Exemplos práticos:**
+• Se afeta seu Sol: "Transformações positivas chegaram de forma natural. Me sinto renovado e mais autêntico."
+• Se afeta sua Lua: "Renovei padrões emocionais de forma suave. Sinto mais equilíbrio emocional."
+• Se afeta Mercúrio: "Renovei minha forma de pensar de forma natural. Sinto mais clareza mental."
+• Se afeta Vênus: "Transformei relacionamentos de forma positiva. Sinto conexões mais profundas."
+• Se afeta Marte: "Canalizei poder de forma construtiva. Sinto mais força e determinação." """,
 
         ('Plutão', 'trígono'): f"""**O que é uma {aspect_display}?**
 Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. Plutão facilita transformação positiva e renovação.

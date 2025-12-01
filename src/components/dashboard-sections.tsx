@@ -62,6 +62,35 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
 
   const chartRuler = rulerMap[ascendantSign] || 'Sol';
 
+  // Função para obter signo e casa do regente baseado no nome do planeta
+  const getRulerSignAndHouse = (rulerName: string): { sign: string; house: number } => {
+    const planetToDataMap: Record<string, { signKey: keyof typeof userData; houseKey: keyof typeof userData }> = {
+      'Sol': { signKey: 'sunSign', houseKey: 'sunHouse' },
+      'Lua': { signKey: 'moonSign', houseKey: 'moonHouse' },
+      'Mercúrio': { signKey: 'mercurySign', houseKey: 'mercuryHouse' },
+      'Vênus': { signKey: 'venusSign', houseKey: 'venusHouse' },
+      'Marte': { signKey: 'marsSign', houseKey: 'marsHouse' },
+      'Júpiter': { signKey: 'jupiterSign', houseKey: 'jupiterHouse' },
+      'Saturno': { signKey: 'saturnSign', houseKey: 'saturnHouse' },
+      'Urano': { signKey: 'uranusSign', houseKey: 'uranusHouse' },
+      'Netuno': { signKey: 'neptuneSign', houseKey: 'neptuneHouse' },
+      'Plutão': { signKey: 'plutoSign', houseKey: 'plutoHouse' },
+    };
+
+    const planetData = planetToDataMap[rulerName];
+    if (planetData) {
+      return {
+        sign: (userData[planetData.signKey] as string) || sunSign,
+        house: (userData[planetData.houseKey] as number) || 1
+      };
+    }
+    return { sign: sunSign, house: 1 };
+  };
+
+  const rulerData = getRulerSignAndHouse(chartRuler);
+  const rulerSign = rulerData.sign;
+  const rulerHouse = rulerData.house;
+
   // Informações detalhadas sobre cada planeta regente
   const rulerDetails: Record<string, {
     meaning: { pt: string; en: string };
@@ -399,8 +428,8 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
         const result = await apiService.getChartRulerInterpretation({
           ascendant: ascendantSign,
           ruler: chartRuler,
-          rulerSign: sunSign,
-          rulerHouse: 1,
+          rulerSign: rulerSign,
+          rulerHouse: rulerHouse,
         });
         setChartRulerInterpretation(result.interpretation);
       } catch (error) {
@@ -415,7 +444,7 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
       }
     };
     fetchInterpretation();
-  }, [ascendantSign, chartRuler, sunSign, language]);
+  }, [ascendantSign, chartRuler, rulerSign, rulerHouse, language]);
 
   const AscIcon = zodiacSigns.find(z => z.name === ascendantSign)?.icon || zodiacSigns[0].icon;
   const SunIcon = zodiacSigns.find(z => z.name === sunSign)?.icon || zodiacSigns[0].icon;

@@ -566,7 +566,20 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
   // Inicializar Google Identity Services e renderizar botão
   useEffect(() => {
+    // Só inicializar se tiver client ID
+    if (!googleClientId) {
+      return;
+    }
+
+    let checkInterval: NodeJS.Timeout | null = null;
+    let isInitialized = false;
+
     const initGoogleAuth = () => {
+      // Evitar múltiplas inicializações
+      if (isInitialized) {
+        return;
+      }
+
       // @ts-expect-error google is loaded from script
       if (window.google?.accounts?.id && googleClientId && googleButtonRef.current) {
         try {
@@ -583,6 +596,15 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
             cancel_on_tap_outside: true,
           });
 
+          // Calcular largura em pixels baseado no container ou usar valor padrão
+          let buttonWidth = 350; // Valor padrão em pixels
+          if (googleButtonRef.current) {
+            const containerWidth = googleButtonRef.current.offsetWidth || googleButtonRef.current.clientWidth;
+            if (containerWidth > 0) {
+              buttonWidth = containerWidth;
+            }
+          }
+
           // Renderizar botão do Google
           // @ts-expect-error
           window.google.accounts.id.renderButton(
@@ -592,12 +614,25 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
               theme: 'outline',
               size: 'large',
               text: 'signin_with',
-              width: '100%',
+              width: buttonWidth, // Usar pixels em vez de porcentagem
             }
           );
+          
+          isInitialized = true;
           console.log('[AUTH] Google Identity Services inicializado e botão renderizado');
-        } catch (error) {
+          
+          // Limpar intervalo se ainda estiver rodando
+          if (checkInterval) {
+            clearInterval(checkInterval);
+            checkInterval = null;
+          }
+        } catch (error: any) {
           console.error('[AUTH] Erro ao inicializar Google Identity Services:', error);
+          
+          // Se for erro de origin não permitido, mostrar mensagem útil
+          if (error?.message?.includes('origin') || error?.message?.includes('not allowed')) {
+            console.warn('[AUTH] Origin não configurado no Google Cloud Console. Adicione a URL atual nas "Authorized JavaScript origins" do seu Client ID.');
+          }
         }
       }
     };
@@ -605,26 +640,37 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
     // Tentar inicializar imediatamente
     initGoogleAuth();
 
-    // Se não estiver disponível, tentar novamente após um delay
+    // Se não estiver disponível, tentar novamente após um delay (com limite de tentativas)
     // @ts-expect-error
-    if (!window.google?.accounts?.id) {
-      const checkInterval = setInterval(() => {
+    if (!window.google?.accounts?.id && !isInitialized) {
+      let attempts = 0;
+      const maxAttempts = 100; // Máximo de 10 segundos (100 * 100ms)
+      
+      checkInterval = setInterval(() => {
+        attempts++;
         // @ts-expect-error
-        if (window.google?.accounts?.id && googleButtonRef.current) {
+        if (window.google?.accounts?.id && googleButtonRef.current && !isInitialized) {
           initGoogleAuth();
-          clearInterval(checkInterval);
+        } else if (attempts >= maxAttempts) {
+          // Parar após máximo de tentativas
+          if (checkInterval) {
+            clearInterval(checkInterval);
+            checkInterval = null;
+          }
+          console.warn('[AUTH] Google Identity Services não carregou após 10 segundos');
         }
       }, 100);
-
-      // Limpar após 10 segundos
-      setTimeout(() => clearInterval(checkInterval), 10000);
     }
 
-    // Cleanup: remover botão quando componente desmontar
+    // Cleanup: remover botão e limpar intervalos quando componente desmontar
     return () => {
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
       if (googleButtonRef.current) {
         googleButtonRef.current.innerHTML = '';
       }
+      isInitialized = false;
     };
   }, [googleClientId, handleGoogleCallback]);
 

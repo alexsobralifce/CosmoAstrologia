@@ -1,17 +1,62 @@
-from fastapi import FastAPI, Request, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from app.core.config import settings
-from app.core.database import engine, Base
-from app.api import auth
-from app.api import interpretation
 import os
+import sys
 import traceback
+from datetime import datetime
 
-# Criar tabelas
-Base.metadata.create_all(bind=engine)
+print("=" * 80)
+print(f"[STARTUP] 🚀 Iniciando aplicação - {datetime.now().isoformat()}")
+print("=" * 80)
+
+try:
+    print("[STARTUP] 📦 Importando módulos FastAPI...")
+    from fastapi import FastAPI, Request, status
+    from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import JSONResponse
+    from fastapi.exceptions import RequestValidationError
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    print("[STARTUP] ✅ Módulos FastAPI importados")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao importar FastAPI: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    sys.exit(1)
+
+try:
+    print("[STARTUP] ⚙️  Carregando configurações...")
+    from app.core.config import settings
+    print(f"[STARTUP] ✅ Configurações carregadas - DATABASE_URL: {settings.DATABASE_URL[:20]}...")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao carregar configurações: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    sys.exit(1)
+
+try:
+    print("[STARTUP] 🗄️  Conectando ao banco de dados...")
+    from app.core.database import engine, Base
+    print(f"[STARTUP] ✅ Engine do banco criado")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao conectar banco: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    sys.exit(1)
+
+try:
+    print("[STARTUP] 📚 Importando routers...")
+    from app.api import auth
+    print("[STARTUP] ✅ Router auth importado")
+    from app.api import interpretation
+    print("[STARTUP] ✅ Router interpretation importado")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao importar routers: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    sys.exit(1)
+
+try:
+    print("[STARTUP] 🏗️  Criando tabelas do banco de dados...")
+    Base.metadata.create_all(bind=engine)
+    print("[STARTUP] ✅ Tabelas criadas/verificadas")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao criar tabelas: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    # Não sair aqui, pode ser que as tabelas já existam
 
 # Migração automática: Adicionar colunas e tabelas necessárias
 # (apenas para PostgreSQL, SQLite já foi migrado manualmente)
@@ -114,12 +159,16 @@ except Exception as e:
     print("[MIGRATION] Execute os scripts de migração manualmente se necessário.")
 
 print("=" * 80)
-print("[STARTUP] Inicializando FastAPI...")
+print("[STARTUP] 🎯 Criando aplicação FastAPI...")
 print("=" * 80)
 
-app = FastAPI(title="Astrologia API")
-
-print("[STARTUP] ✅ FastAPI criado com sucesso")
+try:
+    app = FastAPI(title="Astrologia API")
+    print("[STARTUP] ✅ FastAPI criado com sucesso")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao criar FastAPI: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    sys.exit(1)
 
 # CORS - Garantir que domínios de produção estejam incluídos
 if isinstance(settings.CORS_ORIGINS, list):
@@ -188,11 +237,23 @@ async def general_exception_handler(request: Request, exc: Exception):
     return response
 
 # Routers
-print("[STARTUP] Registrando routers...")
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-print("[STARTUP] ✅ Router auth registrado")
-app.include_router(interpretation.router, prefix="/api", tags=["interpretation"])
-print("[STARTUP] ✅ Router interpretation registrado")
+print("[STARTUP] 🔌 Registrando routers...")
+try:
+    app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+    print("[STARTUP] ✅ Router auth registrado")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao registrar router auth: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    sys.exit(1)
+
+try:
+    app.include_router(interpretation.router, prefix="/api", tags=["interpretation"])
+    print("[STARTUP] ✅ Router interpretation registrado")
+except Exception as e:
+    print(f"[STARTUP] ❌ ERRO ao registrar router interpretation: {e}")
+    print(f"[STARTUP] Traceback: {traceback.format_exc()}")
+    sys.exit(1)
+
 print("[STARTUP] ✅ Todos os routers registrados com sucesso")
 
 
@@ -224,4 +285,29 @@ def health_check():
                 "service": "astrologia-api"
             }
         )
+
+
+# Eventos de startup/shutdown para logs
+try:
+    @app.on_event("startup")
+    async def startup_event():
+        """Evento executado quando o servidor inicia"""
+        print("=" * 80)
+        print("[STARTUP] 🎉 Servidor iniciado com sucesso!")
+        print(f"[STARTUP] ⏰ Timestamp: {datetime.now().isoformat()}")
+        print(f"[STARTUP] 🌐 Porta: {os.environ.get('PORT', '8000')}")
+        print(f"[STARTUP] 🗄️  Database: {settings.DATABASE_URL[:30]}...")
+        print("[STARTUP] ✅ Aplicação pronta para receber requisições")
+        print("=" * 80)
+
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """Evento executado quando o servidor é desligado"""
+        print("=" * 80)
+        print("[SHUTDOWN] 🛑 Servidor sendo desligado...")
+        print(f"[SHUTDOWN] ⏰ Timestamp: {datetime.now().isoformat()}")
+        print("=" * 80)
+except Exception as e:
+    print(f"[STARTUP] ⚠️  Aviso: Não foi possível registrar eventos de startup/shutdown: {e}")
+    # Continuar mesmo se os eventos não funcionarem
 

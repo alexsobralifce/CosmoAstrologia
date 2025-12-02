@@ -109,27 +109,57 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
         error_msg = str(e)
         print(f"[ERROR] ❌ Erro ao enviar email para {email} via Resend: {e}")
         
-        # Se o erro for de domínio não verificado, tentar com domínio de teste
-        if "domain is not verified" in error_msg.lower() or "domain not verified" in error_msg.lower():
-            print(f"[WARNING] Domínio não verificado. Tentando com domínio de teste do Resend...")
-            try:
-                # Tentar com domínio de teste
-                params_test = {
-                    "from": "cosmoastral@resend.dev",  # Domínio de teste do Resend
-                    "to": email,
-                    "subject": "Verifique seu email - CosmoAstral",
-                    "html": html_body
-                }
-                resend.api_key = settings.RESEND_API_KEY
-                r = resend.Emails.send(params_test)
-                print(f"[EMAIL] ✅ Email enviado usando domínio de teste (cosmoastral@resend.dev)")
-                print(f"[EMAIL] ⚠️  Para produção, verifique o domínio em https://resend.com/domains")
-                return True
-            except Exception as e2:
-                print(f"[ERROR] ❌ Erro mesmo com domínio de teste: {e2}")
-                import traceback
-                traceback.print_exc()
-                return False
+        # Verificar se é erro de domínio não verificado
+        is_domain_error = (
+            "domain is not verified" in error_msg.lower() or 
+            "domain not verified" in error_msg.lower()
+        )
+        
+        # Verificar se é erro de domínio de teste (só pode enviar para email da conta)
+        is_test_domain_error = (
+            "testing emails to your own email address" in error_msg.lower() or
+            "only send testing emails" in error_msg.lower()
+        )
+        
+        # Se for erro de domínio não verificado OU erro de domínio de teste
+        if is_domain_error or is_test_domain_error:
+            print(f"[WARNING] ⚠️  Problema com domínio de email:")
+            if is_test_domain_error:
+                print(f"[WARNING]    O domínio de teste (resend.dev) só permite enviar para o email da conta.")
+                print(f"[WARNING]    Tentando enviar para: {email}")
+                print(f"[WARNING]    Para enviar para qualquer email, verifique seu domínio em: https://resend.com/domains")
+            else:
+                print(f"[WARNING]    Domínio não verificado. Verifique em: https://resend.com/domains")
+            
+            # Se estiver usando domínio de teste e tentando enviar para outro email
+            if is_test_domain_error and email_from and '@' in email_from:
+                domain = email_from.split('@')[1]
+                if domain == 'resend.dev':
+                    print(f"[ERROR] ❌ Não é possível enviar para {email} usando domínio de teste.")
+                    print(f"[ERROR]    Configure EMAIL_FROM=noreply@cosmoastral.com.br no Railway")
+                    print(f"[ERROR]    E verifique o domínio cosmoastral.com.br no Resend")
+                    return False
+            
+            # Tentar com domínio de teste apenas se não for erro de teste domain
+            if not is_test_domain_error:
+                print(f"[WARNING] Tentando com domínio de teste do Resend...")
+                try:
+                    params_test = {
+                        "from": "cosmoastral@resend.dev",  # Domínio de teste do Resend
+                        "to": email,
+                        "subject": "Verifique seu email - CosmoAstral",
+                        "html": html_body
+                    }
+                    resend.api_key = settings.RESEND_API_KEY
+                    r = resend.Emails.send(params_test)
+                    print(f"[EMAIL] ✅ Email enviado usando domínio de teste (cosmoastral@resend.dev)")
+                    print(f"[EMAIL] ⚠️  Para produção, verifique o domínio em https://resend.com/domains")
+                    return True
+                except Exception as e2:
+                    print(f"[ERROR] ❌ Erro mesmo com domínio de teste: {e2}")
+                    import traceback
+                    traceback.print_exc()
+                    return False
         
         import traceback
         traceback.print_exc()

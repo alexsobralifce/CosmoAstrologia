@@ -105,7 +105,15 @@ COPY --from=builder /root/.local /root/.local
 # Copy application
 COPY app/ ./app/
 
+# Copy migrations directory if it exists (for manual migrations)
+COPY migrations/ ./migrations/ 2>/dev/null || true
+
 EXPOSE 8000
+
+# Health check (opcional, mas recomendado para produção)
+# Verifica se o endpoint /health responde corretamente
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import urllib.request; import json; r = urllib.request.urlopen('http://localhost:${PORT:-8000}/health', timeout=5); data = json.loads(r.read()); exit(0 if data.get('status') == 'healthy' else 1)" || exit 1
 
 # Use PORT environment variable (defaults to 8000 if not set)
 # Railway e outras plataformas definem PORT automaticamente

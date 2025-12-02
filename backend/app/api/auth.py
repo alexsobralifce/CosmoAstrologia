@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Header, Backgroun
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import bcrypt
+import json
 from typing import Optional
 from app.core.database import get_db
-from app.models.database import User, BirthChart
+from app.models.database import User, BirthChart, PendingRegistration
 from pydantic import BaseModel, EmailStr
 from app.models.schemas import (
     UserRegister, UserResponse, BirthChartResponse, Token, UserCreate, UserUpdateRequest, UserLogin, EmailVerificationResponse
@@ -71,16 +72,33 @@ def get_current_user(
 def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Registra um novo usuário e calcula seu mapa astral.
+    NÃO cria o usuário no banco até que o email seja verificado.
     """
     try:
-        # Verificar se o usuário já existe
+        # Verificar se o usuário já existe (verificado ou não)
         existing_user = db.query(User).filter(User.email == user_data.email).first()
         if existing_user:
-            db.rollback()  # Garantir rollback antes de levantar exceção
+            db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email já cadastrado"
             )
+        
+        # Verificar se já existe registro pendente
+        existing_pending = db.query(PendingRegistration).filter(
+            PendingRegistration.email == user_data.email
+        ).first()
+        if existing_pending:
+            # Limpar registro pendente expirado
+            if existing_pending.verification_code_expires < datetime.now():
+                db.delete(existing_pending)
+                db.commit()
+            else:
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Já existe um registro pendente para este email. Verifique seu email ou aguarde a expiração."
+                )
         
         # Hash da senha (se fornecida)
         password_hash = None
@@ -109,7 +127,7 @@ def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Ses
             import traceback
             print(f"[ERROR] Erro ao calcular mapa astral: {str(e)}")
             print(traceback.format_exc())
-            db.rollback()  # Garantir rollback antes de levantar exceção
+            db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erro ao calcular mapa astral: {str(e)}"
@@ -119,45 +137,31 @@ def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Ses
         verification_code = generate_verification_code()
         expires_at = datetime.now() + timedelta(minutes=1)  # 1 minuto de expiração
         
-        # Criar usuário NÃO VERIFICADO
-        db_user = User(
+        # Preparar dados do birth chart para armazenar como JSON
+        birth_chart_json = {
+            "name": birth_data.name,
+            "birth_date": birth_data.birth_date.isoformat() if isinstance(birth_data.birth_date, datetime) else str(birth_data.birth_date),
+            "birth_time": birth_data.birth_time,
+            "birth_place": birth_data.birth_place,
+            "latitude": birth_data.latitude,
+            "longitude": birth_data.longitude,
+            "chart_data": chart_data  # Todos os dados calculados
+        }
+        
+        # Criar registro pendente (NÃO cria usuário ainda)
+        pending_reg = PendingRegistration(
             email=user_data.email,
             password_hash=password_hash,
             name=user_data.name,
-            is_active=False,  # Não ativo até verificar email
-            email_verified=False,
             verification_code=verification_code,
-            verification_code_expires=expires_at
+            verification_code_expires=expires_at,
+            birth_chart_data=json.dumps(birth_chart_json, default=str)  # Serializar para JSON
         )
-        db.add(db_user)
-        db.flush()  # Para obter o ID do usuário
-        
-        # Verificar se a senha foi salva
-        print(f"[DEBUG] Usuário criado - Email: {db_user.email}, Password hash: {'Sim' if db_user.password_hash else 'Não'}")
-        
-        # Criar mapa astral
-        db_birth_chart = BirthChart(
-            user_id=db_user.id,
-            name=birth_data.name,
-            birth_date=birth_data.birth_date,
-            birth_time=birth_data.birth_time,
-            birth_place=birth_data.birth_place,
-            latitude=birth_data.latitude,
-            longitude=birth_data.longitude,
-            sun_sign=chart_data["sun_sign"],
-            moon_sign=chart_data["moon_sign"],
-            ascendant_sign=chart_data["ascendant_sign"],
-            sun_degree=chart_data.get("sun_degree"),
-            moon_degree=chart_data.get("moon_degree"),
-            ascendant_degree=chart_data.get("ascendant_degree"),
-            is_primary=True
-        )
-        db.add(db_birth_chart)
+        db.add(pending_reg)
         
         try:
             db.commit()
-            db.refresh(db_user)
-            db.refresh(db_birth_chart)
+            db.refresh(pending_reg)
             
             # Enviar email de verificação em background (não bloqueia a resposta)
             background_tasks.add_task(
@@ -169,14 +173,13 @@ def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Ses
         except Exception as e:
             db.rollback()
             import traceback
-            print(f"[ERROR] Erro ao commitar transação: {str(e)}")
+            print(f"[ERROR] Erro ao salvar registro pendente: {str(e)}")
             print(traceback.format_exc())
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erro ao salvar dados: {str(e)}"
             )
         
-        # NÃO criar token JWT ainda - usuário não está verificado
         # Retornar mensagem indicando que email de verificação foi enviado
         return EmailVerificationResponse(
             message="Email de verificação enviado. Verifique seu email para ativar sua conta.",
@@ -202,34 +205,98 @@ def verify_email(
     verification_request: EmailVerificationRequest,
     db: Session = Depends(get_db)
 ):
-    """Verifica o código de verificação de email."""
-    user = db.query(User).filter(User.email == verification_request.email).first()
+    """
+    Verifica o código de verificação de email.
+    Cria o usuário no banco apenas após validação bem-sucedida.
+    """
+    # Buscar registro pendente
+    pending_reg = db.query(PendingRegistration).filter(
+        PendingRegistration.email == verification_request.email
+    ).first()
     
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    if not pending_reg:
+        raise HTTPException(status_code=404, detail="Registro pendente não encontrado. Por favor, registre-se novamente.")
     
-    if user.email_verified:
-        raise HTTPException(status_code=400, detail="Email já verificado")
+    # Verificar se o código expirou
+    if pending_reg.verification_code_expires < datetime.now():
+        db.delete(pending_reg)
+        db.commit()
+        raise HTTPException(status_code=400, detail="Código expirado. Por favor, registre-se novamente.")
     
-    if (not user.verification_code or 
-        not user.verification_code_expires or 
-        user.verification_code_expires < datetime.now()):
-        raise HTTPException(status_code=400, detail="Código expirado ou inválido")
-    
-    if user.verification_code != verification_request.code:
+    # Verificar se o código está correto
+    if pending_reg.verification_code != verification_request.code:
         raise HTTPException(status_code=400, detail="Código inválido")
     
-    # Verificação bem-sucedida
-    user.email_verified = True
-    user.is_active = True
-    user.verification_code = None
-    user.verification_code_expires = None
-    db.commit()
-    
-    # Criar token JWT agora que o usuário está verificado
-    access_token = create_access_token(data={"sub": user.email})
-    
-    return {"access_token": access_token, "token_type": "bearer", "message": "Email verificado com sucesso"}
+    try:
+        # Deserializar dados do birth chart
+        birth_chart_data = json.loads(pending_reg.birth_chart_data)
+        chart_data = birth_chart_data["chart_data"]
+        
+        # Agora sim, criar o usuário no banco (após validação)
+        db_user = User(
+            email=pending_reg.email,
+            password_hash=pending_reg.password_hash,
+            name=pending_reg.name,
+            is_active=True,  # Ativo após verificação
+            email_verified=True,  # Email verificado
+            verification_code=None,
+            verification_code_expires=None
+        )
+        db.add(db_user)
+        db.flush()  # Para obter o ID do usuário
+        
+        # Converter birth_date de string para datetime se necessário
+        birth_date = birth_chart_data["birth_date"]
+        if isinstance(birth_date, str):
+            try:
+                birth_date = datetime.fromisoformat(birth_date.replace('Z', '+00:00'))
+            except:
+                birth_date = datetime.fromisoformat(birth_date)
+        
+        # Criar mapa astral
+        db_birth_chart = BirthChart(
+            user_id=db_user.id,
+            name=birth_chart_data["name"],
+            birth_date=birth_date,
+            birth_time=birth_chart_data["birth_time"],
+            birth_place=birth_chart_data["birth_place"],
+            latitude=birth_chart_data["latitude"],
+            longitude=birth_chart_data["longitude"],
+            sun_sign=chart_data["sun_sign"],
+            moon_sign=chart_data["moon_sign"],
+            ascendant_sign=chart_data["ascendant_sign"],
+            sun_degree=chart_data.get("sun_degree"),
+            moon_degree=chart_data.get("moon_degree"),
+            ascendant_degree=chart_data.get("ascendant_degree"),
+            is_primary=True
+        )
+        db.add(db_birth_chart)
+        
+        # Deletar registro pendente
+        db.delete(pending_reg)
+        
+        db.commit()
+        db.refresh(db_user)
+        db.refresh(db_birth_chart)
+        
+        # Criar token JWT agora que o usuário está verificado e criado
+        access_token = create_access_token(data={"sub": db_user.email})
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "message": "Email verificado com sucesso. Conta criada!"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        import traceback
+        print(f"[ERROR] Erro ao criar usuário após verificação: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao criar conta: {str(e)}"
+        )
 
 
 class EmailResendRequest(BaseModel):
@@ -243,28 +310,28 @@ def resend_verification(
     db: Session = Depends(get_db)
 ):
     """Reenvia o código de verificação de email."""
-    user = db.query(User).filter(User.email == email_request.email).first()
+    # Buscar registro pendente
+    pending_reg = db.query(PendingRegistration).filter(
+        PendingRegistration.email == email_request.email
+    ).first()
     
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    
-    if user.email_verified:
-        raise HTTPException(status_code=400, detail="Email já verificado")
+    if not pending_reg:
+        raise HTTPException(status_code=404, detail="Registro pendente não encontrado. Por favor, registre-se novamente.")
     
     # Gerar novo código
     verification_code = generate_verification_code()
     expires_at = datetime.now() + timedelta(minutes=1)
     
-    user.verification_code = verification_code
-    user.verification_code_expires = expires_at
+    pending_reg.verification_code = verification_code
+    pending_reg.verification_code_expires = expires_at
     db.commit()
     
     # Enviar email em background (não bloqueia a resposta)
     background_tasks.add_task(
         send_verification_email,
-        user.email,
+        pending_reg.email,
         verification_code,
-        user.name or "Usuário"
+        pending_reg.name or "Usuário"
     )
     
     return {"message": "Código de verificação reenviado com sucesso"}
@@ -607,11 +674,15 @@ def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
                 needs_onboarding=birth_chart is None
             )
         else:
-            # Novo usuário via Google - criar sem senha
+            # Novo usuário via Google - criar sem senha e SEM verificação de email
             db_user = User(
                 email=normalized_email,  # Usar email normalizado
                 password_hash=None,  # Usuário Google não tem senha
-                name=request.name
+                name=request.name,
+                is_active=True,  # Ativo imediatamente (Google já verifica email)
+                email_verified=True,  # Email já verificado pelo Google
+                verification_code=None,
+                verification_code_expires=None
                 # google_id será adicionado quando a migração do banco for feita
             )
             db.add(db_user)

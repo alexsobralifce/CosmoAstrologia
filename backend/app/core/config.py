@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     2. Variáveis de ambiente do sistema
     3. Valores padrão (definidos abaixo)
     
-    Para desenvolvimento local, crie um arquivo backend/.env baseado em .env.example
+    Para desenvolvimento local, crie a pasta backend/.env baseada em .env.example
     Para produção (Railway), configure as variáveis diretamente no painel.
     """
     
@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # Email Configuration (for verification)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM: str = "noreply@cosmoastral.com.br"
     
     # Google OAuth (Optional)
     GOOGLE_CLIENT_ID: str = ""

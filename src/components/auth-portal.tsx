@@ -6,6 +6,7 @@ import { AstroCard } from './astro-card';
 import { UIIcons } from './ui-icons';
 import { AuthLoader } from './auth-loader';
 import { LocationAutocomplete, LocationSelection } from './location-autocomplete';
+import { EmailVerificationModal } from './email-verification-modal';
 import { useLanguage } from '../i18n';
 import { toast } from 'sonner';
 import { Chrome } from 'lucide-react';
@@ -42,6 +43,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{email?: string; password?: string; confirmPassword?: string; fullName?: string; birthDate?: string; birthTime?: string; birthCity?: string}>({});
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
 
   // ===== FORMATAÇÃO DE DATA (DD/MM/AAAA) =====
   const formatBirthDate = useCallback((value: string) => {
@@ -310,8 +313,25 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       console.log('[AUTH] Registrando usuário diretamente...', { email, name: fullName });
 
       // Registrar no backend
-      await apiService.registerUser(registerData);
+      const response = await apiService.registerUser(registerData);
 
+      // Verificar se precisa verificação de email
+      if (response && 'requires_verification' in response && response.requires_verification) {
+        setVerificationEmail(email);
+        setShowVerificationModal(true);
+        toast.success(
+          language === 'pt' ? 'Email de verificação enviado!' : 'Verification email sent!',
+          {
+            description: language === 'pt' 
+              ? 'Verifique seu email e digite o código' 
+              : 'Check your email and enter the code',
+            duration: 5000
+          }
+        );
+        return; // Não continuar para o dashboard ainda
+      }
+
+      // Se não precisa verificação (caso antigo), continuar normalmente
       toast.success(
         language === 'pt' ? 'Cadastro realizado com sucesso!' : 'Registration successful!',
         {
@@ -332,6 +352,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
     } catch (error: unknown) {
       console.error('[AUTH] Erro ao registrar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setIsLoading(false);
       
       // Verificar se é erro de e-mail já existente
       if (errorMessage.includes('already registered') || errorMessage.includes('já cadastrado')) {
@@ -357,6 +378,75 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Função para verificar código de email
+  const handleVerifyEmail = async (code: string) => {
+    try {
+      const response = await apiService.verifyEmail(verificationEmail, code);
+      
+      toast.success(
+        language === 'pt' ? 'Email verificado com sucesso!' : 'Email verified successfully!',
+        {
+          description: language === 'pt' 
+            ? 'Bem-vindo ao Cosmos Astral!' 
+            : 'Welcome to Cosmos Astral!',
+          duration: 3000
+        }
+      );
+
+      setShowVerificationModal(false);
+      
+      // Buscar dados do usuário e ir para o dashboard
+      const userData = await apiService.getCurrentUser();
+      const birthChart = await apiService.getUserBirthChart();
+      
+      if (birthChart) {
+        onAuthSuccess({
+          email: verificationEmail,
+          name: userData?.name,
+          hasCompletedOnboarding: true
+        });
+      } else {
+        onNeedsBirthData(verificationEmail, userData?.name);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(
+        language === 'pt' ? 'Código inválido' : 'Invalid code',
+        {
+          description: errorMessage.includes('expirado') || errorMessage.includes('expired')
+            ? (language === 'pt' ? 'Código expirado. Solicite um novo.' : 'Code expired. Request a new one.')
+            : (language === 'pt' ? 'Verifique o código e tente novamente.' : 'Check the code and try again.'),
+          duration: 5000
+        }
+      );
+      throw error;
+    }
+  };
+
+  // Função para reenviar código
+  const handleResendCode = async () => {
+    try {
+      await apiService.resendVerificationCode(verificationEmail);
+      toast.success(
+        language === 'pt' ? 'Código reenviado!' : 'Code resent!',
+        {
+          description: language === 'pt'
+            ? 'Verifique seu email novamente'
+            : 'Check your email again',
+        }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(
+        language === 'pt' ? 'Erro ao reenviar código' : 'Error resending code',
+        {
+          description: errorMessage,
+        }
+      );
+      throw error;
     }
   };
 
@@ -1269,6 +1359,18 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
           </div>
         </div>
       </div>
+
+      {/* Modal de Verificação de Email */}
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        email={verificationEmail}
+        onVerify={handleVerifyEmail}
+        onResend={handleResendCode}
+        onCancel={() => {
+          setShowVerificationModal(false);
+          setVerificationEmail('');
+        }}
+      />
     </div>
     </>
   );

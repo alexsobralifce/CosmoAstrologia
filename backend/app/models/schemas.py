@@ -107,6 +107,12 @@ class Token(BaseModel):
     token_type: str
 
 
+class EmailVerificationResponse(BaseModel):
+    message: str
+    requires_verification: bool = True
+    email: str
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

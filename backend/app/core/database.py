@@ -4,9 +4,13 @@ from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 import time
 
+print("[DATABASE] 🔧 Configurando engine do banco de dados...")
+print(f"[DATABASE] 📍 DATABASE_URL: {settings.DATABASE_URL[:50]}...")
+
 # Configure connect_args based on database type
 connect_args = {}
 if settings.DATABASE_URL.startswith("sqlite"):
+    print("[DATABASE] 💾 Usando SQLite")
     # SQLite-specific configuration
     # check_same_thread=False permite uso em múltiplas threads
     # timeout aumenta o tempo de espera para locks (30 segundos)
@@ -14,14 +18,31 @@ if settings.DATABASE_URL.startswith("sqlite"):
         "check_same_thread": False,
         "timeout": 30.0  # 30 segundos de timeout para operações
     }
+else:
+    print("[DATABASE] 🐘 Usando PostgreSQL")
 
 # For Postgres and other databases, use default connect_args
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args=connect_args,
-    pool_pre_ping=True,  # Verifica conexões antes de usar
-    pool_recycle=3600,  # Recicla conexões após 1 hora
-)
+try:
+    print("[DATABASE] 🔌 Criando engine...")
+    engine = create_engine(
+        settings.DATABASE_URL,
+        connect_args=connect_args,
+        pool_pre_ping=True,  # Verifica conexões antes de usar
+        pool_recycle=3600,  # Recicla conexões após 1 hora
+    )
+    print("[DATABASE] ✅ Engine criado com sucesso")
+    
+    # Testar conexão
+    print("[DATABASE] 🧪 Testando conexão...")
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        conn.execute(text("SELECT 1"))
+    print("[DATABASE] ✅ Conexão testada com sucesso")
+except Exception as e:
+    print(f"[DATABASE] ❌ ERRO ao criar engine ou testar conexão: {e}")
+    import traceback
+    print(f"[DATABASE] Traceback: {traceback.format_exc()}")
+    raise
 
 # Habilitar WAL mode para SQLite (melhor concorrência)
 if settings.DATABASE_URL.startswith("sqlite"):

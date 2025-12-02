@@ -105,10 +105,10 @@ COPY --from=builder /root/.local /root/.local
 # Copy application
 COPY app/ ./app/
 
-# Copy migrations directory if it exists (for manual migrations)
-COPY migrations/ ./migrations/ 2>/dev/null || true
-
-EXPOSE 8000
+# Copy migrations directory (for manual migrations if needed)
+# Note: This will fail if migrations/ doesn't exist, but that's OK for production
+# The migrations are handled automatically by the app on startup
+COPY migrations/ ./migrations/
 
 # Health check (opcional, mas recomendado para produção)
 # Verifica se o endpoint /health responde corretamente

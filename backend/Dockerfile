@@ -112,8 +112,10 @@ COPY migrations/ ./migrations/
 
 # Health check (opcional, mas recomendado para produção)
 # Verifica se o endpoint /health responde corretamente
+# Railway define PORT automaticamente (pode ser 8080, 8000, etc)
+# Usamos sh -c para ler a variável PORT corretamente
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import urllib.request; import json; r = urllib.request.urlopen('http://localhost:${PORT:-8000}/health', timeout=5); data = json.loads(r.read()); exit(0 if data.get('status') == 'healthy' else 1)" || exit 1
+    CMD sh -c 'PORT=${PORT:-8000}; python3 -c "import urllib.request, json, os; port = os.environ.get(\"PORT\", \"8000\"); r = urllib.request.urlopen(f\"http://localhost:{port}/health\", timeout=5); data = json.loads(r.read()); exit(0 if data.get(\"status\") == \"healthy\" else 1)"'
 
 # Use PORT environment variable (defaults to 8000 if not set)
 # Railway e outras plataformas definem PORT automaticamente

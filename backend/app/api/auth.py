@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import bcrypt
@@ -68,7 +68,7 @@ def get_current_user(
 
 
 @router.post("/register", response_model=EmailVerificationResponse)
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
+def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Registra um novo usuário e calcula seu mapa astral.
     """
@@ -154,19 +154,18 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         )
         db.add(db_birth_chart)
         
-        # Enviar email de verificação
-        if not send_verification_email(user_data.email, verification_code, user_data.name):
-            # Rollback se não conseguir enviar email
-            db.rollback()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Erro ao enviar email de verificação"
-            )
-        
         try:
             db.commit()
             db.refresh(db_user)
             db.refresh(db_birth_chart)
+            
+            # Enviar email de verificação em background (não bloqueia a resposta)
+            background_tasks.add_task(
+                send_verification_email,
+                user_data.email,
+                verification_code,
+                user_data.name
+            )
         except Exception as e:
             db.rollback()
             import traceback
@@ -240,6 +239,7 @@ class EmailResendRequest(BaseModel):
 @router.post("/resend-verification")
 def resend_verification(
     email_request: EmailResendRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Reenvia o código de verificação de email."""
@@ -259,12 +259,13 @@ def resend_verification(
     user.verification_code_expires = expires_at
     db.commit()
     
-    # Enviar email
-    if not send_verification_email(user.email, verification_code, user.name or "Usuário"):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao enviar email de verificação"
-        )
+    # Enviar email em background (não bloqueia a resposta)
+    background_tasks.add_task(
+        send_verification_email,
+        user.email,
+        verification_code,
+        user.name or "Usuário"
+    )
     
     return {"message": "Código de verificação reenviado com sucesso"}
 

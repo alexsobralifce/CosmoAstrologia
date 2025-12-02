@@ -113,7 +113,13 @@ except Exception as e:
     print(f"[MIGRATION] Aviso: Não foi possível executar migração automática: {e}")
     print("[MIGRATION] Execute os scripts de migração manualmente se necessário.")
 
+print("=" * 80)
+print("[STARTUP] Inicializando FastAPI...")
+print("=" * 80)
+
 app = FastAPI(title="Astrologia API")
+
+print("[STARTUP] ✅ FastAPI criado com sucesso")
 
 # CORS - Garantir que domínios de produção estejam incluídos
 if isinstance(settings.CORS_ORIGINS, list):
@@ -182,8 +188,12 @@ async def general_exception_handler(request: Request, exc: Exception):
     return response
 
 # Routers
+print("[STARTUP] Registrando routers...")
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+print("[STARTUP] ✅ Router auth registrado")
 app.include_router(interpretation.router, prefix="/api", tags=["interpretation"])
+print("[STARTUP] ✅ Router interpretation registrado")
+print("[STARTUP] ✅ Todos os routers registrados com sucesso")
 
 
 @app.get("/")

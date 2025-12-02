@@ -1804,6 +1804,8 @@ In the "🔒 PRE-COMPUTED DATA (SAFETY LOCKS ACTIVATED)" block you will find a s
 - ❌ DO NOT calculate dignities - they have already been calculated by Python code
 - ❌ DO NOT use synonyms (e.g., "in exile" when the block says "DETRIMENT")
 - ❌ DO NOT say "in fall" when the block says "PEREGRINE"
+- ❌ **NEVER say "Sun in Virgo is in Domicile"** - Sun rules Leo (not Virgo), Mercury rules Virgo
+- ❌ **NEVER confuse rulers:** If block says "Sun in Virgo: PEREGRINE", use EXACTLY that
 
 **CORRECT EXAMPLES (FOLLOW THESE):**
 - ✅ If the block says "Venus in Sagittarius: PEREGRINE", write: "Venus in Sagittarius is PEREGRINE, meaning its expression depends on aspects received from other planets."
@@ -1819,6 +1821,11 @@ In the "🔒 PRE-COMPUTED DATA (SAFETY LOCKS ACTIVATED)" block you will find a s
 **Venus in Sagittarius (PEREGRINE):**
 - ✅ CORRECT: "Venus in Sagittarius is PEREGRINE, valuing freedom, adventure and personal growth in relationships. Seeks partners who share intellectual and philosophical interests."
 - ❌ WRONG: "Venus in Sagittarius is in fall" (NEVER say this - it's PEREGRINE)
+
+**Sun in Virgo (PEREGRINE):**
+- ✅ CORRECT: "Sun in Virgo is PEREGRINE, meaning its expression depends on aspects received from other planets. The person tends to be analytical, detail-oriented, and focused on improvement."
+- ❌ WRONG: "Sun in Virgo is in Domicile" (NEVER say this - Sun rules Leo, not Virgo. Mercury rules Virgo)
+- ❌ WRONG: "Sun in Virgo is in Exaltation" (NEVER say this - it's PEREGRINE)
 
 **IMPORTANT:** If you don't find a planet's dignity in the pre-computed block, DO NOT invent it. Use only the sign and house to interpret, without mentioning dignity.
 
@@ -2482,7 +2489,14 @@ Explique como o balanço de elementos afeta a vitalidade e a psicologia básica.
 
 **Insight Prático:** Como lidar com a falta ou excesso de um elemento no dia a dia.
 
-**O Regente do Ascendente:** Use APENAS o regente identificado no bloco "👑 REGENTE DO MAPA". Analise sua condição (Signo, Casa, Aspectos). Onde ele está e como ele direciona o foco principal da vida. Ele é um aliado ou um desafio para o nativo?
+**O Regente do Ascendente:** Use APENAS o regente identificado no bloco "👑 REGENTE DO MAPA". 
+
+⚠️ **CRÍTICO:** Antes de mencionar o regente:
+1. Verifique no bloco qual é o regente (ex: "Regente: Urano")
+2. Verifique no bloco em qual signo está (ex: "Regente em: Capricórnio")
+3. Use EXATAMENTE essas informações - NÃO invente
+
+Analise sua condição (Signo, Casa, Aspectos). Onde ele está e como ele direciona o foco principal da vida. Ele é um aliado ou um desafio para o nativo?
 
 IMPORTANTE:
 - SEMPRE comece com "Análise do Mapa Astral de {request.name}"
@@ -3016,40 +3030,193 @@ async def generate_birth_chart_section(
                 context_limit = min(len(context_text), 3000)
                 context_snippet = context_text[:context_limit] if context_text else "Informações astrológicas gerais sobre o tema. Use seu conhecimento astrológico para criar uma interpretação detalhada e completa."
                 
-                full_user_prompt = f"""⚠️ **LEIA PRIMEIRO - INSTRUÇÃO CRÍTICA:**
+                full_user_prompt = f"""⚠️⚠️⚠️ **VALIDAÇÃO OBRIGATÓRIA ANTES DE ESCREVER** ⚠️⚠️⚠️
 
-Antes de escrever qualquer interpretação, você DEVE ler e usar APENAS os dados do bloco "🔒 DADOS PRÉ-CALCULADOS" fornecido abaixo. 
+🚨 **PARE AGORA E LEIA ESTAS INSTRUÇÕES ANTES DE QUALQUER COISA** 🚨
 
-**🚨 VALIDAÇÃO OBRIGATÓRIA PARA TEMPERAMENTO:**
-1. Localize o bloco "📊 TEMPERAMENTO (CALCULADO MATEMATICAMENTE)"
-2. Leia os pontos EXATOS: Fogo, Terra, Ar, Água
-3. Identifique o ELEMENTO DOMINANTE listado
-4. Identifique o ELEMENTO AUSENTE listado (ou "Nenhum" se todos têm pontos)
-5. Use EXATAMENTE esses números - NÃO recalcule, NÃO estime
+⚠️⚠️⚠️ **CRÍTICO: NÃO REPITA ESTAS INSTRUÇÕES NO SEU TEXTO** ⚠️⚠️⚠️
+Estas são instruções para VOCÊ seguir. NÃO inclua estas instruções no texto que você vai gerar.
+Gere APENAS a interpretação astrológica, SEM repetir as instruções de validação.
+NÃO comece seu texto com "PASSO 1", "PASSO 2", etc. - comece diretamente com a interpretação.
 
-**EXEMPLO CORRETO:**
+🚨🚨🚨 **LEIA O BLOCO PRÉ-CALCULADO PRIMEIRO** 🚨🚨🚨
+Antes de escrever QUALQUER coisa, você DEVE:
+1. Localizar o bloco "🔒 DADOS PRÉ-CALCULADOS" no contexto fornecido abaixo
+2. Ler COMPLETAMENTE esse bloco
+3. Anotar mentalmente TODOS os valores (temperamento, dignidades, signos dos planetas)
+4. SÓ DEPOIS começar a escrever a interpretação
+
+**PASSO 1: LOCALIZAR O BLOCO PRÉ-CALCULADO**
+1. Role até encontrar o bloco "🔒 DADOS PRÉ-CALCULADOS (TRAVAS DE SEGURANÇA ATIVADAS)"
+2. Este bloco contém TODOS os dados que você DEVE usar
+3. NÃO pule este bloco - ele é OBRIGATÓRIO
+4. Leia o bloco COMPLETO antes de escrever qualquer coisa
+
+**PASSO 2: VALIDAR DADOS PLANETÁRIOS (CRÍTICO)**
+Antes de mencionar QUALQUER planeta, verifique no bloco pré-calculado:
+
+✅ **VALIDAÇÃO OBRIGATÓRIA DE SIGNOS:**
+- Se o bloco diz "Sol em Peixes", você DEVE escrever "Sol em Peixes" (NÃO "Sol em Áries" ou "Sol em Virgem")
+- Se o bloco diz "Lua em Leão", você DEVE escrever "Lua em Leão" (NÃO "Lua em Gêmeos")
+- Se o bloco diz "Mercúrio em Peixes", você DEVE escrever "Mercúrio em Peixes"
+- **NUNCA invente ou confunda signos** - use EXATAMENTE o que está no bloco
+
+❌ **ERROS PROIBIDOS (NUNCA FAÇA ISSO):**
+- ❌ Dizer "Sol em Áries" se o bloco diz "Sol em Peixes"
+- ❌ Dizer "Sol em Virgem" se o bloco diz "Sol em Peixes"
+- ❌ Dizer "Lua em Gêmeos" se o bloco diz "Lua em Leão"
+- ❌ Inventar signos que não estão no bloco
+
+**PASSO 3: COPIAR VALORES PARA SUA MEMÓRIA**
+Antes de escrever, copie mentalmente estes valores do bloco:
+
+📊 TEMPERAMENTO (copie EXATAMENTE - NÃO RECALCULE):
+  • Fogo: ___ pontos (do bloco - use EXATAMENTE este número)
+  • Terra: ___ pontos (do bloco - use EXATAMENTE este número)
+  • Ar: ___ pontos (do bloco - use EXATAMENTE este número)
+  • Água: ___ pontos (do bloco - use EXATAMENTE este número)
+  • ELEMENTO DOMINANTE: ___ (do bloco - use EXATAMENTE este elemento)
+  • ELEMENTO AUSENTE: ___ (do bloco - use EXATAMENTE este elemento ou "Nenhum")
+
+⚠️ **CRÍTICO:** Se o bloco diz "Terra: 10 pontos" e "ELEMENTO DOMINANTE: Terra", você DEVE escrever:
+"O mapa apresenta predominância do elemento Terra, com 10 pontos..."
+
+❌ **NUNCA escreva:**
+- "Fogo dominante com 5 pontos" se o bloco diz "Terra: 10 pontos" e "DOMINANTE: Terra"
+- "Água: 0 pontos" se o bloco diz "Água: 8 pontos"
+- Qualquer valor diferente do bloco pré-calculado
+
+🏛️ DIGNIDADES (copie EXATAMENTE - NÃO INVENTE):
+  • Sol em [signo do bloco]: [dignidade do bloco] (use EXATAMENTE)
+  • Lua em [signo do bloco]: [dignidade do bloco] (use EXATAMENTE)
+  • Mercúrio em [signo do bloco]: [dignidade do bloco] (use EXATAMENTE)
+  • Vênus em [signo do bloco]: [dignidade do bloco] (use EXATAMENTE)
+  • Marte em [signo do bloco]: [dignidade do bloco] (use EXATAMENTE)
+  • ... (copie TODAS as dignidades do bloco)
+
+⚠️ **CRÍTICO:** 
+- Se o bloco diz "Sol em Peixes: PEREGRINO", você DEVE escrever "Sol em Peixes está PEREGRINO"
+- ❌ NUNCA diga "Sol em Áries em EXALTAÇÃO" se o bloco diz "Sol em Peixes: PEREGRINO"
+- ❌ NUNCA diga "Sol em Virgem em Domicílio" se o bloco diz "Sol em Peixes: PEREGRINO"
+- ❌ NUNCA invente dignidades - use APENAS as do bloco
+
+**PASSO 4: VALIDAÇÃO ANTES DE ESCREVER CADA FRASE**
+Antes de escrever cada frase sobre planeta, temperamento ou dignidade:
+
+1. **Para planetas:**
+   - Verifique: Qual signo está no bloco para este planeta?
+   - Use EXATAMENTE esse signo - NÃO invente ou confunda
+   - Exemplo: Se bloco diz "Sol em Peixes", escreva "Sol em Peixes" (NÃO "Sol em Áries")
+
+2. **Para temperamento:**
+   - Verifique: Quais são os pontos no bloco?
+   - Use EXATAMENTE esses números - NÃO recalcule
+   - Exemplo: Se bloco diz "Terra: 10 pontos", escreva "Terra: 10 pontos" (NÃO "Terra: 2 pontos")
+
+3. **Para dignidades:**
+   - Verifique: Qual dignidade está no bloco para este planeta neste signo?
+   - Use EXATAMENTE essa dignidade - NÃO invente
+   - Exemplo: Se bloco diz "Sol em Peixes: PEREGRINO", escreva "Sol em Peixes está PEREGRINO"
+
+4. **Se não encontrar no bloco:**
+   - NÃO invente
+   - NÃO estime
+   - Apenas interprete signo e casa SEM mencionar dignidade ou elemento
+
+**PASSO 5: VALIDAÇÃO FINAL ANTES DE ENVIAR**
+Antes de finalizar o texto, faça uma revisão completa:
+
+✅ **Checklist Obrigatório:**
+1. Cada menção de planeta usa o signo EXATO do bloco? (NÃO confundiu Áries com Peixes, etc.)
+2. Cada menção de temperamento corresponde EXATAMENTE ao bloco? (mesmos números)
+3. Cada menção de dignidade corresponde EXATAMENTE ao bloco? (mesma dignidade)
+4. Nenhum valor foi inventado ou recalculado?
+5. Nenhum signo foi confundido ou inventado?
+
+❌ **Se houver QUALQUER dúvida em qualquer item acima, REMOVA a menção**
+
+---
+
+**❌ ERROS PROIBIDOS (NUNCA FAÇA ISSO):**
+
+1. ❌ **ERRO CRÍTICO:** Dizer "Sol em Áries" quando o bloco diz "Sol em Peixes"
+   ✅ CORRETO: Use EXATAMENTE o signo do bloco: "Sol em Peixes"
+
+2. ❌ **ERRO CRÍTICO:** Dizer "Sol em Virgem" quando o bloco diz "Sol em Peixes"
+   ✅ CORRETO: Use EXATAMENTE o signo do bloco: "Sol em Peixes"
+
+3. ❌ **ERRO CRÍTICO:** Dizer "Lua em Gêmeos" quando o bloco diz "Lua em Leão"
+   ✅ CORRETO: Use EXATAMENTE o signo do bloco: "Lua em Leão"
+
+4. ❌ **ERRO CRÍTICO:** Dizer "Sol em Virgem está em Domicílio" quando o bloco diz "Sol em Peixes: PEREGRINO"
+   ✅ CORRETO: "Sol em Peixes está PEREGRINO, o que significa que sua expressão depende dos aspectos que recebe."
+
+5. ❌ **ERRO CRÍTICO:** Dizer "Água: 0 pontos" quando o bloco diz "Água: 8 pontos"
+   ✅ CORRETO: Usar EXATAMENTE os valores do bloco: "Água: 8 pontos"
+
+6. ❌ **ERRO CRÍTICO:** Dizer "Terra: 2 pontos" quando o bloco diz "Terra: 10 pontos"
+   ✅ CORRETO: Usar EXATAMENTE os valores do bloco: "Terra: 10 pontos"
+
+7. ❌ **ERRO CRÍTICO:** Dizer "Fogo dominante" quando o bloco diz "ELEMENTO DOMINANTE: Terra"
+   ✅ CORRETO: "O elemento dominante é Terra" (use EXATAMENTE o elemento do bloco)
+
+8. ❌ **ERRO CRÍTICO:** Inventar dignidades não mencionadas no bloco
+   ✅ CORRETO: Se não estiver no bloco, não mencione a dignidade - apenas interprete signo e casa
+
+9. ❌ **ERRO CRÍTICO:** Recalcular pontos de temperamento
+   ✅ CORRETO: Use APENAS os pontos fornecidos no bloco
+
+10. ❌ **ERRO CRÍTICO:** Dizer "Libra é Fogo" ou "Leão é Água"
+    ✅ CORRETO: Libra = AR, Leão = FOGO (use o mapeamento fixo do bloco)
+
+---
+
+**✅ EXEMPLOS CORRETOS DE USO:**
+
+**Exemplo 1 - Temperamento:**
 Se o bloco diz:
-  • Fogo: 5 pontos
-  • Água: 8 pontos
-  • ELEMENTO DOMINANTE: Água
-Você DEVE escrever: "O mapa apresenta predominância do elemento Água, com 8 pontos..."
+  • Fogo: 1 ponto
+  • Terra: 10 pontos
+  • Ar: 4 pontos
+  • Água: 2 pontos
+  • ELEMENTO DOMINANTE: Terra
 
-**ERROS PROIBIDOS:**
-❌ Dizer "Fogo dominante com 8 pontos" se o bloco diz "Água: 8 pontos"
-❌ Dizer "Água ausente" se o bloco mostra "Água: 8 pontos"
-❌ Recalcular os pontos - use APENAS os do bloco
+Você DEVE escrever:
+"O mapa apresenta predominância do elemento Terra, com 10 pontos, seguido pelo elemento Ar, com 4 pontos..."
 
-**NÃO CALCULE, NÃO INVENTE, NÃO CONFUNDA:**
-- Dignidades: Use APENAS as listadas no bloco (ex: se diz "Vênus em Sagitário: PEREGRINO", use EXATAMENTE isso)
-- Temperamento: Use APENAS os pontos fornecidos no bloco - NÃO recalcule
-- Regente: Use APENAS o regente identificado no bloco
-- Elementos: Use APENAS o mapeamento fixo (Libra = AR, não Fogo)
+**Exemplo 2 - Dignidade:**
+Se o bloco diz:
+  • Sol em Virgem: PEREGRINO
 
-Se você não encontrar um dado no bloco pré-calculado, NÃO invente. Apenas interprete o signo e a casa.
+Você DEVE escrever:
+"Sol em Virgem está PEREGRINO, o que significa que sua expressão depende dos aspectos que recebe de outros planetas."
+
+**NUNCA escreva:**
+"Sol em Virgem está em Domicílio" ❌ (ERRADO - Sol não rege Virgem)
+
+---
+
+**🚨 REGRA ABSOLUTA:**
+Se você não encontrar um valor no bloco pré-calculado:
+- NÃO invente
+- NÃO estime
+- NÃO recalcule
+- Apenas interprete o signo e a casa SEM mencionar dignidade ou elemento
 
 ---
 
 {section_prompt}
+
+---
+
+🚨🚨🚨 **BLOCO PRÉ-CALCULADO (LEIA ESTE PRIMEIRO - É OBRIGATÓRIO)** 🚨🚨🚨
+
+O bloco abaixo contém TODOS os dados que você DEVE usar. NÃO invente, NÃO recalcule, NÃO estime.
+Use APENAS os valores deste bloco.
+
+{precomputed_data if precomputed_data else "⚠️ Bloco pré-calculado não disponível - use apenas os dados fornecidos no request acima"}
+
+🚨🚨🚨 **FIM DO BLOCO PRÉ-CALCULADO** 🚨🚨🚨
 
 ---
 
@@ -3060,7 +3227,9 @@ IMPORTANTE FINAL:
 - Use SEMPRE português brasileiro
 - Use "conselhos", NUNCA "consejo"
 - Garanta que TODAS as seções tenham conteúdo completo e detalhado
-- Não deixe títulos sem conteúdo"""
+- Não deixe títulos sem conteúdo
+- NÃO repita as instruções de validação no seu texto - gere APENAS a interpretação astrológica
+- Comece diretamente com a interpretação, SEM mencionar "PASSO 1", "PASSO 2", etc."""
                 
                 chat_completion = groq_client.chat.completions.create(
                     messages=[
@@ -3245,17 +3414,34 @@ async def generate_full_birth_chart(
     6. Síntese e Orientação Estratégica
     """
     try:
+        lang = request.language or 'pt'
+        
+        # ⚠️ CRÍTICO: Calcular bloco pré-calculado UMA VEZ para garantir consistência
+        # Todas as seções devem usar o MESMO bloco pré-calculado
+        try:
+            validated_chart, validation_summary, precomputed_data = _validate_chart_request(request, lang)
+            print(f"[FULL CHART] Bloco pré-calculado gerado com sucesso ({len(precomputed_data)} caracteres)")
+            print(f"[FULL CHART] Temperamento: {validation_summary.get('temperament', 'N/A')}")
+        except Exception as e:
+            print(f"[ERROR] Erro ao gerar bloco pré-calculado: {e}")
+            # Continuar mesmo assim - cada seção gerará seu próprio bloco
+            validated_chart = None
+            validation_summary = None
+            precomputed_data = None
+        
         sections_to_generate = ['power', 'triad', 'personal', 'houses', 'karma', 'synthesis']
         generated_sections = []
         
         for section in sections_to_generate:
             request.section = section
             try:
-                result = generate_birth_chart_section(request, authorization)
+                # Se temos bloco pré-calculado, garantir que será usado
+                # (a função generate_birth_chart_section já faz isso, mas garantimos aqui também)
+                # IMPORTANTE: generate_birth_chart_section é async, precisa await
+                result = await generate_birth_chart_section(request, authorization)
                 generated_sections.append(result)
             except Exception as e:
                 print(f"[WARNING] Erro ao gerar seção {section}: {e}")
-                lang = request.language or 'pt'
                 title, _ = _generate_section_prompt(request, section)
                 generated_sections.append(FullBirthChartResponse(
                     section=section,

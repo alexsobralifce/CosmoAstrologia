@@ -60,16 +60,66 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
         print(f"[EMAIL]    API Key Preview: {api_key_preview}")
     print(f"[EMAIL]    EMAIL_FROM: {settings.EMAIL_FROM}")
     
-    # Verificar se o domínio está verificado (para evitar erros)
-    # Se usar domínio não verificado, tentar usar domínio de teste
+    # Verificar se está usando domínio de teste em produção
     email_from = settings.EMAIL_FROM
-    if email_from and '@' in email_from:
-        domain = email_from.split('@')[1]
-        # Se não for domínio de teste do Resend, verificar se pode usar
-        if domain not in ['resend.dev']:
-            # Tentar usar domínio de teste se o domínio customizado falhar
-            # Isso será tratado no try/except abaixo
-            pass
+    is_test_domain = email_from and '@' in email_from and email_from.split('@')[1] == 'resend.dev'
+    
+    if is_test_domain:
+        print(f"[EMAIL] ⚠️  ATENÇÃO: Usando domínio de teste (resend.dev)")
+        print(f"[EMAIL] ⚠️  O domínio de teste só permite enviar para: plribeirorocha@gmail.com")
+        print(f"[EMAIL] ⚠️  Tentando enviar para: {email}")
+        
+        # Se não for o email da conta, avisar e retornar False
+        if email.lower() != 'plribeirorocha@gmail.com':
+            print("=" * 80)
+            print(f"[EMAIL] ❌❌❌ NÃO É POSSÍVEL ENVIAR PARA ESTE EMAIL ❌❌❌")
+            print(f"[EMAIL] 📧 Email solicitado: {email}")
+            print(f"[EMAIL] ⚠️  O domínio de teste (resend.dev) só permite enviar para: plribeirorocha@gmail.com")
+            print(f"[EMAIL]")
+            print(f"[EMAIL] 🔧 SOLUÇÃO:")
+            print(f"[EMAIL]    1. Verifique o domínio 'cosmoastral.com.br' no Resend:")
+            print(f"[EMAIL]       https://resend.com/domains")
+            print(f"[EMAIL]    2. Configure os registros DNS conforme instruções")
+            print(f"[EMAIL]    3. Aguarde a verificação do domínio")
+            print(f"[EMAIL]    4. No Railway, configure:")
+            print(f"[EMAIL]       EMAIL_FROM=noreply@cosmoastral.com.br")
+            print(f"[EMAIL]    5. Faça redeploy")
+            print(f"[EMAIL]")
+            print(f"[EMAIL] 📚 Documentação: VERIFICAR_DOMINIO_RESEND.md")
+            print("=" * 80)
+            return False
+    
+    # Verificar se está usando domínio de teste
+    # O domínio de teste (resend.dev) só permite enviar para o email da conta Resend
+    email_from = settings.EMAIL_FROM
+    is_test_domain = email_from and '@' in email_from and email_from.split('@')[1] == 'resend.dev'
+    
+    if is_test_domain:
+        # Domínio de teste só permite enviar para plribeirorocha@gmail.com
+        allowed_test_email = 'plribeirorocha@gmail.com'
+        if email.lower() != allowed_test_email.lower():
+            print("=" * 80)
+            print(f"[EMAIL] ❌❌❌ NÃO É POSSÍVEL ENVIAR PARA ESTE EMAIL ❌❌❌")
+            print(f"[EMAIL] 📧 Email solicitado: {email}")
+            print(f"[EMAIL] ⚠️  Você está usando domínio de teste (resend.dev)")
+            print(f"[EMAIL] ⚠️  O domínio de teste só permite enviar para: {allowed_test_email}")
+            print(f"[EMAIL]")
+            print(f"[EMAIL] 🔧 SOLUÇÃO PARA ENVIAR PARA QUALQUER EMAIL:")
+            print(f"[EMAIL]    1. Acesse: https://resend.com/domains")
+            print(f"[EMAIL]    2. Adicione o domínio: cosmoastral.com.br")
+            print(f"[EMAIL]    3. Configure os registros DNS conforme instruções")
+            print(f"[EMAIL]    4. Aguarde a verificação do domínio (pode levar alguns minutos)")
+            print(f"[EMAIL]    5. No Railway, configure a variável:")
+            print(f"[EMAIL]       EMAIL_FROM=noreply@cosmoastral.com.br")
+            print(f"[EMAIL]    6. Faça redeploy do serviço")
+            print(f"[EMAIL]")
+            print(f"[EMAIL] 📚 Documentação completa: VERIFICAR_DOMINIO_RESEND.md")
+            print("=" * 80)
+            return False
+        else:
+            print(f"[EMAIL] ✅ Usando domínio de teste - Email permitido: {email}")
+    else:
+        print(f"[EMAIL] ✅ Usando domínio verificado: {email_from}")
     
     try:
         # Configurar API key do Resend
@@ -177,51 +227,19 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
             else:
                 print(f"[WARNING]    Domínio não verificado. Verifique em: https://resend.com/domains")
             
-            # Se estiver usando domínio de teste e tentando enviar para outro email
-            if is_test_domain_error and email_from and '@' in email_from:
-                domain = email_from.split('@')[1]
-                if domain == 'resend.dev':
-                    print(f"[ERROR] ❌ Não é possível enviar para {email} usando domínio de teste.")
-                    print(f"[ERROR]    Configure EMAIL_FROM=noreply@cosmoastral.com.br no Railway")
-                    print(f"[ERROR]    E verifique o domínio cosmoastral.com.br no Resend")
-                    return False
+            # Se for erro de domínio de teste, já foi tratado antes (não deveria chegar aqui)
+            # Mas se chegou, significa que houve algum problema inesperado
+            if is_test_domain_error:
+                print(f"[EMAIL] ❌ Erro confirmado: domínio de teste não permite enviar para {email}")
+                print(f"[EMAIL] 🔧 Verifique o domínio em: https://resend.com/domains")
+                return False
             
-            # Tentar com domínio de teste apenas se não for erro de teste domain
-            if not is_test_domain_error:
-                print(f"[EMAIL] 🔄 Tentando com domínio de teste do Resend...")
-                print(f"[EMAIL] 📋 Parâmetros do email (domínio de teste):")
-                print(f"[EMAIL]    From: cosmoastral@resend.dev")
-                print(f"[EMAIL]    To: {email}")
-                try:
-                    params_test = {
-                        "from": "cosmoastral@resend.dev",  # Domínio de teste do Resend
-                        "to": email,
-                        "subject": "Verifique seu email - CosmoAstral",
-                        "html": html_body
-                    }
-                    resend.api_key = settings.RESEND_API_KEY
-                    print(f"[EMAIL] 🚀 Enviando email com domínio de teste...")
-                    r = resend.Emails.send(params_test)
-                    print("=" * 80)
-                    print(f"[EMAIL] ✅ Email enviado usando domínio de teste (cosmoastral@resend.dev)")
-                    print(f"[EMAIL] 📧 Destinatário: {email}")
-                    print(f"[EMAIL] 📝 Código: {code}")
-                    print(f"[EMAIL] 📨 Resposta Resend: {r}")
-                    print(f"[EMAIL] ⚠️  Para produção, verifique o domínio em https://resend.com/domains")
-                    print(f"[EMAIL] ⏰ Timestamp: {datetime.now().isoformat()}")
-                    print("=" * 80)
-                    return True
-                except Exception as e2:
-                    print("=" * 80)
-                    print(f"[EMAIL] ❌❌❌ ERRO MESMO COM DOMÍNIO DE TESTE ❌❌❌")
-                    print(f"[EMAIL] 📧 Destinatário: {email}")
-                    print(f"[EMAIL] 🔴 Erro: {e2}")
-                    print(f"[EMAIL] 📋 Tipo de erro: {type(e2).__name__}")
-                    print(f"[EMAIL] ⏰ Timestamp: {datetime.now().isoformat()}")
-                    print("=" * 80)
-                    import traceback
-                    traceback.print_exc()
-                    return False
+            # Se for erro de domínio não verificado, informar sobre verificação
+            if is_domain_error:
+                print(f"[EMAIL] ❌ Domínio não verificado: {email_from}")
+                print(f"[EMAIL] 🔧 Verifique o domínio em: https://resend.com/domains")
+                print(f"[EMAIL] 🔧 Configure os registros DNS e aguarde a verificação")
+                return False
         
         import traceback
         traceback.print_exc()

@@ -827,20 +827,39 @@ async def get_planet_interpretation(
                 detail="Signo é obrigatório"
             )
         
-        # Buscar contexto do RAG primeiro
+        # Buscar contexto do RAG primeiro (com tratamento de erro)
         query_parts = [f"{planet} em {sign}"]
         if house:
             query_parts.append(f"casa {house}")
         
         query = " ".join(query_parts)
-        results = rag_service.search(query, top_k=6, expand_query=True) if rag_service else []
+        results = []
+        context_text = ""
         
-        # Preparar contexto dos documentos
-        context_text = "\n\n".join([
-            doc.get('text', '')
-            for doc in results[:6]  # Usar até 6 documentos
-            if doc.get('text')
-        ])
+        # Tentar buscar no RAG, mas tratar erro se índice não estiver carregado
+        if rag_service:
+            try:
+                # Tentar buscar - o método search() lançará ValueError se índice não estiver carregado
+                results = rag_service.search(query, top_k=6, expand_query=True)
+                # Preparar contexto dos documentos
+                context_text = "\n\n".join([
+                    doc.get('text', '')
+                    for doc in results[:6]  # Usar até 6 documentos
+                    if doc.get('text')
+                ])
+                if context_text:
+                    print(f"[PLANET API] Contexto RAG encontrado: {len(results)} resultados, {len(context_text)} caracteres")
+            except ValueError as e:
+                error_msg = str(e)
+                if "não carregado" in error_msg.lower() or "load_index" in error_msg.lower() or "process_all_documents" in error_msg.lower():
+                    print(f"[PLANET API] ⚠️ Índice RAG não carregado: {error_msg}")
+                    print(f"[PLANET API] Continuando sem contexto RAG - interpretação será gerada apenas com Groq/conhecimento base")
+                else:
+                    print(f"[PLANET API] ⚠️ Erro ao buscar no RAG: {error_msg}. Continuando sem contexto RAG.")
+            except AttributeError as e:
+                print(f"[PLANET API] ⚠️ Erro de atributo ao buscar no RAG: {str(e)}. Continuando sem contexto RAG.")
+            except Exception as e:
+                print(f"[PLANET API] ⚠️ Erro inesperado ao buscar no RAG: {str(e)}. Continuando sem contexto RAG.")
         
         # Gerar prompt prático NOVO (não o antigo)
         print(f"[PLANET API] Gerando novo prompt prático para {planet} em {sign}")
@@ -990,15 +1009,102 @@ Cada posicionamento astrológico traz oportunidades de aprendizado e desenvolvim
         }
         
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        error_msg = str(e)
+        # Se o erro for sobre índice RAG não carregado, não retornar erro HTTP
+        # Já foi tratado acima e o sistema continua funcionando sem RAG
+        if "não carregado" in error_msg.lower() or "load_index" in error_msg.lower() or "process_all_documents" in error_msg.lower():
+            print(f"[PLANET API] ValorError sobre índice RAG ignorado (já tratado): {error_msg}")
+            # Retornar interpretação básica mesmo sem RAG
+            from app.services.local_knowledge_base import LocalKnowledgeBase
+            try:
+                local_kb = LocalKnowledgeBase()
+                planet_combo = local_kb._planet_sign_combo(planet, sign)
+                house_info = local_kb._house_section(house, planet, sign) if house else None
+                
+                interpretation_fallback = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
+
+{planet_combo}
+
+{f'**Na Casa {house}:**\n{house_info}\n\n' if house_info else ''}
+
+**PONTOS FORTES E TALENTOS:**
+
+Esta configuração indica qualidades e potencialidades que você pode desenvolver.
+
+**DESAFIOS E CRESCIMENTO:**
+
+Cada posicionamento astrológico traz oportunidades de aprendizado e desenvolvimento pessoal.
+
+**EXEMPLOS PRÁTICOS:**
+
+Observe como essa energia aparece nas diferentes áreas da sua vida, especialmente em relacionamentos, trabalho e desenvolvimento pessoal.
+
+---
+
+*Interpretação gerada com base no conhecimento astrológico básico disponível.*"""
+                
+                return {
+                    "interpretation": interpretation_fallback,
+                    "sources": [],
+                    "query_used": query,
+                    "generated_by": "local_knowledge_base"
+                }
+            except Exception as fallback_error:
+                print(f"[PLANET API] Erro ao usar LocalKnowledgeBase: {fallback_error}")
+                # Continuar para retornar erro HTTP apenas se todos os fallbacks falharem
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=str(e)
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao obter interpretação: {str(e)}"
-        )
+        import traceback
+        error_msg = str(e)
+        traceback_str = traceback.format_exc()
+        print(f"[PLANET API] Erro inesperado: {error_msg}")
+        print(f"[PLANET API] Traceback: {traceback_str}")
+        
+        # Tentar fallback com LocalKnowledgeBase antes de retornar erro
+        try:
+            from app.services.local_knowledge_base import LocalKnowledgeBase
+            local_kb = LocalKnowledgeBase()
+            planet_combo = local_kb._planet_sign_combo(planet, sign)
+            house_info = local_kb._house_section(house, planet, sign) if house else None
+            
+            interpretation_fallback = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
+
+{planet_combo}
+
+{f'**Na Casa {house}:**\n{house_info}\n\n' if house_info else ''}
+
+**PONTOS FORTES E TALENTOS:**
+
+Esta configuração indica qualidades e potencialidades que você pode desenvolver.
+
+**DESAFIOS E CRESCIMENTO:**
+
+Cada posicionamento astrológico traz oportunidades de aprendizado e desenvolvimento pessoal.
+
+---
+
+*Interpretação gerada com base no conhecimento astrológico básico disponível.*"""
+            
+            return {
+                "interpretation": interpretation_fallback,
+                "sources": [],
+                "query_used": f"{planet} em {sign}" + (f" casa {house}" if house else ""),
+                "generated_by": "local_knowledge_base_fallback"
+            }
+        except Exception as fallback_error:
+            print(f"[PLANET API] Fallback também falhou: {fallback_error}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao obter interpretação: {error_msg}"
+            )
 
 
 class ChartRulerInterpretationRequest(BaseModel):

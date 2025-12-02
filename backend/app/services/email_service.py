@@ -31,17 +31,34 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
     Returns:
         bool: True se enviado com sucesso, False caso contrário
     """
+    print("=" * 80)
+    print(f"[EMAIL] 📧 INICIANDO ENVIO DE EMAIL DE VERIFICAÇÃO")
+    print(f"[EMAIL] Destinatário: {email}")
+    print(f"[EMAIL] Nome: {name}")
+    print(f"[EMAIL] Código: {code}")
+    print(f"[EMAIL] Timestamp: {datetime.now().isoformat()}")
+    print("=" * 80)
+    
     # Verificar se Resend está disponível
     if not RESEND_AVAILABLE:
-        print(f"[WARNING] Resend não disponível - Código de verificação para {email}: {code}")
-        print(f"[WARNING] ⚠️  Instale a biblioteca: pip install resend")
+        print(f"[EMAIL] ❌ [WARNING] Resend não disponível - Código de verificação para {email}: {code}")
+        print(f"[EMAIL] ⚠️  Instale a biblioteca: pip install resend")
         return True  # Simular sucesso em desenvolvimento
     
     # Verificar se Resend está configurado
     if not settings.RESEND_API_KEY:
-        print(f"[WARNING] RESEND_API_KEY não configurado - Código de verificação para {email}: {code}")
-        print(f"[WARNING] ⚠️  Configure RESEND_API_KEY no .env ou variáveis de ambiente")
+        print(f"[EMAIL] ❌ [WARNING] RESEND_API_KEY não configurado - Código de verificação para {email}: {code}")
+        print(f"[EMAIL] ⚠️  Configure RESEND_API_KEY no .env ou variáveis de ambiente")
         return True  # Simular sucesso em desenvolvimento
+    
+    # Log de configuração
+    print(f"[EMAIL] ✅ Resend disponível e configurado")
+    print(f"[EMAIL] 📋 Configuração:")
+    print(f"[EMAIL]    RESEND_API_KEY: {'✅ Configurado' if settings.RESEND_API_KEY else '❌ Não configurado'}")
+    if settings.RESEND_API_KEY:
+        api_key_preview = settings.RESEND_API_KEY[:10] + "..." + settings.RESEND_API_KEY[-5:] if len(settings.RESEND_API_KEY) > 15 else "***"
+        print(f"[EMAIL]    API Key Preview: {api_key_preview}")
+    print(f"[EMAIL]    EMAIL_FROM: {settings.EMAIL_FROM}")
     
     # Verificar se o domínio está verificado (para evitar erros)
     # Se usar domínio não verificado, tentar usar domínio de teste
@@ -56,9 +73,12 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
     
     try:
         # Configurar API key do Resend
+        print(f"[EMAIL] 🔑 Configurando API key do Resend...")
         resend.api_key = settings.RESEND_API_KEY
+        print(f"[EMAIL] ✅ API key configurada")
         
         # Corpo do email em HTML
+        print(f"[EMAIL] 📝 Gerando corpo do email em HTML...")
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -89,6 +109,7 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
         </body>
         </html>
         """
+        print(f"[EMAIL] ✅ Corpo do email gerado ({len(html_body)} caracteres)")
         
         # Enviar email via Resend
         params = {
@@ -98,16 +119,41 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
             "html": html_body
         }
         
-        print(f"[EMAIL] Enviando email de verificação para {email} via Resend...")
+        print(f"[EMAIL] 📤 Preparando envio via Resend...")
+        print(f"[EMAIL] 📋 Parâmetros do email:")
+        print(f"[EMAIL]    From: {params['from']}")
+        print(f"[EMAIL]    To: {params['to']}")
+        print(f"[EMAIL]    Subject: {params['subject']}")
+        print(f"[EMAIL]    HTML Body Length: {len(params['html'])} caracteres")
+        
+        print(f"[EMAIL] 🚀 Enviando email de verificação para {email} via Resend...")
+        print(f"[EMAIL] ⏳ Aguardando resposta do Resend...")
+        
         r = resend.Emails.send(params)
         
-        print(f"[EMAIL] ✅ Código de verificação enviado para {email} via Resend")
-        print(f"[EMAIL] Resposta Resend: {r}")
+        print("=" * 80)
+        print(f"[EMAIL] ✅✅✅ EMAIL ENVIADO COM SUCESSO! ✅✅✅")
+        print(f"[EMAIL] 📧 Destinatário: {email}")
+        print(f"[EMAIL] 📝 Código: {code}")
+        print(f"[EMAIL] 📨 Resposta Resend: {r}")
+        if isinstance(r, dict):
+            if 'id' in r:
+                print(f"[EMAIL] 🆔 Email ID: {r['id']}")
+            print(f"[EMAIL] 📊 Resposta completa: {r}")
+        print(f"[EMAIL] ⏰ Timestamp: {datetime.now().isoformat()}")
+        print("=" * 80)
         return True
         
     except Exception as e:
         error_msg = str(e)
-        print(f"[ERROR] ❌ Erro ao enviar email para {email} via Resend: {e}")
+        print("=" * 80)
+        print(f"[EMAIL] ❌❌❌ ERRO AO ENVIAR EMAIL ❌❌❌")
+        print(f"[EMAIL] 📧 Destinatário: {email}")
+        print(f"[EMAIL] 📝 Código: {code}")
+        print(f"[EMAIL] 🔴 Erro: {e}")
+        print(f"[EMAIL] 📋 Tipo de erro: {type(e).__name__}")
+        print(f"[EMAIL] ⏰ Timestamp: {datetime.now().isoformat()}")
+        print("=" * 80)
         
         # Verificar se é erro de domínio não verificado
         is_domain_error = (
@@ -142,7 +188,10 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
             
             # Tentar com domínio de teste apenas se não for erro de teste domain
             if not is_test_domain_error:
-                print(f"[WARNING] Tentando com domínio de teste do Resend...")
+                print(f"[EMAIL] 🔄 Tentando com domínio de teste do Resend...")
+                print(f"[EMAIL] 📋 Parâmetros do email (domínio de teste):")
+                print(f"[EMAIL]    From: cosmoastral@resend.dev")
+                print(f"[EMAIL]    To: {email}")
                 try:
                     params_test = {
                         "from": "cosmoastral@resend.dev",  # Domínio de teste do Resend
@@ -151,12 +200,25 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
                         "html": html_body
                     }
                     resend.api_key = settings.RESEND_API_KEY
+                    print(f"[EMAIL] 🚀 Enviando email com domínio de teste...")
                     r = resend.Emails.send(params_test)
+                    print("=" * 80)
                     print(f"[EMAIL] ✅ Email enviado usando domínio de teste (cosmoastral@resend.dev)")
+                    print(f"[EMAIL] 📧 Destinatário: {email}")
+                    print(f"[EMAIL] 📝 Código: {code}")
+                    print(f"[EMAIL] 📨 Resposta Resend: {r}")
                     print(f"[EMAIL] ⚠️  Para produção, verifique o domínio em https://resend.com/domains")
+                    print(f"[EMAIL] ⏰ Timestamp: {datetime.now().isoformat()}")
+                    print("=" * 80)
                     return True
                 except Exception as e2:
-                    print(f"[ERROR] ❌ Erro mesmo com domínio de teste: {e2}")
+                    print("=" * 80)
+                    print(f"[EMAIL] ❌❌❌ ERRO MESMO COM DOMÍNIO DE TESTE ❌❌❌")
+                    print(f"[EMAIL] 📧 Destinatário: {email}")
+                    print(f"[EMAIL] 🔴 Erro: {e2}")
+                    print(f"[EMAIL] 📋 Tipo de erro: {type(e2).__name__}")
+                    print(f"[EMAIL] ⏰ Timestamp: {datetime.now().isoformat()}")
+                    print("=" * 80)
                     import traceback
                     traceback.print_exc()
                     return False

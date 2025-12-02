@@ -1,19 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 import bcrypt
 from typing import Optional
 from app.core.database import get_db
 from app.models.database import User, BirthChart
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from app.models.schemas import (
-    UserRegister, UserResponse, BirthChartResponse, Token, UserCreate, UserUpdateRequest, UserLogin
+    UserRegister, UserResponse, BirthChartResponse, Token, UserCreate, UserUpdateRequest, UserLogin, EmailVerificationResponse
 )
 from app.services.astrology_calculator import calculate_birth_chart
+from app.services.email_service import generate_verification_code, send_verification_email
 from jose import JWTError, jwt
 from app.core.config import settings
 
 router = APIRouter()
+
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+    code: str
 
 
 def hash_password(password: str) -> str:
@@ -61,7 +67,7 @@ def get_current_user(
     return user
 
 
-@router.post("/register", response_model=Token)
+@router.post("/register", response_model=EmailVerificationResponse)
 def register(user_data: UserRegister, db: Session = Depends(get_db)):
     """
     Registra um novo usuário e calcula seu mapa astral.
@@ -108,12 +114,20 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erro ao calcular mapa astral: {str(e)}"
             )
-    
-        # Criar usuário
+        
+        # Gerar código de verificação
+        verification_code = generate_verification_code()
+        expires_at = datetime.now() + timedelta(minutes=1)  # 1 minuto de expiração
+        
+        # Criar usuário NÃO VERIFICADO
         db_user = User(
             email=user_data.email,
             password_hash=password_hash,
-            name=user_data.name
+            name=user_data.name,
+            is_active=False,  # Não ativo até verificar email
+            email_verified=False,
+            verification_code=verification_code,
+            verification_code_expires=expires_at
         )
         db.add(db_user)
         db.flush()  # Para obter o ID do usuário
@@ -140,6 +154,15 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         )
         db.add(db_birth_chart)
         
+        # Enviar email de verificação
+        if not send_verification_email(user_data.email, verification_code, user_data.name):
+            # Rollback se não conseguir enviar email
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Erro ao enviar email de verificação"
+            )
+        
         try:
             db.commit()
             db.refresh(db_user)
@@ -154,22 +177,96 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
                 detail=f"Erro ao salvar dados: {str(e)}"
             )
         
-        # Criar token JWT
-        access_token = create_access_token(data={"sub": db_user.email})
-        
-        return {"access_token": access_token, "token_type": "bearer"}
+        # NÃO criar token JWT ainda - usuário não está verificado
+        # Retornar mensagem indicando que email de verificação foi enviado
+        return EmailVerificationResponse(
+            message="Email de verificação enviado. Verifique seu email para ativar sua conta.",
+            requires_verification=True,
+            email=user_data.email
+        )
     except HTTPException:
         # HTTPException já foi tratada acima, apenas re-raise
         raise
     except Exception as e:
-        db.rollback()  # Garantir rollback em caso de erro inesperado
+        db.rollback()
         import traceback
-        print(f"[ERROR] Erro geral no registro: {str(e)}")
+        print(f"[ERROR] Erro inesperado no registro: {str(e)}")
         print(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno do servidor: {str(e)}"
         )
+
+
+@router.post("/verify-email")
+def verify_email(
+    verification_request: EmailVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """Verifica o código de verificação de email."""
+    user = db.query(User).filter(User.email == verification_request.email).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if user.email_verified:
+        raise HTTPException(status_code=400, detail="Email já verificado")
+    
+    if (not user.verification_code or 
+        not user.verification_code_expires or 
+        user.verification_code_expires < datetime.now()):
+        raise HTTPException(status_code=400, detail="Código expirado ou inválido")
+    
+    if user.verification_code != verification_request.code:
+        raise HTTPException(status_code=400, detail="Código inválido")
+    
+    # Verificação bem-sucedida
+    user.email_verified = True
+    user.is_active = True
+    user.verification_code = None
+    user.verification_code_expires = None
+    db.commit()
+    
+    # Criar token JWT agora que o usuário está verificado
+    access_token = create_access_token(data={"sub": user.email})
+    
+    return {"access_token": access_token, "token_type": "bearer", "message": "Email verificado com sucesso"}
+
+
+class EmailResendRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/resend-verification")
+def resend_verification(
+    email_request: EmailResendRequest,
+    db: Session = Depends(get_db)
+):
+    """Reenvia o código de verificação de email."""
+    user = db.query(User).filter(User.email == email_request.email).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if user.email_verified:
+        raise HTTPException(status_code=400, detail="Email já verificado")
+    
+    # Gerar novo código
+    verification_code = generate_verification_code()
+    expires_at = datetime.now() + timedelta(minutes=1)
+    
+    user.verification_code = verification_code
+    user.verification_code_expires = expires_at
+    db.commit()
+    
+    # Enviar email
+    if not send_verification_email(user.email, verification_code, user.name or "Usuário"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erro ao enviar email de verificação"
+        )
+    
+    return {"message": "Código de verificação reenviado com sucesso"}
 
 
 @router.post("/login", response_model=Token)

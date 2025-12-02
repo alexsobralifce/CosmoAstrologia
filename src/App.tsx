@@ -12,6 +12,9 @@ import { Toaster } from './components/ui/sonner';
 import { ScrollToTop } from './components/scroll-to-top';
 import { apiService } from './services/api';
 import { toast } from 'sonner';
+import { AstroButton } from './components/astro-button';
+import { AstroCard } from './components/astro-card';
+import { AstroInput } from './components/astro-input';
 
 type AppView = 'auth' | 'onboarding' | 'google-onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
 

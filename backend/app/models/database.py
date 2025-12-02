@@ -13,7 +13,10 @@ class User(Base):
     name = Column(String, nullable=True)
     # google_id será adicionado em uma migração futura
     # google_id = Column(String, nullable=True, unique=True)  # Google OAuth ID
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=False)  # Mudar para False até verificação
+    email_verified = Column(Boolean, default=False)  # Novo campo
+    verification_code = Column(String, nullable=True)  # Código de verificação
+    verification_code_expires = Column(DateTime, nullable=True)  # Expiração do código
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

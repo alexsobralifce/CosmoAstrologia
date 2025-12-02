@@ -188,18 +188,39 @@ class ApiService {
     return null as T;
   }
 
-  async registerUser(data: UserRegisterData): Promise<AuthToken> {
-    const response = await this.request<AuthToken>('/api/auth/register', {
+  async registerUser(data: UserRegisterData): Promise<AuthToken | { message: string; requires_verification: boolean; email: string }> {
+    const response = await this.request<AuthToken | { message: string; requires_verification: boolean; email: string }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
 
-    // Salvar token
+    // Se retornou token, salvar (caso não precise verificação)
+    if (response && 'access_token' in response && response.access_token) {
+      localStorage.setItem('auth_token', response.access_token);
+    }
+
+    return response;
+  }
+
+  async verifyEmail(email: string, code: string): Promise<AuthToken> {
+    const response = await this.request<AuthToken>('/api/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email, code }),
+    });
+
+    // Salvar token após verificação
     if (response.access_token) {
       localStorage.setItem('auth_token', response.access_token);
     }
 
     return response;
+  }
+
+  async resendVerificationCode(email: string): Promise<void> {
+    await this.request('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   }
 
   async loginUser(email: string, password: string): Promise<AuthToken> {

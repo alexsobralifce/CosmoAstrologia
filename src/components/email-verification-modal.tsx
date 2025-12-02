@@ -108,8 +108,8 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
       en: 'Verification code',
     },
     codePlaceholder: {
-      pt: 'Digite o código de 6 dígitos',
-      en: 'Enter the 6-digit code',
+      pt: '000000',
+      en: '000000',
     },
     timeLeft: {
       pt: 'Tempo restante',
@@ -176,6 +176,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
               fontSize: '1.5rem',
               letterSpacing: '0.5rem',
               fontFamily: 'monospace',
+              width: '100%',
             }}
             disabled={isLoading || isResending}
           />

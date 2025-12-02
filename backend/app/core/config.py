@@ -29,12 +29,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # Email Configuration (for verification)
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
-    SMTP_USERNAME: str = ""
-    SMTP_PASSWORD: str = ""
-    EMAIL_FROM: str = "noreply@cosmoastral.com.br"
+    # Email Configuration (Resend)
+    RESEND_API_KEY: str = ""
+    # Para desenvolvimento local, use domínio de teste: cosmoastral@resend.dev
+    # Para produção, use domínio verificado: noreply@cosmoastral.com.br
+    EMAIL_FROM: str = "cosmoastral@resend.dev"  # Domínio de teste (local) ou noreply@cosmoastral.com.br (produção)
     
     # Google OAuth (Optional)
     GOOGLE_CLIENT_ID: str = ""

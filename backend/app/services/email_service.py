@@ -1,14 +1,16 @@
 """
-Serviço de email para envio de códigos de verificação.
+Serviço de email para envio de códigos de verificação usando Resend.
 """
-import smtplib
 import secrets
-import socket
-import ssl
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from datetime import datetime, timedelta
+from datetime import datetime
 from app.core.config import settings
+
+try:
+    import resend
+    RESEND_AVAILABLE = True
+except ImportError:
+    RESEND_AVAILABLE = False
+    print("[WARNING] Biblioteca 'resend' não instalada. Execute: pip install resend")
 
 
 def generate_verification_code() -> str:
@@ -18,12 +20,8 @@ def generate_verification_code() -> str:
 
 def send_verification_email(email: str, code: str, name: str) -> bool:
     """
-    Envia email de verificação com código de 6 dígitos.
+    Envia email de verificação com código de 6 dígitos usando Resend.
     Esta função é executada em background e não bloqueia a resposta da API.
-    
-    Tenta múltiplas configurações SMTP:
-    1. STARTTLS (porta 587)
-    2. SSL direto (porta 465)
     
     Args:
         email: Email do destinatário
@@ -33,111 +31,109 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
     Returns:
         bool: True se enviado com sucesso, False caso contrário
     """
-    # Verificar se SMTP está configurado
-    if not all([settings.SMTP_HOST, settings.SMTP_PORT, settings.SMTP_USERNAME, settings.SMTP_PASSWORD]):
-        print(f"[WARNING] SMTP não configurado - Código de verificação para {email}: {code}")
+    # Verificar se Resend está disponível
+    if not RESEND_AVAILABLE:
+        print(f"[WARNING] Resend não disponível - Código de verificação para {email}: {code}")
+        print(f"[WARNING] ⚠️  Instale a biblioteca: pip install resend")
         return True  # Simular sucesso em desenvolvimento
     
-    # Configurar mensagem
-    msg = MIMEMultipart()
-    msg['From'] = settings.EMAIL_FROM
-    msg['To'] = email
-    msg['Subject'] = "Verifique seu email - CosmoAstral"
+    # Verificar se Resend está configurado
+    if not settings.RESEND_API_KEY:
+        print(f"[WARNING] RESEND_API_KEY não configurado - Código de verificação para {email}: {code}")
+        print(f"[WARNING] ⚠️  Configure RESEND_API_KEY no .env ou variáveis de ambiente")
+        return True  # Simular sucesso em desenvolvimento
     
-    # Corpo do email em texto simples
-    body = f"""
-    Olá {name},
+    # Verificar se o domínio está verificado (para evitar erros)
+    # Se usar domínio não verificado, tentar usar domínio de teste
+    email_from = settings.EMAIL_FROM
+    if email_from and '@' in email_from:
+        domain = email_from.split('@')[1]
+        # Se não for domínio de teste do Resend, verificar se pode usar
+        if domain not in ['resend.dev']:
+            # Tentar usar domínio de teste se o domínio customizado falhar
+            # Isso será tratado no try/except abaixo
+            pass
     
-    Seu código de verificação é: {code}
-    
-    Este código expira em 1 minuto.
-    
-    Se você não solicitou este código, ignore este email.
-    
-    Atenciosamente,
-    Equipe CosmoAstral
-    """
-    
-    msg.attach(MIMEText(body, 'plain', 'utf-8'))
-    
-    # Tentar diferentes métodos de conexão SMTP
-    methods = []
-    
-    # Método 1: STARTTLS (porta 587) - padrão
-    if settings.SMTP_PORT == 587 or settings.SMTP_PORT == 25:
-        methods.append(('starttls', settings.SMTP_PORT))
-    
-    # Método 2: SSL direto (porta 465)
-    if settings.SMTP_PORT == 465:
-        methods.append(('ssl', 465))
-    else:
-        # Tentar SSL como fallback se STARTTLS falhar
-        methods.append(('ssl', 465))
-    
-    # Tentar cada método
-    for method, port in methods:
-        try:
-            print(f"[EMAIL] Tentando enviar para {email} via {method.upper()} na porta {port}...")
-            
-            if method == 'ssl':
-                # SSL direto (porta 465)
-                context = ssl.create_default_context()
-                with smtplib.SMTP_SSL(settings.SMTP_HOST, port, timeout=15, context=context) as server:
-                    server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-                    server.send_message(msg)
-            else:
-                # STARTTLS (porta 587 ou 25)
-                with smtplib.SMTP(settings.SMTP_HOST, port, timeout=15) as server:
-                    server.starttls(context=ssl.create_default_context())
-                    server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-                    server.send_message(msg)
-            
-            print(f"[EMAIL] ✅ Código de verificação enviado para {email} via {method.upper()}")
-            return True
-            
-        except (socket.gaierror, socket.herror) as e:
-            # Erro de DNS ou host não encontrado
-            print(f"[ERROR] Erro de rede ao conectar ao SMTP {settings.SMTP_HOST}:{port} - {e}")
-            if method == methods[-1][0]:  # Último método, não tentar mais
-                break
-            continue
-            
-        except (socket.timeout, TimeoutError) as e:
-            print(f"[ERROR] Timeout ao conectar ao SMTP {settings.SMTP_HOST}:{port} - {e}")
-            if method == methods[-1][0]:
-                break
-            continue
-            
-        except (ConnectionRefusedError, OSError) as e:
-            # Erro de conexão (Network unreachable, Connection refused, etc)
-            print(f"[ERROR] Erro de conexão ao SMTP {settings.SMTP_HOST}:{port} - {e}")
-            if method == methods[-1][0]:
-                break
-            continue
-            
-        except smtplib.SMTPAuthenticationError as e:
-            print(f"[ERROR] Erro de autenticação SMTP: {e}")
-            # Não tentar outros métodos se for erro de autenticação
-            return False
-            
-        except smtplib.SMTPException as e:
-            print(f"[ERROR] Erro SMTP ao enviar email para {email}: {e}")
-            if method == methods[-1][0]:
-                break
-            continue
-            
-        except Exception as e:
-            print(f"[ERROR] Erro inesperado ao enviar email para {email} via {method}: {e}")
-            import traceback
-            traceback.print_exc()
-            if method == methods[-1][0]:
-                break
-            continue
-    
-    # Se chegou aqui, todos os métodos falharam
-    print(f"[ERROR] ❌ Falha ao enviar email para {email} após tentar todos os métodos")
-    print(f"[ERROR] Configuração SMTP: HOST={settings.SMTP_HOST}, PORT={settings.SMTP_PORT}")
-    return False
+    try:
+        # Configurar API key do Resend
+        resend.api_key = settings.RESEND_API_KEY
+        
+        # Corpo do email em HTML
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .code {{ font-size: 32px; font-weight: bold; color: #4F46E5; text-align: center; 
+                         padding: 20px; background-color: #F3F4F6; border-radius: 8px; 
+                         letter-spacing: 5px; margin: 20px 0; }}
+                .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #E5E7EB; 
+                          color: #6B7280; font-size: 14px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Verifique seu email - CosmoAstral</h1>
+                <p>Olá {name},</p>
+                <p>Seu código de verificação é:</p>
+                <div class="code">{code}</div>
+                <p>Este código expira em <strong>1 minuto</strong>.</p>
+                <p>Se você não solicitou este código, ignore este email.</p>
+                <div class="footer">
+                    <p>Atenciosamente,<br>Equipe CosmoAstral</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # Enviar email via Resend
+        params = {
+            "from": settings.EMAIL_FROM,
+            "to": email,
+            "subject": "Verifique seu email - CosmoAstral",
+            "html": html_body
+        }
+        
+        print(f"[EMAIL] Enviando email de verificação para {email} via Resend...")
+        r = resend.Emails.send(params)
+        
+        print(f"[EMAIL] ✅ Código de verificação enviado para {email} via Resend")
+        print(f"[EMAIL] Resposta Resend: {r}")
+        return True
+        
+    except Exception as e:
+        error_msg = str(e)
+        print(f"[ERROR] ❌ Erro ao enviar email para {email} via Resend: {e}")
+        
+        # Se o erro for de domínio não verificado, tentar com domínio de teste
+        if "domain is not verified" in error_msg.lower() or "domain not verified" in error_msg.lower():
+            print(f"[WARNING] Domínio não verificado. Tentando com domínio de teste do Resend...")
+            try:
+                # Tentar com domínio de teste
+                params_test = {
+                    "from": "cosmoastral@resend.dev",  # Domínio de teste do Resend
+                    "to": email,
+                    "subject": "Verifique seu email - CosmoAstral",
+                    "html": html_body
+                }
+                resend.api_key = settings.RESEND_API_KEY
+                r = resend.Emails.send(params_test)
+                print(f"[EMAIL] ✅ Email enviado usando domínio de teste (cosmoastral@resend.dev)")
+                print(f"[EMAIL] ⚠️  Para produção, verifique o domínio em https://resend.com/domains")
+                return True
+            except Exception as e2:
+                print(f"[ERROR] ❌ Erro mesmo com domínio de teste: {e2}")
+                import traceback
+                traceback.print_exc()
+                return False
+        
+        import traceback
+        traceback.print_exc()
+        return False
 
 
 def is_verification_code_valid(user_code: str, stored_code: str, expires_at: datetime) -> bool:

@@ -29,11 +29,8 @@
 ```bash
 SECRET_KEY=<gerar-chave-segura>
 GROQ_API_KEY=<sua-chave-groq>
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=<seu-email-gmail>
-SMTP_PASSWORD=<senha-de-app-gmail>  # ⚠️ NÃO use senha normal!
-EMAIL_FROM=<seu-email>
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # API Key do Resend
+EMAIL_FROM=noreply@cosmoastral.com.br  # Domínio verificado no Resend
 ```
 
 #### 🔧 **RECOMENDADAS:**
@@ -106,17 +103,23 @@ CREATE INDEX IF NOT EXISTS idx_pending_registrations_email ON pending_registrati
 CREATE INDEX IF NOT EXISTS idx_pending_registrations_expires ON pending_registrations(verification_code_expires);
 ```
 
-### 3. **Configuração SMTP para Produção**
+### 3. **Configuração Resend para Produção**
 
-#### ⚠️ **Gmail - Senha de App:**
-1. Ative **autenticação de 2 fatores** no Gmail
-2. Crie uma **"Senha de app"** em: https://myaccount.google.com/apppasswords
-3. **Use essa senha** no `SMTP_PASSWORD` (não a senha normal da conta)
+#### ⚠️ **Resend - API Key:**
+1. Acesse: https://resend.com/
+2. Crie uma conta (grátis até 3.000 emails/mês)
+3. Vá para **API Keys** no dashboard
+4. Crie uma nova API Key
+5. **Copie a chave** (começa com `re_`)
+6. Adicione no Railway como `RESEND_API_KEY`
 
-#### 🔧 **Alternativas Recomendadas para Produção:**
-- **SendGrid** (100 emails/dia grátis)
-- **Amazon SES** (escala)
-- **Mailgun** (confiável)
+#### 🔧 **Configurar Domínio (Opcional):**
+1. No dashboard do Resend, vá para **Domains**
+2. Adicione seu domínio (ex: `cosmoastral.com.br`)
+3. Configure os registros DNS conforme instruções
+4. Após verificação, use: `EMAIL_FROM=noreply@cosmoastral.com.br`
+
+**📖 Guia completo:** [CONFIGURACAO_RESEND.md](../backend/CONFIGURACAO_RESEND.md)
 
 ### 4. **Frontend (Vercel)**
 
@@ -133,10 +136,8 @@ VITE_GOOGLE_CLIENT_ID=<seu-client-id>  # Se usar Google OAuth
 ### Backend (Railway)
 - [ ] `SECRET_KEY` configurado (não usar padrão)
 - [ ] `GROQ_API_KEY` configurado
-- [ ] `SMTP_HOST` configurado
-- [ ] `SMTP_USERNAME` configurado
-- [ ] `SMTP_PASSWORD` configurado (senha de app do Gmail)
-- [ ] `EMAIL_FROM` configurado
+- [ ] `RESEND_API_KEY` configurado (API Key do Resend)
+- [ ] `EMAIL_FROM` configurado (noreply@cosmoastral.com.br)
 - [ ] `DATABASE_URL` apontando para PostgreSQL
 - [ ] `CORS_ORIGINS` com URLs do frontend
 - [ ] Banco de dados migrado (tabelas criadas)

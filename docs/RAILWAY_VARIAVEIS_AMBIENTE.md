@@ -43,44 +43,33 @@ Este documento explica como configurar as variáveis de ambiente para fazer depl
 - **Descrição**: Client Secret do Google OAuth
 - **Onde obter**: https://console.cloud.google.com/
 
-### 📧 Email (Verificação de Email)
+### 📧 Email (Resend - Verificação de Email)
 
-#### `SMTP_HOST`
-- **Descrição**: Servidor SMTP para envio de emails de verificação
-- **Exemplos**:
-  - Gmail: `smtp.gmail.com`
-  - SendGrid: `smtp.sendgrid.net`
-  - Outlook: `smtp-mail.outlook.com`
-- **Opcional**: Se não configurado, o sistema funcionará mas não enviará emails (código será logado)
-
-#### `SMTP_PORT`
-- **Descrição**: Porta do servidor SMTP
-- **Padrão**: `587` (STARTTLS)
-- **Alternativa**: `465` (SSL direto)
-- **Opcional**: Usa 587 por padrão
-
-#### `SMTP_USERNAME`
-- **Descrição**: Usuário para autenticação SMTP
-- **Exemplos**:
-  - Gmail: seu email completo
-  - SendGrid: `apikey`
-  - Outlook: seu email completo
-- **Opcional**: Necessário apenas se `SMTP_HOST` estiver configurado
-
-#### `SMTP_PASSWORD`
-- **Descrição**: Senha para autenticação SMTP
-- **⚠️ IMPORTANTE**: 
-  - Gmail: Use "Senha de App" (não a senha normal)
-  - SendGrid: Use sua API Key
-  - Outros: Use senha de app ou API key conforme o provedor
-- **Opcional**: Necessário apenas se `SMTP_HOST` estiver configurado
+#### `RESEND_API_KEY` ⭐ **OBRIGATÓRIO para envio de emails**
+- **Descrição**: API Key do Resend para envio de emails de verificação
+- **Onde obter**: https://resend.com/api-keys
+- **Formato**: `re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+- **Exemplo**: `re_AbCdEf1234567890XyZwVuTsRqPoNmLkJiHgFeDcBa`
+- **⚠️ IMPORTANTE**: Sem esta chave, os emails não serão enviados (código será apenas logado)
 
 #### `EMAIL_FROM`
 - **Descrição**: Email remetente (aparece como "De:")
-- **Padrão**: `noreply@cosmoastral.com.br`
-- **Opcional**: Pode deixar o padrão ou personalizar
+- **Padrão**: `noreply@cosmoastral.com.br` (domínio verificado no Resend)
+- **Alternativa para testes**: `cosmoastral@resend.dev` (domínio de teste do Resend)
+- **Como verificar domínio**: 
+  1. Acesse https://resend.com/domains
+  2. Adicione seu domínio
+  3. Configure os registros DNS conforme instruções
+  4. Após verificação, use seu domínio
 
-**📖 Guia completo de configuração SMTP:** [TROUBLESHOOTING_SMTP.md](../backend/TROUBLESHOOTING_SMTP.md)
+**📖 Guia completo de configuração:** [CONFIGURACAO_RESEND.md](../backend/CONFIGURACAO_RESEND.md)
+
+**✅ Vantagens do Resend:**
+- ✅ Funciona perfeitamente no Railway (sem problemas de rede)
+- ✅ API simples e confiável
+- ✅ Grátis até 3.000 emails/mês
+- ✅ Dashboard para monitoramento
+- ✅ Sem necessidade de configurar SMTP complexo
 
 ### 📝 Opcionais (com valores padrão)
 

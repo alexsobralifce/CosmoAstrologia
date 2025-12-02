@@ -13,6 +13,26 @@ import traceback
 # Criar tabelas
 Base.metadata.create_all(bind=engine)
 
+# Migração automática: Adicionar colunas de verificação de email se não existirem
+# (apenas para PostgreSQL, SQLite já foi migrado manualmente)
+try:
+    from sqlalchemy import text, inspect
+    inspector = inspect(engine)
+    columns = [col['name'] for col in inspector.get_columns('users')]
+    
+    if 'email_verified' not in columns:
+        print("[MIGRATION] Adicionando colunas de verificação de email...")
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code TEXT"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code_expires TIMESTAMP"))
+            conn.execute(text("ALTER TABLE users ALTER COLUMN is_active SET DEFAULT FALSE"))
+            conn.commit()
+            print("[MIGRATION] Colunas de verificação adicionadas com sucesso!")
+except Exception as e:
+    print(f"[MIGRATION] Aviso: Não foi possível executar migração automática: {e}")
+    print("[MIGRATION] Execute o script migrate_email_verification.py manualmente se necessário.")
+
 app = FastAPI(title="Astrologia API")
 
 # CORS - Garantir que domínios de produção estejam incluídos

@@ -189,10 +189,15 @@ class ApiService {
   }
 
   async registerUser(data: UserRegisterData): Promise<AuthToken | { message: string; requires_verification: boolean; email: string }> {
-    const response = await this.request<AuthToken | { message: string; requires_verification: boolean; email: string }>('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    // Timeout maior para registro (60s) pois inclui cálculo do mapa astral
+    const response = await this.request<AuthToken | { message: string; requires_verification: boolean; email: string }>(
+      '/api/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      60000 // 60 segundos de timeout
+    );
 
     // Se retornou token, salvar (caso não precise verificação)
     if (response && 'access_token' in response && response.access_token) {

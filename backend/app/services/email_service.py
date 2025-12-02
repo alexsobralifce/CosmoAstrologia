@@ -3,6 +3,7 @@ Serviço de email para envio de códigos de verificação.
 """
 import smtplib
 import secrets
+import socket
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
@@ -17,6 +18,7 @@ def generate_verification_code() -> str:
 def send_verification_email(email: str, code: str, name: str) -> bool:
     """
     Envia email de verificação com código de 6 dígitos.
+    Esta função é executada em background e não bloqueia a resposta da API.
     
     Args:
         email: Email do destinatário
@@ -28,8 +30,7 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
     """
     # Verificar se SMTP está configurado
     if not all([settings.SMTP_HOST, settings.SMTP_PORT, settings.SMTP_USERNAME, settings.SMTP_PASSWORD]):
-        print("[WARNING] SMTP não configurado - simulando envio de email")
-        print(f"Código de verificação para {email}: {code}")
+        print(f"[WARNING] SMTP não configurado - Código de verificação para {email}: {code}")
         return True  # Simular sucesso em desenvolvimento
     
     try:
@@ -55,17 +56,29 @@ def send_verification_email(email: str, code: str, name: str) -> bool:
         
         msg.attach(MIMEText(body, 'plain', 'utf-8'))
         
-        # Enviar email
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        # Enviar email com timeout
+        socket.setdefaulttimeout(10)  # 10 segundos de timeout para conexão SMTP
+        
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
             server.starttls()
             server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
             server.send_message(msg)
         
-        print(f"[EMAIL] Código de verificação enviado para {email}")
+        print(f"[EMAIL] ✅ Código de verificação enviado para {email}")
         return True
         
+    except smtplib.SMTPException as e:
+        print(f"[ERROR] Erro SMTP ao enviar email para {email}: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+    except socket.timeout:
+        print(f"[ERROR] Timeout ao conectar ao servidor SMTP para {email}")
+        return False
     except Exception as e:
-        print(f"[ERROR] Erro ao enviar email para {email}: {e}")
+        print(f"[ERROR] Erro inesperado ao enviar email para {email}: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

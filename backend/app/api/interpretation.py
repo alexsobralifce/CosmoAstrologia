@@ -1021,13 +1021,21 @@ Cada posicionamento astrológico traz oportunidades de aprendizado e desenvolvim
                 planet_combo = local_kb._planet_sign_combo(planet, sign)
                 house_info = local_kb._house_section(house, planet, sign) if house else None
                 
+                # Construir interpretação fallback (evitar backslash em f-string)
+                house_section = ""
+                if house_info:
+                    # Usar join ao invés de \n direto na f-string para evitar erro de sintaxe
+                    house_section = "\n".join([
+                        f"**Na Casa {house}:**",
+                        str(house_info),
+                        ""
+                    ])
+                
                 interpretation_fallback = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
 
 {planet_combo}
 
-{f'**Na Casa {house}:**\n{house_info}\n\n' if house_info else ''}
-
-**PONTOS FORTES E TALENTOS:**
+{house_section}**PONTOS FORTES E TALENTOS:**
 
 Esta configuração indica qualidades e potencialidades que você pode desenvolver.
 
@@ -1075,13 +1083,21 @@ Observe como essa energia aparece nas diferentes áreas da sua vida, especialmen
             planet_combo = local_kb._planet_sign_combo(planet, sign)
             house_info = local_kb._house_section(house, planet, sign) if house else None
             
+            # Construir interpretação fallback (evitar backslash em f-string)
+            house_section = ""
+            if house_info:
+                # Usar join ao invés de \n direto na f-string para evitar erro de sintaxe
+                house_section = "\n".join([
+                    f"**Na Casa {house}:**",
+                    str(house_info),
+                    ""
+                ])
+            
             interpretation_fallback = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
 
 {planet_combo}
 
-{f'**Na Casa {house}:**\n{house_info}\n\n' if house_info else ''}
-
-**PONTOS FORTES E TALENTOS:**
+{house_section}**PONTOS FORTES E TALENTOS:**
 
 Esta configuração indica qualidades e potencialidades que você pode desenvolver.
 

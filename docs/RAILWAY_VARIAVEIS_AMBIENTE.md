@@ -43,6 +43,45 @@ Este documento explica como configurar as variáveis de ambiente para fazer depl
 - **Descrição**: Client Secret do Google OAuth
 - **Onde obter**: https://console.cloud.google.com/
 
+### 📧 Email (Verificação de Email)
+
+#### `SMTP_HOST`
+- **Descrição**: Servidor SMTP para envio de emails de verificação
+- **Exemplos**:
+  - Gmail: `smtp.gmail.com`
+  - SendGrid: `smtp.sendgrid.net`
+  - Outlook: `smtp-mail.outlook.com`
+- **Opcional**: Se não configurado, o sistema funcionará mas não enviará emails (código será logado)
+
+#### `SMTP_PORT`
+- **Descrição**: Porta do servidor SMTP
+- **Padrão**: `587` (STARTTLS)
+- **Alternativa**: `465` (SSL direto)
+- **Opcional**: Usa 587 por padrão
+
+#### `SMTP_USERNAME`
+- **Descrição**: Usuário para autenticação SMTP
+- **Exemplos**:
+  - Gmail: seu email completo
+  - SendGrid: `apikey`
+  - Outlook: seu email completo
+- **Opcional**: Necessário apenas se `SMTP_HOST` estiver configurado
+
+#### `SMTP_PASSWORD`
+- **Descrição**: Senha para autenticação SMTP
+- **⚠️ IMPORTANTE**: 
+  - Gmail: Use "Senha de App" (não a senha normal)
+  - SendGrid: Use sua API Key
+  - Outros: Use senha de app ou API key conforme o provedor
+- **Opcional**: Necessário apenas se `SMTP_HOST` estiver configurado
+
+#### `EMAIL_FROM`
+- **Descrição**: Email remetente (aparece como "De:")
+- **Padrão**: `noreply@cosmoastral.com.br`
+- **Opcional**: Pode deixar o padrão ou personalizar
+
+**📖 Guia completo de configuração SMTP:** [TROUBLESHOOTING_SMTP.md](../backend/TROUBLESHOOTING_SMTP.md)
+
 ### 📝 Opcionais (com valores padrão)
 
 #### `ALGORITHM`

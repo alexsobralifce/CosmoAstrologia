@@ -15,8 +15,10 @@ import { toast } from 'sonner';
 import { AstroButton } from './components/astro-button';
 import { AstroCard } from './components/astro-card';
 import { AstroInput } from './components/astro-input';
+import { zodiacSigns } from './components/zodiac-icons';
+import { planets } from './components/planet-icons';
 
-type AppView = 'auth' | 'onboarding' | 'google-onboarding' | 'dashboard' | 'interpretation' | 'style-guide';
+type AppView = 'auth' | 'onboarding' | 'google-onboarding' | 'dashboard' | 'interpretation' | 'style-guide' | 'landing';
 
 interface GoogleUserData {
   email: string;
@@ -801,7 +803,7 @@ function AppContent({
 
             <AstroCard>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                {zodiacSigns.map((sign) => (
+                {zodiacSigns.map((sign: { name: string; symbol: string; icon: React.ComponentType<{ className?: string; size?: number }> }) => (
                   <div
                     key={sign.name}
                     className="flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-accent/10 transition-colors"
@@ -826,7 +828,7 @@ function AppContent({
 
             <AstroCard>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {planets.map((planet) => (
+                {planets.map((planet: { name: string; symbol: string; icon: React.ComponentType<{ className?: string; size?: number }> }) => (
                   <div
                     key={planet.name}
                     className="flex flex-col items-center gap-3 p-4 rounded-lg hover:bg-accent/10 transition-colors"

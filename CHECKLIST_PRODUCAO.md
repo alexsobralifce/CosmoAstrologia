@@ -5,6 +5,8 @@
 ### ✅ **Funcionalidades Implementadas:**
 - ✅ Sistema de autenticação (email/senha + Google OAuth)
 - ✅ **Verificação de email com código de 6 dígitos (1 minuto de expiração)** ⭐ NOVO
+- ✅ **Email só é salvo no banco após validação do código** ⭐ NOVO
+- ✅ **Tabela pending_registrations para registros temporários** ⭐ NOVO
 - ✅ Cálculo de mapas astrais
 - ✅ Interpretações com IA (Groq)
 - ✅ Sistema RAG para conhecimento astrológico
@@ -64,17 +66,44 @@ python3 -c "import secrets; print(secrets.token_urlsafe(32))"
    ```
 
 #### ⚠️ **MIGRAÇÃO DO BANCO:**
-As novas colunas (`email_verified`, `verification_code`, `verification_code_expires`) precisam ser criadas no PostgreSQL de produção.
+O sistema criará automaticamente todas as tabelas e colunas necessárias na primeira execução:
 
-**Opção 1: SQLAlchemy automático (recomendado)**
-- O sistema criará automaticamente na primeira execução
+**Tabelas que serão criadas:**
+- `users` (com novas colunas de verificação)
+- `birth_charts`
+- `pending_registrations` ⭐ NOVA - Armazena registros temporários até verificação
 
-**Opção 2: SQL manual**
+**Colunas novas na tabela `users`:**
+- `email_verified` (BOOLEAN)
+- `verification_code` (TEXT)
+- `verification_code_expires` (TIMESTAMP)
+
+**Opção 1: Automático (recomendado)**
+- O sistema detecta e cria automaticamente na primeira execução
+- Verifique os logs: `[MIGRATION] ✅ Tabela pending_registrations criada com sucesso!`
+
+**Opção 2: SQL manual (se necessário)**
 ```sql
+-- Colunas na tabela users
 ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code TEXT;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code_expires DATETIME;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code_expires TIMESTAMP;
 ALTER TABLE users ALTER COLUMN is_active SET DEFAULT FALSE;
+
+-- Tabela pending_registrations
+CREATE TABLE IF NOT EXISTS pending_registrations (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR UNIQUE NOT NULL,
+    password_hash VARCHAR,
+    name VARCHAR,
+    verification_code VARCHAR NOT NULL,
+    verification_code_expires TIMESTAMP NOT NULL,
+    birth_chart_data TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_registrations_email ON pending_registrations(email);
+CREATE INDEX IF NOT EXISTS idx_pending_registrations_expires ON pending_registrations(verification_code_expires);
 ```
 
 ### 3. **Configuração SMTP para Produção**
@@ -111,7 +140,11 @@ VITE_GOOGLE_CLIENT_ID=<seu-client-id>  # Se usar Google OAuth
 - [ ] `DATABASE_URL` apontando para PostgreSQL
 - [ ] `CORS_ORIGINS` com URLs do frontend
 - [ ] Banco de dados migrado (tabelas criadas)
+- [ ] Tabela `pending_registrations` criada
+- [ ] Colunas de verificação na tabela `users` criadas
+- [ ] Foreign key constraint `birth_charts_user_id_fkey` com `ON DELETE CASCADE` (corrigido automaticamente)
 - [ ] Build do Docker funcionando
+- [ ] Health check endpoint (`/health`) funcionando
 - [ ] Logs sem erros críticos
 
 ### Frontend (Vercel)
@@ -186,10 +219,12 @@ VITE_GOOGLE_CLIENT_ID=<seu-client-id>  # Se usar Google OAuth
 ### ✅ **Sistema de Verificação de Email:**
 1. **Backend:**
    - Campos novos no modelo User (`email_verified`, `verification_code`, `verification_code_expires`)
-   - Endpoint `/register` modificado para enviar email
-   - Endpoint `/verify-email` para verificar código
+   - **Nova tabela `PendingRegistration`** para armazenar registros temporários ⭐
+   - Endpoint `/register` modificado: **NÃO cria usuário**, apenas `PendingRegistration`
+   - Endpoint `/verify-email` modificado: **Cria usuário apenas após validação do código**
    - Endpoint `/resend-verification` para reenviar código
-   - Serviço de email configurado
+   - Serviço de email configurado com retry automático (STARTTLS + SSL)
+   - **Google OAuth**: Cria usuário diretamente (sem verificação) ⭐
 
 2. **Frontend:**
    - Modal de verificação criado
@@ -202,6 +237,13 @@ VITE_GOOGLE_CLIENT_ID=<seu-client-id>  # Se usar Google OAuth
    - Variáveis SMTP no `.env`
    - Tempo de expiração: 1 minuto
    - Código de 6 dígitos
+   - **Email só é salvo no banco após verificação** ⭐
+
+4. **Fluxo de Registro:**
+   - Usuário preenche formulário → Cria `PendingRegistration` (não cria `User`)
+   - Envia código por email
+   - Usuário digita código → Valida e **cria `User` e `BirthChart`**
+   - Deleta `PendingRegistration`
 
 ---
 

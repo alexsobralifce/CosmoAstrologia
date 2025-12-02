@@ -1,7 +1,24 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Boolean, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+
+
+class PendingRegistration(Base):
+    """Tabela temporária para armazenar registros pendentes de verificação de email."""
+    __tablename__ = "pending_registrations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=True)
+    name = Column(String, nullable=True)
+    verification_code = Column(String, nullable=False)
+    verification_code_expires = Column(DateTime, nullable=False)
+    
+    # Dados do mapa astral (armazenados como JSON string)
+    birth_chart_data = Column(Text, nullable=False)  # JSON string com todos os dados
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class User(Base):
@@ -28,7 +45,7 @@ class BirthChart(Base):
     __tablename__ = "birth_charts"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     # Birth data
     name = Column(String, nullable=False)

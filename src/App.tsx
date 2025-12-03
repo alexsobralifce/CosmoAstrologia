@@ -10,6 +10,7 @@ import { ThemeToggle } from './components/theme-toggle';
 import { LanguageToggle } from './components/language-toggle';
 import { Toaster } from './components/ui/sonner';
 import { ScrollToTop } from './components/scroll-to-top';
+import { SEOHead, useSEO } from './components/seo-head';
 import { apiService } from './services/api';
 import { toast } from 'sonner';
 import { AstroButton } from './components/astro-button';
@@ -467,6 +468,9 @@ function AppContent({
   handleViewInterpretation,
   handleBackToDashboard,
 }: AppContentProps) {
+  // Atualizar SEO baseado na view atual
+  useSEO(currentView);
+  
   // Mostrar loading enquanto verifica autenticação
   if (isCheckingAuth) {
     return (
@@ -498,6 +502,12 @@ function AppContent({
   if (currentView === 'auth') {
     return (
       <>
+        <SEOHead
+          title="Astrologia Online Grátis - Faça Login | Cosmos Astral"
+          description="Acesse sua conta no Cosmos Astral e descubra seu mapa astral completo. Calcule seu mapa natal e receba interpretações personalizadas de astrologia."
+          keywords="astrologia online, login astrologia, mapa astral, calcular mapa natal, astrologia grátis"
+          canonicalUrl="https://cosmoastral.com.br/login"
+        />
         <div className="controls-container">
           <ThemeToggle />
           <div className="controls-divider"></div>
@@ -559,7 +569,14 @@ function AppContent({
   // Dashboard
   if (currentView === 'dashboard' && userData) {
     return (
-      <CosmosDashboard
+      <>
+        <SEOHead
+          title="Dashboard - Seu Mapa Astral Completo | Cosmos Astral"
+          description="Visualize seu mapa astral completo com interpretações detalhadas de planetas, signos e casas. Receba conselhos diários baseados em trânsitos planetários."
+          keywords="mapa astral completo, dashboard astrologia, interpretação astrológica, trânsitos planetários, mapa natal"
+          canonicalUrl="https://cosmoastral.com.br/dashboard"
+        />
+        <CosmosDashboard
         userData={userData}
         onViewInterpretation={handleViewInterpretation}
         onLogout={() => {
@@ -586,7 +603,17 @@ function AppContent({
 
   // Interpretation Page
   if (currentView === 'interpretation') {
-    return <InterpretationPage topicId={selectedTopic} onBack={handleBackToDashboard} />;
+    return (
+      <>
+        <SEOHead
+          title="Interpretação Astrológica Detalhada | Cosmos Astral"
+          description="Descubra interpretações detalhadas dos planetas em seu mapa astral. Análise completa de signos, casas e aspectos planetários."
+          keywords="interpretação astrológica, planetas em signos, casas astrológicas, aspectos planetários, análise mapa natal"
+          canonicalUrl="https://cosmoastral.com.br/interpretation"
+        />
+        <InterpretationPage topicId={selectedTopic} onBack={handleBackToDashboard} />
+      </>
+    );
   }
 
   // Style Guide

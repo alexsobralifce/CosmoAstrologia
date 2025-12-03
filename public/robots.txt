@@ -1,0 +1,25 @@
+# robots.txt para Cosmos Astral
+# Permite que todos os buscadores indexem o site
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://cosmoastral.com.br/sitemap.xml
+
+# Desabilitar indexação de arquivos de build e assets
+Disallow: /build/
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /*.json$
+Disallow: /*.js$
+Disallow: /*.css$
+
+# Permitir indexação de páginas principais
+Allow: /
+Allow: /login
+Allow: /dashboard
+
+# Crawl-delay (opcional, ajuda a não sobrecarregar o servidor)
+Crawl-delay: 1
+

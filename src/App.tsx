@@ -4,6 +4,7 @@ import { GoogleOnboarding, GoogleOnboardingData } from './components/google-onbo
 import { CosmosDashboard } from './components/cosmos-dashboard';
 import { InterpretationPage } from './components/interpretation-page';
 import { AuthPortal, AuthUserData } from './components/auth-portal';
+import { LandingPage } from './components/landing-page';
 import { UIIcons } from './components/ui-icons';
 import { ThemeProvider } from './components/theme-provider';
 import { ThemeToggle } from './components/theme-toggle';
@@ -28,7 +29,7 @@ interface GoogleUserData {
 }
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<AppView>('auth');
+  const [currentView, setCurrentView] = useState<AppView>('landing');
   const [userData, setUserData] = useState<OnboardingData | null>(null);
   const [authData, setAuthData] = useState<AuthUserData | null>(null);
   const [googleData, setGoogleData] = useState<GoogleUserData | null>(null);
@@ -43,6 +44,7 @@ export default function App() {
         // Verificar se há token no localStorage
         const token = localStorage.getItem('auth_token');
         if (!token) {
+          setCurrentView('landing');
           setIsCheckingAuth(false);
           return;
         }
@@ -52,6 +54,7 @@ export default function App() {
         if (!userInfo) {
           // Token inválido, limpar e ir para landing
           apiService.logout();
+          setCurrentView('landing');
           setIsCheckingAuth(false);
           return;
         }
@@ -126,6 +129,7 @@ export default function App() {
         console.error('Erro ao verificar autenticação:', error);
         // Em caso de erro, limpar token e ir para landing
         apiService.logout();
+        setCurrentView('landing');
       } finally {
         setIsCheckingAuth(false);
       }
@@ -498,7 +502,25 @@ function AppContent({
     );
   }
 
-  // Auth Portal (sem landing page)
+  // Landing Page (página inicial)
+  if (currentView === 'landing') {
+    return (
+      <>
+        <SEOHead
+          title="Astrologia Online Grátis - Mapa Astral Completo | CosmoAstral"
+          description="Descubra os segredos das estrelas e transforme sua vida. Acesso 100% gratuito ao seu mapa astral completo com interpretações personalizadas."
+          keywords="astrologia online, mapa astral grátis, astrologia, numerologia, mapa natal, horóscopo personalizado"
+          canonicalUrl="https://cosmoastral.com.br/"
+        />
+        <LandingPage 
+          onEnter={() => setCurrentView('auth')}
+          onGetStarted={() => setCurrentView('auth')}
+        />
+      </>
+    );
+  }
+
+  // Auth Portal
   if (currentView === 'auth') {
     return (
       <>
@@ -557,7 +579,7 @@ function AppContent({
           initialName={authData?.name}
           initialPassword={tempPassword || undefined}
           onBackToLogin={() => {
-            setCurrentView('auth');
+            setCurrentView('landing');
             setAuthData(null);
             setTempPassword(null);
           }}
@@ -576,12 +598,12 @@ function AppContent({
           keywords="mapa astral completo, dashboard astrologia, interpretação astrológica, trânsitos planetários, mapa natal"
           canonicalUrl="https://cosmoastral.com.br/dashboard"
         />
-        <CosmosDashboard
+      <CosmosDashboard
         userData={userData}
         onViewInterpretation={handleViewInterpretation}
         onLogout={() => {
           apiService.logout();
-          setCurrentView('auth');
+          setCurrentView('landing');
           setUserData(null);
           setAuthData(null);
           setTempPassword(null);
@@ -597,7 +619,7 @@ function AppContent({
             } : undefined,
           });
         }}
-        />
+      />
       </>
     );
   }

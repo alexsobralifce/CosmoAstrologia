@@ -3,7 +3,7 @@ node_modules/
 venv/
 .venv/
 .venv312/
-
+.cursormcp/
 # Build outputs
 dist/
 build/

@@ -1109,6 +1109,33 @@ Seja criativo mas baseado em conhecimento astrológico sólido. Explique como is
                 
                 print(f"[PLANET API] Interpretação gerada com sucesso (tamanho: {len(interpretation_clean)} chars)")
                 
+                # Salvar interpretação para aprendizado contínuo (em background, não bloqueia resposta)
+                try:
+                    from app.services.rag_learning_service import get_learning_service
+                    learning_service = get_learning_service()
+                    
+                    # Preparar metadados
+                    learning_metadata = {
+                        "planet": planet,
+                        "sign": sign,
+                        "house": house,
+                        "category": "astrology",
+                        "query": query,
+                        "sunSign": request.sunSign,
+                        "moonSign": request.moonSign,
+                        "ascendant": request.ascendant
+                    }
+                    
+                    # Salvar de forma assíncrona (não bloqueia resposta)
+                    learning_service.save_interpretation(
+                        interpretation=interpretation_clean,
+                        query=query,
+                        metadata=learning_metadata
+                    )
+                except Exception as learning_error:
+                    # Não falhar se houver erro no aprendizado
+                    print(f"[PLANET API] Erro ao salvar para aprendizado (não crítico): {learning_error}")
+                
                 return {
                     "interpretation": interpretation_clean,
                     "sources": [
@@ -1172,7 +1199,7 @@ Seja criativo mas baseado em conhecimento astrológico sólido. Explique como is
                 relevant_context += " ".join(planet_contexts[:2])[:500]
             if house_contexts:
                 relevant_context += " " + " ".join(house_contexts[:2])[:500]
-            
+        
             # Se não encontrou contextos específicos, usar o contexto geral
             if not relevant_context or len(relevant_context.strip()) < 100:
                 relevant_context = context_text[:1000]
@@ -1225,14 +1252,14 @@ Cada posicionamento astrológico traz oportunidades de aprendizado e desenvolvim
         
         return {
             "interpretation": interpretation_clean,
-                    "sources": [
-                        {
-                            "source": r.get('source', 'knowledge_base'),
-                            "page": r.get('page', 1),
-                            "relevance": r.get('score', 0.5)
-                        }
+            "sources": [
+                {
+                    "source": r.get('source', 'knowledge_base'),
+                    "page": r.get('page', 1),
+                    "relevance": r.get('score', 0.5)
+                }
                         for r in all_results[:5]
-                    ],
+            ],
             "query_used": query,
             "queries_used": queries if 'queries' in locals() else [query],
             "generated_by": "rag_only"

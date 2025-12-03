@@ -753,8 +753,12 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
           console.error('[AUTH] Erro ao inicializar Google Identity Services:', error);
           
           // Se for erro de origin não permitido, mostrar mensagem útil
-          if (error?.message?.includes('origin') || error?.message?.includes('not allowed')) {
-            console.warn('[AUTH] Origin não configurado no Google Cloud Console. Adicione a URL atual nas "Authorized JavaScript origins" do seu Client ID.');
+          if (error?.message?.includes('origin') || error?.message?.includes('not allowed') || error?.message?.includes('origin_mismatch')) {
+            const currentOrigin = window.location.origin;
+            console.warn('[AUTH] Origin não configurado no Google Cloud Console.');
+            console.warn(`[AUTH] URL atual: ${currentOrigin}`);
+            console.warn(`[AUTH] Adicione esta URL nas "Authorized JavaScript origins" do seu Client ID no Google Cloud Console: ${currentOrigin}`);
+            console.warn('[AUTH] Guia completo: backend/CONFIGURAR_GOOGLE_OAUTH_LOCAL.md');
           }
         }
       }

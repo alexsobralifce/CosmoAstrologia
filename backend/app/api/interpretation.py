@@ -780,11 +780,25 @@ Você é alguém que precisa se sentir especial e valorizado. Não é egoísmo -
 IMPORTANTE:
 - Escreva NO MÍNIMO 4 parágrafos completos
 - Use "você" para se dirigir diretamente à pessoa
-- Seja específico e prático, não genérico
-- Inclua pelo menos 2 exemplos concretos e aplicáveis
+- Seja ESPECÍFICO e prático, não genérico
+- Cada planeta em cada casa tem significados ÚNICOS - não use interpretações genéricas
+- Se houver informações no CONHECIMENTO ASTROLÓGICO ENCONTRADO NO RAG, USE-AS ESPECIFICAMENTE
+- ORGANIZE as informações do RAG de forma clara e prática
+- EXPLIQUE como as informações do RAG se manifestam na vida real da pessoa
+- Destaque características ESPECÍFICAS de {planet} em {sign}{f' na Casa {house}' if house else ''}
+- Inclua pelo menos 2 exemplos concretos e aplicáveis relacionados ESPECIFICAMENTE a esta combinação
 - Evite termos técnicos - se usar, explique imediatamente
 - Foque em como isso aparece na vida real, não em teorias astrológicas
-- Use APENAS o elemento e dignidade fornecidos no bloco de segurança"""
+- NÃO repita interpretações genéricas - cada combinação planeta+signo+casa é ÚNICA
+- NÃO apenas copie o texto do RAG - organize, explique e aplique de forma prática
+- Use APENAS o elemento e dignidade fornecidos no bloco de segurança
+
+🚨 UNICIDADE OBRIGATÓRIA:
+- Esta interpretação é para {planet} em {sign}{f' na Casa {house}' if house else ''} - uma combinação ESPECÍFICA
+- Se fosse outro planeta na mesma casa, ou o mesmo planeta em outra casa, a interpretação seria COMPLETAMENTE DIFERENTE
+- Cada casa representa uma área diferente da vida, então {planet} na Casa {house} tem significados que NÃO se aplicam a outras casas
+- Destaque aspectos que são EXCLUSIVOS desta combinação exata
+- Evite estruturas ou frases que poderiam ser usadas para qualquer planeta ou casa"""
     
     return system_prompt, user_prompt
 
@@ -827,39 +841,177 @@ async def get_planet_interpretation(
                 detail="Signo é obrigatório"
             )
         
-        # Buscar contexto do RAG primeiro (com tratamento de erro)
-        query_parts = [f"{planet} em {sign}"]
-        if house:
-            query_parts.append(f"casa {house}")
+        # Buscar informações específicas sobre planeta + casa no RAG
+        # Criar vetor estruturado com informações específicas
+        planet_house_info = {
+            "planet": planet,
+            "sign": sign,
+            "house": house,
+            "found": False,
+            "planet_in_house": "",  # Informações específicas sobre o planeta nesta casa
+            "house_meaning": "",  # Significado geral da casa
+            "planet_in_sign": "",  # Planeta no signo
+            "combined_interpretation": "",  # Interpretação combinada
+            "sources": []
+        }
         
-        query = " ".join(query_parts)
-        results = []
+        all_results = []
+        seen_texts = set()
         context_text = ""
         
         # Tentar buscar no RAG, mas tratar erro se índice não estiver carregado
         if rag_service:
             try:
-                # Tentar buscar - o método search() lançará ValueError se índice não estiver carregado
-                results = rag_service.search(query, top_k=6, expand_query=True)
-                # Preparar contexto dos documentos
-                context_text = "\n\n".join([
-                    doc.get('text', '')
-                    for doc in results[:6]  # Usar até 6 documentos
-                    if doc.get('text')
-                ])
+                print(f"[PLANET API] 🔍 Buscando informações específicas sobre {planet} na Casa {house}...")
+                
+                # 1. Buscar informações específicas sobre PLANETA + CASA (mais importante)
+                if house and house > 0:
+                    planet_house_queries = [
+                        f"{planet} na casa {house}",
+                        f"{planet} casa {house}",
+                        f"significado {planet} casa {house}",
+                        f"interpretação {planet} casa {house}",
+                        f"{planet} na {house}ª casa",
+                        f"casa {house} {planet}",
+                    ]
+                    
+                    for query in planet_house_queries:
+                        try:
+                            query_results = rag_service.search(query, top_k=5, expand_query=True)
+                            for doc in query_results:
+                                text = doc.get('text', '').strip()
+                                if text and len(text) > 50:
+                                    # Verificar se o texto menciona o planeta e a casa
+                                    text_lower = text.lower()
+                                    planet_lower = planet.lower()
+                                    if planet_lower in text_lower and f"casa {house}" in text_lower:
+                                        text_hash = hash(text[:300])
+                                        if text_hash not in seen_texts:
+                                            seen_texts.add(text_hash)
+                                            all_results.append(doc)
+                                            planet_house_info["found"] = True
+                                            if not planet_house_info["planet_in_house"]:
+                                                planet_house_info["planet_in_house"] = text[:500]
+                        except Exception as query_error:
+                            print(f"[PLANET API] Erro ao buscar '{query}': {str(query_error)}")
+                            continue
+                
+                # 2. Buscar significado geral da CASA
+                if house and house > 0:
+                    house_queries = [
+                        f"casa {house} significado",
+                        f"casa {house} interpretação",
+                        f"significado casa {house}",
+                        f"a casa {house}",
+                    ]
+                    
+                    for query in house_queries:
+                        try:
+                            query_results = rag_service.search(query, top_k=3, expand_query=True)
+                            for doc in query_results:
+                                text = doc.get('text', '').strip()
+                                if text and len(text) > 50 and f"casa {house}" in text.lower():
+                                    text_hash = hash(text[:300])
+                                    if text_hash not in seen_texts:
+                                        seen_texts.add(text_hash)
+                                        all_results.append(doc)
+                                        if not planet_house_info["house_meaning"]:
+                                            planet_house_info["house_meaning"] = text[:400]
+                        except Exception as query_error:
+                            continue
+                
+                # 3. Buscar informações sobre PLANETA no SIGNO
+                planet_sign_queries = [
+                    f"{planet} em {sign}",
+                    f"{planet} {sign}",
+                    f"significado {planet} {sign}",
+                ]
+                
+                for query in planet_sign_queries:
+                    try:
+                        query_results = rag_service.search(query, top_k=3, expand_query=True)
+                        for doc in query_results:
+                            text = doc.get('text', '').strip()
+                            if text and len(text) > 50:
+                                text_hash = hash(text[:300])
+                                if text_hash not in seen_texts:
+                                    seen_texts.add(text_hash)
+                                    all_results.append(doc)
+                                    if not planet_house_info["planet_in_sign"]:
+                                        planet_house_info["planet_in_sign"] = text[:400]
+                    except Exception as query_error:
+                        continue
+                
+                # Ordenar resultados por relevância
+                all_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+                
+                # Construir contexto estruturado
+                context_parts = []
+                
+                if planet_house_info["planet_in_house"]:
+                    context_parts.append(f"INFORMAÇÕES ESPECÍFICAS SOBRE {planet.upper()} NA CASA {house}:\n{planet_house_info['planet_in_house']}")
+                
+                if planet_house_info["house_meaning"]:
+                    context_parts.append(f"SIGNIFICADO DA CASA {house}:\n{planet_house_info['house_meaning']}")
+                
+                if planet_house_info["planet_in_sign"]:
+                    context_parts.append(f"{planet.upper()} EM {sign.upper()}:\n{planet_house_info['planet_in_sign']}")
+                
+                # Adicionar outros resultados relevantes
+                other_results = []
+                for doc in all_results[:5]:
+                    text = doc.get('text', '').strip()
+                    if text and len(text) > 50:
+                        # Verificar se já não foi incluído
+                        if text[:200] not in planet_house_info["planet_in_house"] and \
+                           text[:200] not in planet_house_info["house_meaning"] and \
+                           text[:200] not in planet_house_info["planet_in_sign"]:
+                            other_results.append(text[:300])
+                
+                if other_results:
+                    context_parts.append(f"OUTRAS INFORMAÇÕES RELEVANTES:\n" + "\n\n".join(other_results[:3]))
+                
+                context_text = "\n\n---\n\n".join(context_parts)
+                
+                # Armazenar fontes
+                planet_house_info["sources"] = [
+                    {
+                        "source": doc.get('source', 'knowledge_base'),
+                        "page": doc.get('page', 1),
+                        "score": doc.get('score', 0)
+                    }
+                    for doc in all_results[:5]
+                ]
+                
                 if context_text:
-                    print(f"[PLANET API] Contexto RAG encontrado: {len(results)} resultados, {len(context_text)} caracteres")
+                    print(f"[PLANET API] ✅ Informações encontradas no RAG:")
+                    print(f"   - Planeta na casa: {'✅' if planet_house_info['planet_in_house'] else '❌'}")
+                    print(f"   - Significado da casa: {'✅' if planet_house_info['house_meaning'] else '❌'}")
+                    print(f"   - Planeta no signo: {'✅' if planet_house_info['planet_in_sign'] else '❌'}")
+                    print(f"   - Total de resultados: {len(all_results)}")
+                    print(f"   - Contexto: {len(context_text)} caracteres")
+                else:
+                    print(f"[PLANET API] ⚠️ Nenhuma informação específica encontrada sobre {planet} na Casa {house}")
+                    print(f"[PLANET API] O RAG não contém informações detalhadas sobre esta combinação específica.")
+                    planet_house_info["found"] = False
+                    
             except ValueError as e:
                 error_msg = str(e)
-                if "não carregado" in error_msg.lower() or "load_index" in error_msg.lower() or "process_all_documents" in error_msg.lower():
+                if "não carregado" in error_msg.lower() or "load_index" in error_msg.lower():
                     print(f"[PLANET API] ⚠️ Índice RAG não carregado: {error_msg}")
-                    print(f"[PLANET API] Continuando sem contexto RAG - interpretação será gerada apenas com Groq/conhecimento base")
+                    planet_house_info["found"] = False
                 else:
-                    print(f"[PLANET API] ⚠️ Erro ao buscar no RAG: {error_msg}. Continuando sem contexto RAG.")
-            except AttributeError as e:
-                print(f"[PLANET API] ⚠️ Erro de atributo ao buscar no RAG: {str(e)}. Continuando sem contexto RAG.")
+                    print(f"[PLANET API] ⚠️ Erro ao buscar no RAG: {error_msg}")
+                    planet_house_info["found"] = False
             except Exception as e:
-                print(f"[PLANET API] ⚠️ Erro inesperado ao buscar no RAG: {str(e)}. Continuando sem contexto RAG.")
+                print(f"[PLANET API] ⚠️ Erro inesperado ao buscar no RAG: {str(e)}")
+                planet_house_info["found"] = False
+        else:
+            print(f"[PLANET API] ⚠️ RAG service não disponível")
+            planet_house_info["found"] = False
+        
+        # Usar a primeira query como query principal para logs
+        query = f"{planet} em {sign}" + (f" na Casa {house}" if house and house > 0 else "")
         
         # Gerar prompt prático NOVO (não o antigo)
         print(f"[PLANET API] Gerando novo prompt prático para {planet} em {sign}")
@@ -875,10 +1027,57 @@ async def get_planet_interpretation(
         print(f"[PLANET API] Prompt gerado - system_prompt length: {len(system_prompt)}, user_prompt length: {len(user_prompt)}")
         print(f"[PLANET API] Preview do user_prompt (primeiros 500 chars): {user_prompt[:500]}")
         
-        # Se tem contexto do RAG, adicionar ao prompt
-        if context_text and len(context_text.strip()) > 50:
-            user_prompt += f"\n\nCONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:\n{context_text[:2000]}"
-            print(f"[PLANET API] Contexto do RAG adicionado ({len(context_text)} chars)")
+        # Se tem contexto do RAG, adicionar ao prompt de forma estruturada
+        if context_text and len(context_text.strip()) > 50 and planet_house_info["found"]:
+            # Construir prompt estruturado com as informações encontradas
+            structured_context = f"""
+
+═══════════════════════════════════════════════════════════════
+CONHECIMENTO ASTROLÓGICO ENCONTRADO NO RAG
+═══════════════════════════════════════════════════════════════
+
+{context_text}
+
+═══════════════════════════════════════════════════════════════
+INSTRUÇÕES PARA USAR ESTAS INFORMAÇÕES:
+═══════════════════════════════════════════════════════════════
+
+1. USE as informações específicas sobre {planet} na Casa {house} encontradas acima
+2. COMBINE essas informações de forma natural e prática
+3. EXPLIQUE como isso aparece na vida real da pessoa
+4. SEJA ESPECÍFICO - não use interpretações genéricas
+5. Se houver informações sobre a Casa {house}, integre-as na interpretação
+6. Se houver informações sobre {planet} em {sign}, use-as como contexto adicional
+7. CRIE uma interpretação ÚNICA e PERSONALIZADA baseada nestas informações
+
+🚨 REGRA CRÍTICA DE UNICIDADE:
+- Esta é uma combinação ESPECÍFICA: {planet} em {sign} na Casa {house}
+- Cada planeta em cada casa tem significados COMPLETAMENTE DIFERENTES
+- NÃO use a mesma estrutura ou exemplos que usaria para outro planeta ou outra casa
+- Destaque características que são ESPECÍFICAS desta combinação exata
+- Se {planet} estivesse em outra casa, a interpretação seria TOTALMENTE diferente
+- Foque em aspectos que só fazem sentido para {planet} na Casa {house}
+
+IMPORTANTE: Não apenas copie o texto. Organize, explique e aplique essas informações de forma prática e acessível, mostrando COMO isso aparece na vida da pessoa de forma ÚNICA para esta combinação específica.
+
+═══════════════════════════════════════════════════════════════
+"""
+            user_prompt += structured_context
+            print(f"[PLANET API] ✅ Contexto estruturado do RAG adicionado ({len(context_text)} chars)")
+        elif not planet_house_info["found"] and house and house > 0:
+            # Avisar que não encontrou informações específicas
+            user_prompt += f"""
+
+⚠️ AVISO: Não foram encontradas informações específicas no RAG sobre {planet} na Casa {house}.
+
+Você deve criar uma interpretação baseada em:
+- O significado geral de {planet} em {sign}
+- O significado geral da Casa {house}
+- Como essas energias se combinam na prática
+
+Seja criativo mas baseado em conhecimento astrológico sólido. Explique como isso aparece na vida real da pessoa.
+"""
+            print(f"[PLANET API] ⚠️ Nenhuma informação específica encontrada - usando interpretação baseada em conhecimento geral")
         
         # Gerar interpretação com Groq usando o novo prompt prático (se disponível)
         groq_client = _get_groq_client()
@@ -893,7 +1092,7 @@ async def get_planet_interpretation(
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    temperature=0.7,
+                    temperature=0.8,  # Aumentado para mais variação e criatividade nas interpretações
                     max_tokens=2000
                 )
                 
@@ -918,9 +1117,15 @@ async def get_planet_interpretation(
                             "page": r.get('page', 1),
                             "relevance": r.get('score', 0.5)
                         }
-                        for r in results[:5]
+                        for r in all_results[:5]
                     ],
                     "query_used": query,
+                    "rag_info_found": planet_house_info.get("found", False),
+                    "rag_info": {
+                        "planet_in_house_found": bool(planet_house_info.get("planet_in_house", "")),
+                        "house_meaning_found": bool(planet_house_info.get("house_meaning", "")),
+                        "planet_in_sign_found": bool(planet_house_info.get("planet_in_sign", ""))
+                    },
                     "generated_by": "groq"
                 }
             except Exception as e:
@@ -934,43 +1139,67 @@ async def get_planet_interpretation(
         
         # FALLBACK: Gerar interpretação básica usando apenas contexto do RAG
         print(f"[PLANET API] Usando fallback: gerando interpretação sem Groq para {planet} em {sign}")
+        print(f"[PLANET API] Contexto RAG disponível: {len(context_text) if context_text else 0} caracteres")
+        print(f"[PLANET API] Resultados RAG: {len(all_results)} documentos")
         
-        # Criar interpretação básica baseada no contexto do RAG
-        # Extrair informações relevantes do contexto para tornar o fallback mais útil
-        import re
-        relevant_info = ""
-        if context_text and len(context_text.strip()) > 50:
-            # Tentar extrair parágrafos relevantes do contexto
-            sentences = context_text.split('.')
-            relevant_sentences = [s.strip() for s in sentences 
-                                if planet.lower() in s.lower() or sign.lower() in s.lower() 
-                                or (house and f'casa {house}' in s.lower())]
-            if relevant_sentences:
-                relevant_info = '. '.join(relevant_sentences[:3])[:400]
-        
-        if context_text and len(context_text.strip()) > 50:
-            # Usar contexto do RAG para criar interpretação básica mais rica
+        # Se temos contexto do RAG, usar informações específicas dele
+        if context_text and len(context_text.strip()) > 50 and len(all_results) > 0:
+            # Extrair informações específicas do contexto do RAG
+            import re
+            
+            # Buscar informações específicas sobre o planeta
+            planet_pattern = rf'\b{re.escape(planet)}\b'
+            planet_matches = re.finditer(planet_pattern, context_text, re.IGNORECASE)
+            planet_contexts = []
+            for match in planet_matches:
+                start = max(0, match.start() - 200)
+                end = min(len(context_text), match.end() + 200)
+                planet_contexts.append(context_text[start:end])
+            
+            # Buscar informações sobre a casa se especificada
+            house_contexts = []
+            if house and house > 0:
+                house_pattern = rf'\bcasa\s+{house}\b'
+                house_matches = re.finditer(house_pattern, context_text, re.IGNORECASE)
+                for match in house_matches:
+                    start = max(0, match.start() - 200)
+                    end = min(len(context_text), match.end() + 200)
+                    house_contexts.append(context_text[start:end])
+            
+            # Combinar contextos relevantes
+            relevant_context = ""
+            if planet_contexts:
+                relevant_context += " ".join(planet_contexts[:2])[:500]
+            if house_contexts:
+                relevant_context += " " + " ".join(house_contexts[:2])[:500]
+            
+            # Se não encontrou contextos específicos, usar o contexto geral
+            if not relevant_context or len(relevant_context.strip()) < 100:
+                relevant_context = context_text[:1000]
+            
+            # Criar interpretação baseada no contexto do RAG
             interpretation_clean = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
 
-Ter {planet} em {sign}{f' na Casa {house}' if house else ''} no seu mapa astral revela aspectos importantes da sua personalidade e jornada de vida. {planet} representa transformação profunda, enquanto {sign} busca equilíbrio e harmonia. {f'Na Casa {house},' if house else 'No mapa,'} isso se manifesta de forma particular nas áreas relacionadas a{' transformação e recursos compartilhados' if house == 8 else ' sua vida pessoal'}.
+Ter {planet} em {sign}{f' na Casa {house}' if house else ''} no seu mapa astral revela aspectos importantes da sua personalidade e jornada de vida.
+
+Baseado no conhecimento astrológico: {relevant_context[:400]}...
 
 **PONTOS FORTES E TALENTOS:**
 
-Esta configuração indica talentos e qualidades que você desenvolve naturalmente. {planet} em {sign} sugere uma capacidade única de transformar relacionamentos e buscar profundidade através da diplomacia e do equilíbrio. Você tem potencial para mudanças significativas mantendo harmonia nas suas conexões.
+Esta configuração indica talentos e qualidades específicas relacionadas a {planet} em {sign}{f' na Casa {house}' if house else ''}. O conhecimento astrológico sugere que esta posição traz características únicas que você pode desenvolver.
 
 **DESAFIOS E CRESCIMENTO:**
 
-Como todos os posicionamentos astrológicos, este também apresenta oportunidades de aprendizado. {planet} pode trazer intensidade às suas relações, enquanto {sign} busca harmonia - encontrar o equilíbrio entre essas duas energias é parte do seu crescimento pessoal.
+Cada posicionamento astrológico traz oportunidades de aprendizado. {planet} em {sign}{f' na Casa {house}' if house else ''} apresenta desafios específicos relacionados às energias deste planeta e signo nesta área da vida.
 
 **EXEMPLOS PRÁTICOS:**
 
-1. Em relacionamentos, você pode buscar conexões profundas e transformadoras, mas sempre com respeito ao equilíbrio. Você tem a capacidade de ajudar parceiros a se transformarem, mas precisa cuidar para não impor suas próprias necessidades de mudança.
-
-2. {f'Na área da Casa {house},' if house else 'Nas áreas da vida,'} você pode encontrar transformações significativas relacionadas a processos profundos e renascimento pessoal.
+1. Esta configuração se manifesta de formas particulares relacionadas a {planet} e {sign}{f' na Casa {house}' if house else ''}.
+2. Observe como essa energia aparece especificamente nas áreas relacionadas a esta posição.
 
 ---
 
-*Interpretação gerada com base no conhecimento astrológico disponível.*"""
+*Interpretação gerada com base no conhecimento astrológico do RAG. Para uma análise mais completa, recomenda-se configurar o serviço Groq.*"""
         else:
             # Mensagem mais simples se não houver contexto do RAG
             interpretation_clean = f"""**O QUE ISSO SIGNIFICA NA PRÁTICA:**
@@ -996,15 +1225,16 @@ Cada posicionamento astrológico traz oportunidades de aprendizado e desenvolvim
         
         return {
             "interpretation": interpretation_clean,
-            "sources": [
-                {
-                    "source": r.get('source', 'knowledge_base'),
-                    "page": r.get('page', 1),
-                    "relevance": r.get('score', 0.5)
-                }
-                for r in results[:5]
-            ],
+                    "sources": [
+                        {
+                            "source": r.get('source', 'knowledge_base'),
+                            "page": r.get('page', 1),
+                            "relevance": r.get('score', 0.5)
+                        }
+                        for r in all_results[:5]
+                    ],
             "query_used": query,
+            "queries_used": queries if 'queries' in locals() else [query],
             "generated_by": "rag_only"
         }
         

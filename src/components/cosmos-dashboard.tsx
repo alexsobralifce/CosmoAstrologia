@@ -571,7 +571,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
                 <UIIcons.Sparkles size={24} className="text-foreground" />
               </div>
               <div>
-                <h1 className="dashboard-header-logo-text">Cosmos Astral</h1>
+                <h1 className="dashboard-header-logo-text">CosmoAstral</h1>
                 <p className="dashboard-header-logo-subtitle">{texts.yourCelestialGuide}</p>
               </div>
             </div>

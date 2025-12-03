@@ -336,8 +336,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
         language === 'pt' ? 'Cadastro realizado com sucesso!' : 'Registration successful!',
         {
           description: language === 'pt' 
-            ? 'Bem-vindo ao Cosmos Astral!' 
-            : 'Welcome to Cosmos Astral!',
+            ? 'Bem-vindo ao CosmoAstral!' 
+            : 'Welcome to CosmoAstral!',
           duration: 3000
         }
       );
@@ -390,8 +390,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
         language === 'pt' ? 'Email verificado com sucesso!' : 'Email verified successfully!',
         {
           description: language === 'pt' 
-            ? 'Bem-vindo ao Cosmos Astral!' 
-            : 'Welcome to Cosmos Astral!',
+            ? 'Bem-vindo ao CosmoAstral!' 
+            : 'Welcome to CosmoAstral!',
           duration: 3000
         }
       );
@@ -1002,7 +1002,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
   // Textos traduzidos
   const texts = {
-    title: language === 'pt' ? 'Cosmos Astral' : 'Cosmic Insight',
+    title: language === 'pt' ? 'CosmoAstral' : 'Cosmic Insight',
     subtitle: language === 'pt' ? 'Desbloqueie os mistérios das suas estrelas' : 'Unlock the mysteries of your stars',
     createAccount: language === 'pt' ? 'Criar Conta' : 'Create Account',
     welcomeBack: language === 'pt' ? 'Bem-vindo de Volta' : 'Welcome Back',

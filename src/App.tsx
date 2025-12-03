@@ -597,7 +597,8 @@ function AppContent({
             } : undefined,
           });
         }}
-      />
+        />
+      </>
     );
   }
 

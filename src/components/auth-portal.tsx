@@ -686,12 +686,16 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
             cancel_on_tap_outside: true,
           });
 
-          // Calcular largura em pixels baseado no container ou usar valor padrão
+          // Calcular largura em pixels baseado no container
+          // Usar 100% da largura do container, mas o CSS vai controlar o tamanho final
           let buttonWidth = 350; // Valor padrão em pixels
           if (googleButtonRef.current) {
-            const containerWidth = googleButtonRef.current.offsetWidth || googleButtonRef.current.clientWidth;
+            // Usar getBoundingClientRect para obter largura precisa
+            const rect = googleButtonRef.current.getBoundingClientRect();
+            const containerWidth = rect.width || googleButtonRef.current.offsetWidth || googleButtonRef.current.clientWidth;
             if (containerWidth > 0) {
-              buttonWidth = containerWidth;
+              // Usar a largura total do container, o CSS vai garantir que fique centralizado
+              buttonWidth = Math.floor(containerWidth);
             }
           }
 
@@ -704,9 +708,38 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
               theme: 'outline',
               size: 'large',
               text: 'signin_with',
-              width: buttonWidth, // Usar pixels em vez de porcentagem
+              width: buttonWidth, // Largura em pixels baseada no container
             }
           );
+          
+          // Forçar realinhamento após renderização
+          setTimeout(() => {
+            if (googleButtonRef.current) {
+              const iframe = googleButtonRef.current.querySelector('iframe');
+              if (iframe) {
+                // Garantir que o iframe ocupe 100% mas fique centralizado
+                iframe.style.width = '100%';
+                iframe.style.maxWidth = '100%';
+                iframe.style.margin = '0 auto';
+                iframe.style.display = 'block';
+                iframe.style.position = 'relative';
+                iframe.style.left = '0';
+                iframe.style.right = '0';
+              }
+              
+              // Ajustar qualquer div wrapper que o Google possa criar
+              const wrapper = googleButtonRef.current.querySelector('div');
+              if (wrapper && wrapper !== googleButtonRef.current) {
+                wrapper.style.width = '100%';
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.justifyContent = 'center';
+                wrapper.style.margin = '0';
+                wrapper.style.padding = '0';
+              }
+            }
+          }, 100);
           
           isInitialized = true;
           console.log('[AUTH] Google Identity Services inicializado e botão renderizado');

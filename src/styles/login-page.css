@@ -493,17 +493,70 @@
 
 /* Container para botão do Google renderizado pelo Google Identity Services */
 .login-google-button-container {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
+  width: 100% !important;
+  display: block !important;
+  min-height: 48px !important;
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+  overflow: hidden !important;
+}
+
+/* Resetar qualquer estilo que possa estar causando desalinhamento */
+.login-google-button-container * {
+  box-sizing: border-box !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* Estilizar o botão do Google renderizado pelo Google Identity Services */
 .login-google-button-container iframe {
   width: 100% !important;
-  max-width: 300px;
+  max-width: 100% !important;
+  height: 48px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  border: none !important;
+  display: block !important;
+  position: relative !important;
+  left: 0 !important;
+  right: 0 !important;
+  box-sizing: border-box !important;
+  float: none !important;
+  text-align: left !important;
+}
+
+/* Garantir que qualquer div wrapper do Google também fique centralizado */
+.login-google-button-container > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+  left: 0 !important;
+  right: 0 !important;
+  float: none !important;
+}
+
+/* Garantir que o iframe dentro do wrapper também fique centralizado */
+.login-google-button-container > div > iframe {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 48px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  position: relative !important;
+  left: 0 !important;
+  right: 0 !important;
+  display: block !important;
+  box-sizing: border-box !important;
+  float: none !important;
+  text-align: left !important;
 }
 
 /* ============================================================================
@@ -553,6 +606,16 @@
  * ============================================================================ */
 .login-page-container * {
   box-sizing: border-box;
+}
+
+/* Exceção: Container do Google não deve herdar estilos que causem desalinhamento */
+.login-google-button-container,
+.login-google-button-container *,
+.login-google-button-container > div,
+.login-google-button-container > div > iframe {
+  /* Resetar qualquer estilo que possa causar desalinhamento */
+  transform: none !important;
+  translate: none !important;
 }
 
 /* Resetar estilos de botões globais APENAS dentro do container de login */

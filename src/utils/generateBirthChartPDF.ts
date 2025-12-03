@@ -175,7 +175,7 @@ const addLogo = (doc: jsPDF, margin: number): number => {
   
   // Nome do sistema
   doc.setFontSize(20);
-  doc.text('Cosmos Astral', margin + 25, 27);
+  doc.text('CosmoAstral', margin + 25, 27);
   
   // Tagline
   doc.setFontSize(10);
@@ -532,7 +532,7 @@ export const generateBirthChartPDF = ({
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(150, 150, 150);
-  doc.text('Cosmos Astral - www.cosmosastral.com', pageWidth / 2, y, { align: 'center' });
+  doc.text('CosmoAstral - www.cosmoastral.com.br', pageWidth / 2, y, { align: 'center' });
   
   // Salvar PDF
   const fileName = `Mapa_Astral_${userName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;

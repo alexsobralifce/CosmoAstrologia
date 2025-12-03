@@ -104,6 +104,10 @@ class RAGServiceFastEmbed:
         self.documents: List[Dict[str, Any]] = []  # Lista de documentos com embeddings
         self.embeddings_matrix: Optional[np.ndarray] = None  # Matriz de embeddings
         
+        # Dados de aprendizado contínuo
+        self.learned_documents: List[Dict[str, Any]] = []  # Documentos aprendidos
+        self.learned_embeddings_matrix: Optional[np.ndarray] = None  # Embeddings dos aprendidos
+        
         if not HAS_FASTEMBED:
             print("[WARNING] FastEmbed não instalado. Instale com: pip install fastembed")
             return
@@ -538,8 +542,10 @@ class RAGServiceFastEmbed:
             # Buscar mais resultados se houver filtro de categoria (otimizado: reduzido de *3 para *1.5)
             search_top_k = int(top_k * 1.5) if category else (int(top_k * 1.2) if expand_query else top_k)
             
-            # Calcular similaridade com todos os documentos
+            # Calcular similaridade com todos os documentos (base + aprendidos)
             similarities = []
+            
+            # Buscar em documentos base
             for i, doc in enumerate(self.documents):
                 # Filtrar por categoria se especificada
                 if category and doc.get('category') != category:
@@ -550,25 +556,44 @@ class RAGServiceFastEmbed:
                     continue
                 
                 similarity = self._cosine_similarity(query_embedding, doc_embedding)
-                similarities.append((similarity, i))
+                similarities.append((similarity, i, 'base'))
+            
+            # Buscar em documentos aprendidos (se houver)
+            if self.learned_documents and self.learned_embeddings_matrix is not None:
+                for i, doc in enumerate(self.learned_documents):
+                    # Filtrar por categoria se especificada
+                    if category and doc.get('category') != category:
+                        continue
+                    
+                    doc_embedding = self.learned_embeddings_matrix[i]
+                    if len(doc_embedding) == 0:
+                        continue
+                    
+                    similarity = self._cosine_similarity(query_embedding, doc_embedding)
+                    # Dar um pequeno boost para documentos aprendidos (mais recentes)
+                    adjusted_similarity = similarity * 1.05  # 5% boost
+                    similarities.append((adjusted_similarity, i, 'learned'))
             
             # Ordenar por similaridade e pegar top_k
             similarities.sort(reverse=True, key=lambda x: x[0])
-            top_indices = [idx for _, idx in similarities[:search_top_k]]
+            top_results = similarities[:search_top_k]
             
             # Converter para formato esperado
             results = []
-            for idx in top_indices:
-                doc = self.documents[idx]
-                similarity_score = similarities[top_indices.index(idx)][0] if top_indices else 0.0
+            for similarity_score, idx, source_type in top_results:
+                if source_type == 'base':
+                    doc = self.documents[idx]
+                else:  # learned
+                    doc = self.learned_documents[idx]
                 
                 results.append({
                     'text': doc.get('text', ''),
                     'score': float(similarity_score),
-                    'source': doc.get('source', 'unknown'),
+                    'source': doc.get('source', 'learned' if source_type == 'learned' else 'unknown'),
                     'page': doc.get('page', 1),
                     'category': doc.get('category', 'astrology'),
-                    'metadata': doc.get('metadata', {})
+                    'metadata': doc.get('metadata', {}),
+                    'is_learned': source_type == 'learned'
                 })
                 
                 if len(results) >= top_k:
@@ -985,6 +1010,97 @@ INSTRUÇÕES:
             'query_used': query,
             'generated_by': 'rag_only'
         }
+    
+    def add_learned_document(
+        self,
+        text: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        category: str = 'astrology'
+    ) -> bool:
+        """
+        Adiciona um documento aprendido ao índice de forma incremental.
+        
+        Args:
+            text: Texto do documento aprendido
+            metadata: Metadados do documento
+            category: Categoria ('astrology' ou 'numerology')
+        
+        Returns:
+            True se foi adicionado com sucesso
+        """
+        if not HAS_FASTEMBED or self.embedding_model is None:
+            print("[RAG-FastEmbed] FastEmbed não disponível para adicionar documento aprendido")
+            return False
+        
+        if not text or len(text.strip()) < 50:
+            print("[RAG-FastEmbed] Texto muito curto para adicionar como documento aprendido")
+            return False
+        
+        try:
+            # Criar documento aprendido
+            learned_doc = {
+                'text': text.strip(),
+                'source': 'learned',
+                'file_type': 'learned',
+                'category': category,
+                'page': 1,
+                'metadata': metadata or {}
+            }
+            
+            # Gerar embedding
+            embedding = np.array(list(self.embedding_model.embed([text]))[0])
+            learned_doc['embedding'] = embedding.tolist()
+            
+            # Adicionar à lista de aprendidos
+            self.learned_documents.append(learned_doc)
+            
+            # Atualizar matriz de embeddings aprendidos
+            if self.learned_embeddings_matrix is None:
+                self.learned_embeddings_matrix = np.array([embedding])
+            else:
+                self.learned_embeddings_matrix = np.vstack([
+                    self.learned_embeddings_matrix,
+                    embedding
+                ])
+            
+            print(f"[RAG-FastEmbed] ✅ Documento aprendido adicionado (total aprendidos: {len(self.learned_documents)})")
+            return True
+            
+        except Exception as e:
+            print(f"[RAG-FastEmbed] Erro ao adicionar documento aprendido: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def load_learned_documents(self):
+        """Carrega documentos aprendidos do serviço de aprendizado."""
+        try:
+            from app.services.rag_learning_service import get_learning_service
+            
+            learning_service = get_learning_service()
+            learned_interpretations = learning_service.get_learned_interpretations()
+            
+            if not learned_interpretations:
+                print("[RAG-FastEmbed] Nenhum documento aprendido para carregar")
+                return
+            
+            print(f"[RAG-FastEmbed] Carregando {len(learned_interpretations)} documentos aprendidos...")
+            
+            loaded_count = 0
+            for learned in learned_interpretations:
+                text = learned.get('text', '')
+                metadata = learned.get('metadata', {})
+                category = learned.get('category', 'astrology')
+                
+                if self.add_learned_document(text, metadata, category):
+                    loaded_count += 1
+            
+            print(f"[RAG-FastEmbed] ✅ {loaded_count} documentos aprendidos carregados com sucesso")
+            
+        except Exception as e:
+            print(f"[RAG-FastEmbed] Erro ao carregar documentos aprendidos: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 # Instância global
@@ -1016,6 +1132,9 @@ def get_rag_service() -> Optional[RAGServiceFastEmbed]:
         # Tentar carregar índice existente
         if not _rag_service_instance.load_index():
             print("[RAG-Service] Índice não encontrado. Execute o script de build do índice para criar.")
+        else:
+            # Carregar documentos aprendidos após carregar índice base
+            _rag_service_instance.load_learned_documents()
     
     return _rag_service_instance
 

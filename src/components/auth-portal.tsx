@@ -737,7 +737,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
                 wrapper.style.justifyContent = 'center';
                 wrapper.style.margin = '0';
                 wrapper.style.padding = '0';
-              }
+            }
             }
           }, 100);
           

@@ -29,11 +29,12 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-    # Email Configuration (Resend)
-    RESEND_API_KEY: str = ""
-    # Para desenvolvimento local, use domínio de teste: cosmoastral@resend.dev
-    # Para produção, use domínio verificado: noreply@cosmoastral.com.br
-    EMAIL_FROM: str = "cosmoastral@resend.dev"  # Domínio de teste (local) ou noreply@cosmoastral.com.br (produção)
+    # Email Configuration (Brevo/SendinBlue)
+    BREVO_API_KEY: str = ""
+    # Email do remetente (deve ser um email verificado no Brevo)
+    EMAIL_FROM: str = "noreply@cosmoastral.com.br"
+    # Nome do remetente
+    EMAIL_FROM_NAME: str = "CosmoAstral"
     
     # Google OAuth (Optional)
     GOOGLE_CLIENT_ID: str = ""

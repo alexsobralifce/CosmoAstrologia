@@ -41,7 +41,9 @@ if [ ! -f "$BACKEND_ENV" ]; then
         fi
         
         echo -e "${GREEN}✅ $BACKEND_ENV criado!${NC}"
-        echo -e "${YELLOW}⚠️  Lembre-se de configurar GROQ_API_KEY se usar interpretações com IA${NC}"
+        echo -e "${YELLOW}⚠️  Lembre-se de configurar:${NC}"
+        echo -e "${YELLOW}   - BREVO_API_KEY (obrigatório para envio de emails)${NC}"
+        echo -e "${YELLOW}   - GROQ_API_KEY (se usar interpretações com IA)${NC}"
     else
         echo -e "${YELLOW}⚠️  $BACKEND_ENV_EXAMPLE não encontrado. Pulando...${NC}"
     fi
@@ -76,6 +78,7 @@ echo ""
 echo "📋 Próximos passos:"
 echo ""
 echo "1. Edite backend/.env e configure:"
+echo "   - BREVO_API_KEY (obrigatório para envio de emails)"
 echo "   - GROQ_API_KEY (se usar interpretações com IA)"
 echo ""
 echo "2. Edite .env.local e verifique:"

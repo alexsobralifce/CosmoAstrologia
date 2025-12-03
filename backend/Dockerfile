@@ -60,7 +60,7 @@ RUN pip install --no-cache-dir --user \
     pytz>=2024.1 \
     timezonefinder>=6.4.1
 
-# Batch 6: Google & Groq & Resend
+# Batch 6: Google & Groq & Brevo
 RUN pip install --no-cache-dir --user \
     --timeout=180 \
     --retries=3 \
@@ -68,7 +68,7 @@ RUN pip install --no-cache-dir --user \
     google-auth-oauthlib>=1.0.0 \
     google-auth-httplib2>=0.2.0 \
     groq>=0.4.1 \
-    resend>=2.0.0
+    sib-api-v3-sdk>=8.2.0
 
 # Batch 7: Utilities & HTTP Client
 RUN pip install --no-cache-dir --user \

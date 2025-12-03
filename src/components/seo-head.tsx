@@ -87,24 +87,33 @@ function updateMetaTag(property: string, content: string, attribute: 'name' | 'p
 export function useSEO(view: string, additionalData?: Record<string, string>) {
   useEffect(() => {
     const seoConfig: Record<string, SEOHeadProps> = {
+      landing: {
+        title: 'Astrologia Online Grátis - Mapa Astral Completo | CosmoAstral',
+        description: 'Descubra os segredos das estrelas e transforme sua vida. Acesso 100% gratuito ao seu mapa astral completo com interpretações personalizadas de astrologia e numerologia.',
+        keywords: 'astrologia online, mapa astral grátis, astrologia, numerologia, mapa natal, horóscopo personalizado, calcular mapa astral, astrologia brasileira',
+        canonicalUrl: 'https://cosmoastral.com.br/',
+      },
       auth: {
-        title: 'Astrologia Online Grátis - Faça Login | Cosmos Astral',
-        description: 'Acesse sua conta no Cosmos Astral e descubra seu mapa astral completo. Calcule seu mapa natal e receba interpretações personalizadas de astrologia.',
+        title: 'Astrologia Online Grátis - Faça Login | CosmoAstral',
+        description: 'Acesse sua conta no CosmoAstral e descubra seu mapa astral completo. Calcule seu mapa natal e receba interpretações personalizadas de astrologia.',
         keywords: 'astrologia online, login astrologia, mapa astral, calcular mapa natal',
+        canonicalUrl: 'https://cosmoastral.com.br/login',
       },
       dashboard: {
-        title: 'Dashboard - Seu Mapa Astral Completo | Cosmos Astral',
+        title: 'Dashboard - Seu Mapa Astral Completo | CosmoAstral',
         description: 'Visualize seu mapa astral completo com interpretações detalhadas de planetas, signos e casas. Receba conselhos diários baseados em trânsitos planetários.',
         keywords: 'mapa astral completo, dashboard astrologia, interpretação astrológica, trânsitos planetários',
+        canonicalUrl: 'https://cosmoastral.com.br/dashboard',
       },
       interpretation: {
-        title: 'Interpretação Astrológica Detalhada | Cosmos Astral',
+        title: 'Interpretação Astrológica Detalhada | CosmoAstral',
         description: 'Descubra interpretações detalhadas dos planetas em seu mapa astral. Análise completa de signos, casas e aspectos planetários.',
         keywords: 'interpretação astrológica, planetas em signos, casas astrológicas, aspectos planetários',
+        canonicalUrl: 'https://cosmoastral.com.br/interpretation',
       },
     };
 
-    const config = seoConfig[view] || seoConfig.auth;
+    const config = seoConfig[view] || seoConfig.landing;
     
     // Aplicar SEO
     if (config.title) document.title = config.title;

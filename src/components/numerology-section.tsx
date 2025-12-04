@@ -1246,7 +1246,7 @@ export const NumerologySection = ({ userData, onBack }: NumerologySectionProps) 
                 {language === 'pt' ? 'Interpretação Numerológica' : 'Numerology Interpretation'}
               </h2>
               <div className="numerology-interpretation-content">
-                {formatGroqText(interpretation)}
+                {formatGroqText(interpretation, language)}
               </div>
             </AstroCard>
           ) : null}

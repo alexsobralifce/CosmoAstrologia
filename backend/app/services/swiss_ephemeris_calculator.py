@@ -8,9 +8,22 @@ Swiss Ephemeris, que é o padrão ouro para cálculos astrológicos profissionai
 from datetime import datetime
 from typing import Dict, Optional
 import pytz
-from kerykeion import AstrologicalSubject
-from kerykeion.schemas.kr_models import AstrologicalSubjectModel
-from timezonefinder import TimezoneFinder
+
+# Importações do kerykeion com tratamento de erro
+try:
+    from kerykeion import AstrologicalSubject
+    from kerykeion.schemas.kr_models import AstrologicalSubjectModel
+    KERYKEION_AVAILABLE = True
+except ImportError:
+    KERYKEION_AVAILABLE = False
+    AstrologicalSubject = None
+    AstrologicalSubjectModel = None
+
+try:
+    from timezonefinder import TimezoneFinder
+    TZ_FINDER = TimezoneFinder()
+except ImportError:
+    TZ_FINDER = None
 
 
 # Mapeamento de signos em português
@@ -87,9 +100,6 @@ def shortest_angular_distance(angle1: float, angle2: float) -> float:
     return abs(diff)
 
 
-TZ_FINDER = TimezoneFinder()
-
-
 def create_kr_instance(
     birth_date: datetime,
     birth_time: str,
@@ -118,7 +128,10 @@ def create_kr_instance(
     # Se timezone não fornecido, tentar inferir da longitude
     if timezone_name is None:
         try:
-            inferred_tz = TZ_FINDER.timezone_at(lat=latitude, lng=longitude)
+            if TZ_FINDER:
+                inferred_tz = TZ_FINDER.timezone_at(lat=latitude, lng=longitude)
+            else:
+                inferred_tz = None
         except Exception:
             inferred_tz = None
         
@@ -148,6 +161,10 @@ def create_kr_instance(
     # Localizar na timezone
     if local_datetime.tzinfo is None:
         local_datetime = tz.localize(local_datetime)
+    
+    # Verificar se kerykeion está disponível
+    if not KERYKEION_AVAILABLE:
+        raise ImportError("kerykeion não está disponível. Instale com: pip install kerykeion")
     
     # Criar instância AstrologicalSubject (API v5)
     # A classe ainda expõe os mesmos pontos planetários necessários
@@ -375,6 +392,267 @@ def calculate_birth_chart(
     return result
 
 
+def calculate_complete_chart_with_houses(
+    birth_date: datetime,
+    birth_time: str,
+    latitude: float,
+    longitude: float,
+    timezone_name: Optional[str] = None
+) -> Dict[str, any]:
+    """
+    Calcula o mapa astral completo incluindo casas de todos os planetas.
+    Retorna dados formatados no padrão do PDF (graus, minutos, segundos).
+    
+    Args:
+        birth_date: Data de nascimento
+        birth_time: Hora de nascimento no formato "HH:MM" (hora local)
+        latitude: Latitude do local de nascimento
+        longitude: Longitude do local de nascimento
+        timezone_name: Nome do timezone (ex: 'America/Sao_Paulo'). Se None, tenta inferir
+    
+    Returns:
+        Dicionário completo com todas as posições planetárias, casas e formatação DMS
+    """
+    # Criar instância kerykeion (fonte única de verdade)
+    kr = create_kr_instance(birth_date, birth_time, latitude, longitude, timezone_name)
+    
+    # Calcular mapa básico
+    chart_data = calculate_birth_chart(birth_date, birth_time, latitude, longitude, timezone_name)
+    
+    # Lista de planetas para processar
+    planets_to_process = [
+        ("sun", "Sol"),
+        ("moon", "Lua"),
+        ("mercury", "Mercúrio"),
+        ("venus", "Vênus"),
+        ("mars", "Marte"),
+        ("jupiter", "Júpiter"),
+        ("saturn", "Saturno"),
+        ("uranus", "Urano"),
+        ("neptune", "Netuno"),
+        ("pluto", "Plutão"),
+    ]
+    
+    # Processar cada planeta
+    planets_in_signs = []
+    planets_in_houses = []
+    
+    for planet_key, planet_name in planets_to_process:
+        try:
+            # Obter posição
+            pos = get_planet_position(kr, planet_key)
+            degree = pos["position"]  # Grau no signo (0-30)
+            sign_pt = chart_data.get(f"{planet_key}_sign", "Desconhecido")
+            
+            # Formatar grau em DMS
+            degree_dms = format_degree_dms(degree)
+            
+            # Verificar se está retrógrado
+            planet_obj = getattr(kr, planet_key.lower(), None)
+            is_retrograde = False
+            if planet_obj:
+                planet_data = planet_obj.model_dump()
+                is_retrograde = planet_data.get("is_retrograde", False)
+            
+            # Obter casa
+            house = get_planet_house(kr, planet_key)
+            
+            # Adicionar aos planetas nos signos
+            planets_in_signs.append({
+                "planet": planet_name,
+                "planet_key": planet_key,
+                "sign": sign_pt,
+                "degree": degree,
+                "degree_dms": degree_dms,
+                "is_retrograde": is_retrograde,
+                "house": house
+            })
+            
+            # Adicionar aos planetas nas casas (agrupar por casa depois)
+            planets_in_houses.append({
+                "planet": planet_name,
+                "planet_key": planet_key,
+                "sign": sign_pt,
+                "degree": degree,
+                "degree_dms": degree_dms,
+                "house": house,
+                "is_retrograde": is_retrograde
+            })
+        except Exception as e:
+            print(f"[WARNING] Erro ao processar {planet_name}: {e}")
+            continue
+    
+    # Processar pontos especiais (Ascendente, MC, Nodos, Quíron)
+    special_points = []
+    
+    # Ascendente
+    asc_degree = chart_data.get("ascendant_degree", 0.0)
+    asc_sign = chart_data.get("ascendant_sign", "Desconhecido")
+    special_points.append({
+        "point": "Ascendente",
+        "point_key": "ascendant",
+        "sign": asc_sign,
+        "degree": asc_degree,
+        "degree_dms": format_degree_dms(asc_degree),
+        "house": 1  # Ascendente sempre na casa 1
+    })
+    
+    # Meio do Céu
+    mc_degree = chart_data.get("midheaven_degree", 0.0)
+    mc_sign = chart_data.get("midheaven_sign", "Desconhecido")
+    special_points.append({
+        "point": "Meio do Céu",
+        "point_key": "midheaven",
+        "sign": mc_sign,
+        "degree": mc_degree,
+        "degree_dms": format_degree_dms(mc_degree),
+        "house": 10  # MC sempre na casa 10
+    })
+    
+    # Nodo Norte - calcular casa baseado na longitude
+    nn_degree = chart_data.get("north_node_degree", 0.0)
+    nn_sign = chart_data.get("north_node_sign", "Desconhecido")
+    nn_longitude = chart_data.get("north_node_longitude", 0.0)
+    # Calcular casa baseado na longitude do nodo e nas cúspides das casas
+    try:
+        if hasattr(kr, 'true_north_lunar_node'):
+            nn_obj = kr.true_north_lunar_node
+            nn_data = nn_obj.model_dump() if hasattr(nn_obj, 'model_dump') else {}
+            nn_house = nn_data.get("house", 1)
+            if isinstance(nn_house, str):
+                house_mapping = {
+                    "First_House": 1, "Second_House": 2, "Third_House": 3,
+                    "Fourth_House": 4, "Fifth_House": 5, "Sixth_House": 6,
+                    "Seventh_House": 7, "Eighth_House": 8, "Ninth_House": 9,
+                    "Tenth_House": 10, "Eleventh_House": 11, "Twelfth_House": 12
+                }
+                nn_house = house_mapping.get(nn_house, 1)
+            elif not isinstance(nn_house, int):
+                nn_house = 1
+        else:
+            nn_house = 1
+    except:
+        nn_house = 1
+    special_points.append({
+        "point": "Nodo Norte",
+        "point_key": "north_node",
+        "sign": nn_sign,
+        "degree": nn_degree,
+        "degree_dms": format_degree_dms(nn_degree),
+        "house": nn_house
+    })
+    
+    # Nodo Sul - calcular casa baseado na longitude
+    sn_degree = chart_data.get("south_node_degree", 0.0)
+    sn_sign = chart_data.get("south_node_sign", "Desconhecido")
+    sn_longitude = chart_data.get("south_node_longitude", 0.0)
+    # Nodo sul está oposto ao norte, então casa oposta
+    sn_house = ((nn_house + 5) % 12) + 1  # Casa oposta (6 casas de diferença)
+    special_points.append({
+        "point": "Nodo Sul",
+        "point_key": "south_node",
+        "sign": sn_sign,
+        "degree": sn_degree,
+        "degree_dms": format_degree_dms(sn_degree),
+        "house": sn_house
+    })
+    
+    # Quíron - calcular casa baseado na longitude
+    chiron_degree = chart_data.get("chiron_degree", 0.0)
+    chiron_sign = chart_data.get("chiron_sign", "Desconhecido")
+    chiron_longitude = chart_data.get("chiron_longitude", 0.0)
+    try:
+        if hasattr(kr, 'chiron'):
+            chiron_obj = kr.chiron
+            chiron_data_obj = chiron_obj.model_dump() if hasattr(chiron_obj, 'model_dump') else {}
+            chiron_house = chiron_data_obj.get("house", 1)
+            if isinstance(chiron_house, str):
+                house_mapping = {
+                    "First_House": 1, "Second_House": 2, "Third_House": 3,
+                    "Fourth_House": 4, "Fifth_House": 5, "Sixth_House": 6,
+                    "Seventh_House": 7, "Eighth_House": 8, "Ninth_House": 9,
+                    "Tenth_House": 10, "Eleventh_House": 11, "Twelfth_House": 12
+                }
+                chiron_house = house_mapping.get(chiron_house, 1)
+            elif not isinstance(chiron_house, int):
+                chiron_house = 1
+        else:
+            # Calcular casa aproximada baseado na longitude
+            # Usar cúspides das casas do kerykeion
+            try:
+                houses = kr.houses
+                for i in range(1, 13):
+                    house_cusp = getattr(houses, f"house_{i}", None)
+                    if house_cusp:
+                        cusp_long = float(house_cusp.abs_pos) if hasattr(house_cusp, 'abs_pos') else 0
+                        next_cusp_long = 0
+                        if i < 12:
+                            next_house = getattr(houses, f"house_{i+1}", None)
+                            if next_house:
+                                next_cusp_long = float(next_house.abs_pos) if hasattr(next_house, 'abs_pos') else 0
+                        else:
+                            next_cusp_long = float(houses.house_1.abs_pos) if hasattr(houses.house_1, 'abs_pos') else 0
+                            next_cusp_long = (next_cusp_long + 360) % 360
+                        
+                        # Verificar se chiron está nesta casa
+                        if cusp_long <= chiron_longitude < next_cusp_long or (i == 12 and chiron_longitude >= cusp_long):
+                            chiron_house = i
+                            break
+                else:
+                    chiron_house = 1
+            except:
+                chiron_house = 1
+    except:
+        chiron_house = 1
+    special_points.append({
+        "point": "Quíron",
+        "point_key": "chiron",
+        "sign": chiron_sign,
+        "degree": chiron_degree,
+        "degree_dms": format_degree_dms(chiron_degree),
+        "house": chiron_house
+    })
+    
+    # Agrupar planetas por casa
+    houses_dict = {}
+    for planet_data in planets_in_houses:
+        house_num = planet_data["house"]
+        if house_num not in houses_dict:
+            houses_dict[house_num] = []
+        houses_dict[house_num].append(planet_data)
+    
+    # Adicionar pontos especiais às casas
+    for point_data in special_points:
+        house_num = point_data["house"]
+        if house_num not in houses_dict:
+            houses_dict[house_num] = []
+        houses_dict[house_num].append({
+            "planet": point_data["point"],
+            "planet_key": point_data["point_key"],
+            "sign": point_data["sign"],
+            "degree": point_data["degree"],
+            "degree_dms": point_data["degree_dms"],
+            "house": house_num,
+            "is_retrograde": False
+        })
+    
+    # Ordenar casas
+    houses_sorted = sorted(houses_dict.items())
+    
+    return {
+        "birth_data": {
+            "date": birth_date.strftime("%d/%m/%Y"),
+            "time": birth_time,
+            "latitude": latitude,
+            "longitude": longitude,
+        },
+        "planets_in_signs": planets_in_signs,
+        "special_points": special_points,
+        "planets_in_houses": houses_sorted,  # Lista de tuplas (casa_num, [planetas])
+        "chart_data": chart_data  # Dados completos do mapa
+    }
+
+
 def calculate_chiron_fallback(birth_date: datetime, birth_time: str) -> float:
     """
     Fallback para cálculo de Quíron caso kerykeion não tenha.
@@ -413,6 +691,41 @@ def get_planet_longitude(kr: AstrologicalSubjectModel, planet_key: str) -> float
     """Obtém apenas a longitude absoluta de um planeta."""
     pos = get_planet_position(kr, planet_key)
     return pos["longitude"]
+
+
+def format_degree_dms(degree: float) -> str:
+    """
+    Formata um grau decimal em formato graus, minutos e segundos.
+    Exemplo: 19.8236 -> "19° 49' 25\""
+    
+    Args:
+        degree: Grau decimal (0-30 para grau no signo)
+    
+    Returns:
+        String formatada como "X° Y' Z\""
+    """
+    import math
+    
+    # Extrair parte inteira (graus)
+    degrees = int(degree)
+    
+    # Calcular minutos
+    minutes_decimal = (degree - degrees) * 60
+    minutes = int(minutes_decimal)
+    
+    # Calcular segundos
+    seconds_decimal = (minutes_decimal - minutes) * 60
+    seconds = int(round(seconds_decimal))
+    
+    # Ajustar se segundos chegarem a 60
+    if seconds >= 60:
+        seconds = 0
+        minutes += 1
+    if minutes >= 60:
+        minutes = 0
+        degrees += 1
+    
+    return f"{degrees}° {minutes:02d}' {seconds:02d}\""
 
 
 def get_planet_house(kr: AstrologicalSubjectModel, planet_key: str) -> int:

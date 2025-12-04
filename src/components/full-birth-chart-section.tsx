@@ -94,7 +94,7 @@ const ChartSection = ({
             </div>
           ) : (
             <div className="birth-chart-section-text">
-              {formatGroqText(formattedContent)}
+              {formatGroqText(formattedContent, language)}
             </div>
           )}
           
@@ -530,11 +530,44 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
               return;
             }
             
-            generateBirthChartPDF({
-              userData,
-              sections,
-              language
-            });
+            // Buscar dados completos do mapa antes de gerar PDF
+            const loadChartDataForPDF = async () => {
+              try {
+                const birthDateStr = typeof userData.birthDate === 'string' 
+                  ? userData.birthDate 
+                  : userData.birthDate instanceof Date 
+                    ? userData.birthDate.toLocaleDateString('pt-BR')
+                    : '01/01/1990';
+                
+                const coordinates = userData.coordinates || { latitude: 0, longitude: 0 };
+                
+                const chartData = await apiService.getCompleteChart({
+                  birthDate: birthDateStr,
+                  birthTime: userData.birthTime || '12:00',
+                  latitude: coordinates.latitude,
+                  longitude: coordinates.longitude,
+                  birthPlace: userData.birthPlace || 'São Paulo, Brasil',
+                  name: userData.name || 'Usuário',
+                });
+                
+                generateBirthChartPDF({
+                  userData,
+                  sections,
+                  language,
+                  chartData: chartData
+                });
+              } catch (error) {
+                console.error('Erro ao buscar dados do mapa para PDF:', error);
+                // Gerar PDF mesmo sem dados do mapa (com interpretações apenas)
+                generateBirthChartPDF({
+                  userData,
+                  sections,
+                  language
+                });
+              }
+            };
+            
+            loadChartDataForPDF();
           }}
           className="birth-chart-pdf-button"
         >

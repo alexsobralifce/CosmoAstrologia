@@ -456,6 +456,24 @@ Regente em: {ruler_info['sign'] or 'Não calculado'}
 🏛️ DIGNIDADES PLANETÁRIAS (IDENTIFICADAS POR TABELA FIXA)
 ───────────────────────────────────────────────────────────────
 
+📚 O QUE SÃO DIGNIDADES PLANETÁRIAS:
+
+As dignidades indicam a força e facilidade de expressão de um planeta em um signo:
+
+• DOMICÍLIO: O planeta está em "casa", onde se sente mais confortável e expressa sua energia naturalmente. É a posição mais forte e harmoniosa.
+
+• EXALTAÇÃO: O planeta está em sua melhor performance, com energia elevada e expressão refinada. É uma posição muito favorável.
+
+• DETRIMENTO: O planeta está em signo oposto ao seu domicílio, precisando de mais esforço para se expressar. A energia pode ser desafiadora.
+
+• QUEDA: O planeta está em signo oposto à sua exaltação, com energia mais difícil de expressar. Requer consciência e trabalho para integrar.
+
+• PEREGRINO: O planeta não está em nenhuma dignidade específica. Sua expressão depende dos aspectos que recebe de outros planetas. É uma posição neutra que pode variar.
+
+───────────────────────────────────────────────────────────────
+
+DIGNIDADES NO MAPA:
+
 {chr(10).join(dignities_list)}
 
 ───────────────────────────────────────────────────────────────
@@ -470,6 +488,16 @@ Se não houver stellium listado acima, NÃO invente um.
 ───────────────────────────────────────────────────────────────
 🔗 ASPECTOS VALIDADOS (CALCULADOS MATEMATICAMENTE)
 ───────────────────────────────────────────────────────────────
+
+⚠️ IMPORTANTE PARA A INTERPRETAÇÃO:
+- Organize os aspectos de forma COMPACTA na interpretação
+- Agrupe por tipo (Conjunções, Trígonos, Quadraturas, etc.)
+- Mostre apenas os PRINCIPAIS aspectos
+- Priorize: Conjunções > Oposições > Quadraturas > Trígonos > Sextis
+- Formato recomendado: "Conjunções: Sol-Mercúrio, Sol-Júpiter | Trígonos: Lua-Vênus"
+- NÃO liste todos os aspectos individualmente em formato longo
+
+LISTA COMPLETA DE ASPECTOS (para referência - organize na interpretação):
 
 {chr(10).join(aspects_text)}
 

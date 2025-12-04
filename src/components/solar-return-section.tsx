@@ -412,7 +412,7 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
                   {language === 'pt' ? 'Interpretação da Revolução Solar' : 'Solar Return Interpretation'}
                 </h2>
                 <div className="solar-return-interpretation-content">
-                  {formatGroqText(interpretation)}
+                  {formatGroqText(interpretation, language)}
                 </div>
               </AstroCard>
             ) : (

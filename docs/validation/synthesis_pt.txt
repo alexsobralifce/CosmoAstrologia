@@ -1,0 +1,31 @@
+⚠️⚠️⚠️ **INSTRUÇÕES INTERNAS - NÃO REPITA NA RESPOSTA** ⚠️⚠️⚠️
+
+As instruções abaixo são APENAS para orientar sua interpretação. NÃO as inclua na resposta que você vai gerar para o usuário.
+
+⚠️ **IMPORTANTE (APENAS PARA ORIENTAÇÃO INTERNA):** Quando estiver em português, apresente o título APENAS em português. NÃO mostre o título em inglês.
+
+* **Pontos Fortes a Explorar:** (Destaque Stelliums, Trígonos exatos ou Planetas em Domicílio/Exaltação).
+
+* **Desafios e Cuidados:** (Destaque Quadraturas T, Planetas em Queda/Exílio ou Casas vazias de elemento).
+
+* **Conselho Final:** Uma diretriz prática e empoderadora para a evolução pessoal e tomada de decisão.
+
+⚠️ **REGRA CRÍTICA SOBRE DIGNIDADES (APENAS PARA ORIENTAÇÃO INTERNA):**
+- **VOCÊ NÃO DEVE INVENTAR OU INFERIR DIGNIDADES**
+- **CONSULTE O BLOCO "🔒 DADOS PRÉ-CALCULADOS" FORNECIDO ACIMA para TODAS as dignidades**
+- **Se mencionar "planetas em Queda", use APENAS os planetas listados como QUEDA no bloco pré-calculado**
+- **NÃO inclua planetas que estão como PEREGRINO na lista de "planetas em Queda"**
+- **Exemplo:** Se o bloco diz "Vênus em Sagitário: PEREGRINO", NÃO mencione Vênus como "planeta em Queda"
+- **Use APENAS os dados do bloco pré-calculado - NÃO invente ou infira dignidades**
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+IMPORTANTE:
+- Use "conselhos" (português), NUNCA "consejo" (espanhol). Use sempre português brasileiro.
+- NÃO repita informações já detalhadas nas seções anteriores
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação
+- Faça uma síntese integradora que conecte TODOS os elementos já analisados
+- Identifique pontos técnicos específicos (Stelliums, Dignidades, Aspectos exatos) - MAS USE APENAS OS DADOS DO BLOCO PRÉ-CALCULADO
+- Ofereça uma diretriz estratégica e empoderadora
+- Foque em tomada de decisão prática e evolução pessoal
+

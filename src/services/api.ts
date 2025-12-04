@@ -455,11 +455,11 @@ class ApiService {
     query_used: string;
     generated_by?: string;
   }> {
-    // Timeout maior para interpretações com RAG/Groq (60 segundos)
+    // Timeout maior para interpretações com RAG/DeepSeek (120 segundos)
     return await this.request('/api/interpretation/planet', {
       method: 'POST',
       body: JSON.stringify(params),
-    }, 60000);
+    }, 120000);
   }
 
   async getChartRulerInterpretation(params: {
@@ -552,6 +552,65 @@ class ApiService {
   }
 
   // ===== MAPA ASTRAL COMPLETO =====
+
+  async getCompleteChart(params: {
+    birthDate: string; // DD/MM/YYYY
+    birthTime: string; // HH:MM
+    latitude: number;
+    longitude: number;
+    birthPlace: string;
+    name: string;
+  }): Promise<{
+    birth_data: {
+      date: string;
+      time: string;
+      latitude: number;
+      longitude: number;
+    };
+    planets_in_signs: Array<{
+      planet: string;
+      planet_key: string;
+      sign: string;
+      degree: number;
+      degree_dms: string;
+      is_retrograde: boolean;
+      house: number;
+    }>;
+    special_points: Array<{
+      point: string;
+      point_key: string;
+      sign: string;
+      degree: number;
+      degree_dms: string;
+      house: number;
+    }>;
+    planets_in_houses: Array<{
+      house: number;
+      planets: Array<{
+        planet: string;
+        planet_key: string;
+        sign: string;
+        degree: number;
+        degree_dms: string;
+        house: number;
+        is_retrograde?: boolean;
+      }>;
+    }>;
+  }> {
+    // Timeout maior para cálculo completo do mapa astral (120 segundos)
+    // O cálculo com casas astrológicas pode ser demorado
+    return await this.request('/api/interpretation/complete-chart', {
+      method: 'POST',
+      body: JSON.stringify({
+        birth_date: params.birthDate,
+        birth_time: params.birthTime,
+        latitude: params.latitude,
+        longitude: params.longitude,
+        birth_place: params.birthPlace,
+        name: params.name,
+      }),
+    }, 120000); // 120 segundos de timeout
+  }
 
   async generateBirthChartSection(params: {
     name: string;

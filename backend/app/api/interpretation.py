@@ -627,6 +627,195 @@ class BirthGridQuantitiesResponse(BaseModel):
     query_used: str
 
 
+# ============================================================================
+# MAPA ASTRAL COMPLETO - Endpoints
+# ============================================================================
+
+class FullBirthChartRequest(BaseModel):
+    """Request para geração do Mapa Astral Completo."""
+    name: str
+    birthDate: str  # DD/MM/AAAA
+    birthTime: str  # HH:MM
+    birthPlace: str
+    sunSign: str
+    moonSign: str
+    ascendant: str
+    sunHouse: int
+    moonHouse: int
+    section: str  # 'power', 'triad', 'personal', 'houses', 'karma', 'synthesis'
+    language: Optional[str] = 'pt'
+    # Planetas opcionais
+    mercurySign: Optional[str] = None
+    mercuryHouse: Optional[int] = None
+    venusSign: Optional[str] = None
+    venusHouse: Optional[int] = None
+    marsSign: Optional[str] = None
+    marsHouse: Optional[int] = None
+    jupiterSign: Optional[str] = None
+    jupiterHouse: Optional[int] = None
+    saturnSign: Optional[str] = None
+    saturnHouse: Optional[int] = None
+    uranusSign: Optional[str] = None
+    uranusHouse: Optional[int] = None
+    neptuneSign: Optional[str] = None
+    neptuneHouse: Optional[int] = None
+    plutoSign: Optional[str] = None
+    plutoHouse: Optional[int] = None
+    northNodeSign: Optional[str] = None
+    northNodeHouse: Optional[int] = None
+    southNodeSign: Optional[str] = None
+    southNodeHouse: Optional[int] = None
+    chironSign: Optional[str] = None
+    chironHouse: Optional[int] = None
+    midheavenSign: Optional[str] = None
+    icSign: Optional[str] = None
+
+
+class FullBirthChartResponse(BaseModel):
+    """Response com seção do Mapa Astral Completo."""
+    section: str
+    title: str
+    content: str
+    generated_by: str
+
+
+@router.post("/full-birth-chart/section", response_model=FullBirthChartResponse)
+async def generate_birth_chart_section(
+    request: FullBirthChartRequest,
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Gera uma seção específica do Mapa Astral Completo.
+    
+    Seções disponíveis:
+    - power: A Estrutura de Poder (Temperamento e Motivação)
+    - triad: A Tríade Fundamental (Sol, Lua, Ascendente)
+    - personal: Dinâmica Pessoal e Ferramentas (Mercúrio, Vênus, Marte)
+    - houses: Análise Setorial Avançada (Casas 2, 4, 6, 7, 10)
+    - karma: Expansão, Estrutura e Karma (Júpiter, Saturno, Nodos, Quíron)
+    - synthesis: Síntese e Orientação Estratégica
+    """
+    try:
+        from app.services.rag_service_fastembed import get_rag_service
+        from app.services.ai_provider_service import get_ai_provider
+        
+        if not request.section:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Especifique uma seção: power, triad, personal, houses, karma, synthesis"
+            )
+        
+        lang = request.language or 'pt'
+        provider = get_ai_provider()
+        
+        if not provider:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Serviço de IA não disponível"
+            )
+        
+        # Buscar contexto do RAG
+        rag_service = get_rag_service()
+        queries = {
+            'power': f"temperamento elementos fogo terra ar água predominante ausente {request.sunSign} {request.moonSign} {request.ascendant}",
+            'triad': f"Sol Lua Ascendente tríade {request.sunSign} {request.moonSign} {request.ascendant} personalidade",
+            'personal': f"Mercúrio {request.mercurySign or ''} Vênus {request.venusSign or ''} Marte {request.marsSign or ''} dinâmica pessoal",
+            'houses': f"casas astrológicas Casa 2 Casa 4 Casa 6 Casa 7 Casa 10 vocação",
+            'karma': f"Júpiter Saturno Nodo Norte Sul Quíron karma propósito {request.jupiterSign or ''} {request.saturnSign or ''}",
+            'synthesis': f"síntese mapa astral integração pontos fortes desafios"
+        }
+        
+        query = queries.get(request.section, "interpretação mapa astral")
+        context_documents = []
+        
+        if rag_service:
+            try:
+                results = rag_service.search(query, top_k=8, expand_query=True)
+                context_documents = results[:6]
+            except Exception as e:
+                print(f"[WARNING] Erro ao buscar no RAG: {e}")
+        
+        context_text = "\n\n".join([
+            f"[Fonte: {doc.get('source', 'unknown')}]\n{doc.get('text', '')}"
+            for doc in context_documents
+            if doc.get('text')
+        ])
+        
+        # Construir dados do mapa para o prompt
+        chart_data = f"""Nome: {request.name}
+Data de Nascimento: {request.birthDate} às {request.birthTime}
+Local: {request.birthPlace}
+
+Tríade Fundamental:
+- Sol: {request.sunSign} na Casa {request.sunHouse}
+- Lua: {request.moonSign} na Casa {request.moonHouse}
+- Ascendente: {request.ascendant}
+
+Planetas Pessoais:"""
+        
+        if request.mercurySign:
+            chart_data += f"\n- Mercúrio: {request.mercurySign}" + (f" na Casa {request.mercuryHouse}" if request.mercuryHouse else "")
+        if request.venusSign:
+            chart_data += f"\n- Vênus: {request.venusSign}" + (f" na Casa {request.venusHouse}" if request.venusHouse else "")
+        if request.marsSign:
+            chart_data += f"\n- Marte: {request.marsSign}" + (f" na Casa {request.marsHouse}" if request.marsHouse else "")
+        
+        chart_data += "\n\nPlanetas Sociais:"
+        if request.jupiterSign:
+            chart_data += f"\n- Júpiter: {request.jupiterSign}" + (f" na Casa {request.jupiterHouse}" if request.jupiterHouse else "")
+        if request.saturnSign:
+            chart_data += f"\n- Saturno: {request.saturnSign}" + (f" na Casa {request.saturnHouse}" if request.saturnHouse else "")
+        
+        # Gerar interpretação com IA
+        section_titles = {
+            'power': 'A Estrutura de Poder',
+            'triad': 'A Tríade Fundamental',
+            'personal': 'Dinâmica Pessoal e Ferramentas',
+            'houses': 'Análise Setorial Avançada',
+            'karma': 'Expansão, Estrutura e Karma',
+            'synthesis': 'Síntese e Orientação Estratégica'
+        }
+        
+        title = section_titles.get(request.section, request.section.capitalize())
+        
+        system_prompt = "Você é um astrólogo experiente especializado em interpretação profunda de mapas astrais. Forneça análises detalhadas e terapêuticas."
+        
+        user_prompt = f"""Dados do Mapa Astral:
+{chart_data}
+
+Seção: {title}
+
+CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
+{context_text[:3000] if context_text else "Informações astrológicas gerais."}
+
+Forneça uma interpretação completa e detalhada desta seção do mapa astral."""
+        
+        interpretation = provider.generate_text(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        return FullBirthChartResponse(
+            section=request.section,
+            title=title,
+            content=interpretation,
+            generated_by=provider.get_provider_name()
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao gerar seção do mapa astral: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao gerar seção: {str(e)}"
+        )
+
+
 @router.get("/numerology/map", response_model=NumerologyMapResponse)
 async def get_numerology_map(
     authorization: Optional[str] = Header(None),

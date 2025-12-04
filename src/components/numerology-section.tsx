@@ -1230,6 +1230,54 @@ export const NumerologySection = ({ userData, onBack }: NumerologySectionProps) 
             </AstroCard>
           )}
 
+          {/* Botão para Gerar Interpretação */}
+          {!interpretation && !isLoadingInterpretation && (
+            <AstroCard>
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <UIIcons.BookOpen size={48} className="text-accent" style={{ margin: '0 auto 1rem' }} />
+                  <h3 style={{ 
+                    fontSize: '1.25rem', 
+                    fontWeight: '600', 
+                    color: 'hsl(var(--foreground))',
+                    marginBottom: '0.5rem'
+                  }}>
+                    {language === 'pt' ? 'Interpretação Numerológica Completa' : 'Complete Numerology Interpretation'}
+                  </h3>
+                  <p style={{ 
+                    fontSize: '0.875rem', 
+                    color: 'hsl(var(--muted-foreground))',
+                    lineHeight: '1.6',
+                    maxWidth: '500px',
+                    margin: '0 auto'
+                  }}>
+                    {language === 'pt' 
+                      ? 'Obtenha uma análise detalhada e inspiradora do seu mapa numerológico, incluindo pontos positivos, desafios e orientações práticas para cada número.'
+                      : 'Get a detailed and inspiring analysis of your numerology map, including positive points, challenges and practical guidance for each number.'}
+                  </p>
+                </div>
+                <AstroButton
+                  onClick={fetchInterpretation}
+                  variant="primary"
+                  size="md"
+                  disabled={isLoadingInterpretation}
+                >
+                  {isLoadingInterpretation ? (
+                    <>
+                      <UIIcons.Loader size={20} className="animate-spin" />
+                      {language === 'pt' ? 'Gerando...' : 'Generating...'}
+                    </>
+                  ) : (
+                    <>
+                      <UIIcons.Sparkles size={20} />
+                      {language === 'pt' ? 'Gerar Interpretação Completa' : 'Generate Complete Interpretation'}
+                    </>
+                  )}
+                </AstroButton>
+              </div>
+            </AstroCard>
+          )}
+
           {/* Interpretação */}
           {isLoadingInterpretation ? (
             <AstroCard>

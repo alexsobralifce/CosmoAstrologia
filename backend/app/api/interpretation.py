@@ -283,9 +283,69 @@ async def get_future_transits(
             max_transits=max_transits
         )
         
-        # Formatar trânsitos para o frontend
-        formatted_transits = []
+        # FILTRAR TRANSTOS PASSADOS - Apenas transitos válidos (futuros/atuais)
+        # Um trânsito é válido se end_date >= hoje (ainda não terminou)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        valid_transits = []
+        
         for transit in transits:
+            try:
+                # Parsear end_date do trânsito
+                end_date_str = transit.get('end_date', '')
+                if end_date_str:
+                    # Parsear ISO format string
+                    if isinstance(end_date_str, str):
+                        # Remover timezone e extrair apenas data
+                        if 'T' in end_date_str:
+                            date_part = end_date_str.split('T')[0]
+                            end_date = datetime.strptime(date_part, '%Y-%m-%d')
+                        else:
+                            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    elif isinstance(end_date_str, datetime):
+                        end_date = end_date_str.replace(hour=0, minute=0, second=0, microsecond=0)
+                    else:
+                        continue  # Formato desconhecido, pular
+                    
+                    # Filtrar: apenas transitos que ainda não terminaram
+                    if end_date >= today:
+                        valid_transits.append(transit)
+                    else:
+                        print(f"[TRANSITS] Removendo trânsito passado: {transit.get('title', 'N/A')} (end_date: {end_date_str})")
+                else:
+                    # Se não tem end_date, verificar start_date
+                    start_date_str = transit.get('start_date', transit.get('date', ''))
+                    if start_date_str:
+                        # Parsear ISO format string
+                        if isinstance(start_date_str, str):
+                            # Remover timezone e extrair apenas data
+                            if 'T' in start_date_str:
+                                date_part = start_date_str.split('T')[0]
+                                start_date = datetime.strptime(date_part, '%Y-%m-%d')
+                            else:
+                                start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                        elif isinstance(start_date_str, datetime):
+                            start_date = start_date_str.replace(hour=0, minute=0, second=0, microsecond=0)
+                        else:
+                            continue  # Formato desconhecido, pular
+                        
+                        # Se start_date >= hoje, incluir (trânsito futuro)
+                        if start_date >= today:
+                            valid_transits.append(transit)
+                        else:
+                            print(f"[TRANSITS] Removendo trânsito passado: {transit.get('title', 'N/A')} (start_date: {start_date_str})")
+                    else:
+                        # Se não tem nenhuma data, não incluir
+                        print(f"[TRANSITS] Removendo trânsito sem data: {transit.get('title', 'N/A')}")
+            except (ValueError, TypeError) as e:
+                print(f"[WARNING] Erro ao processar data do trânsito {transit.get('title', 'N/A')}: {e}")
+                # Em caso de erro, não incluir o trânsito (segurança)
+                continue
+        
+        print(f"[TRANSITS] Total calculado: {len(transits)}, Válidos (não passados): {len(valid_transits)}")
+        
+        # Formatar trânsitos válidos para o frontend
+        formatted_transits = []
+        for transit in valid_transits:
             # Mapear tipo de aspecto para display
             aspect_type_display_map = {
                 'conjunção': 'Conjunção',
@@ -1539,62 +1599,186 @@ async def get_numerology_interpretation(
                 detail="Serviço de IA não disponível"
             )
         
-        # Construir queries para RAG
+        # Construir queries expandidas para RAG - buscar informações detalhadas sobre cada número
+        lang = request.language or 'pt'
+        
+        # Queries específicas para cada número do mapa
         queries = [
-            f"life path number {numerology_map['life_path']['number']} numerologia pitagórica significado missão",
-            f"caminho de vida {numerology_map['life_path']['number']} numerologia",
-            f"expression destiny number {numerology_map['destiny']['number']} numerologia talentos",
-            f"soul desire heart number {numerology_map['soul']['number']} numerologia motivação"
+            # Caminho de Vida (mais importante)
+            f"life path number {numerology_map['life_path']['number']} numerologia pitagórica significado missão pontos positivos negativos",
+            f"caminho de vida {numerology_map['life_path']['number']} numerologia características forças fraquezas",
+            f"number {numerology_map['life_path']['number']} numerology positive negative traits strengths weaknesses",
+            
+            # Número do Destino/Expressão
+            f"expression destiny number {numerology_map['destiny']['number']} numerologia talentos habilidades",
+            f"número expressão destino {numerology_map['destiny']['number']} numerologia pontos fortes desafios",
+            f"destiny number {numerology_map['destiny']['number']} numerology talents abilities",
+            
+            # Número da Alma/Desejo do Coração
+            f"soul desire heart number {numerology_map['soul']['number']} numerologia motivação desejos internos",
+            f"número alma desejo coração {numerology_map['soul']['number']} numerologia motivações",
+            f"soul number {numerology_map['soul']['number']} numerology inner desires motivations",
+            
+            # Número da Personalidade
+            f"personality number {numerology_map['personality']['number']} numerologia como se apresenta mundo",
+            f"número personalidade {numerology_map['personality']['number']} numerologia aparência externa",
+            
+            # Número do Aniversário
+            f"birthday number {numerology_map['birthday']['number']} numerologia talentos especiais habilidades",
+            f"número aniversário {numerology_map['birthday']['number']} numerologia dons naturais",
+            
+            # Número da Maturidade
+            f"maturity number {numerology_map['maturity']['number']} numerologia segunda metade vida potencial",
+            f"número maturidade {numerology_map['maturity']['number']} numerologia evolução futuro",
         ]
         
-        # Buscar contexto do RAG
+        # Adicionar queries para números mestres se aplicável
+        if numerology_map['life_path']['is_master']:
+            queries.append(f"master number {numerology_map['life_path']['number']} numerologia significado especial")
+        if numerology_map['destiny']['is_master']:
+            queries.append(f"master number {numerology_map['destiny']['number']} expression destiny")
+        if numerology_map['soul']['is_master']:
+            queries.append(f"master number {numerology_map['soul']['number']} soul heart desire")
+        
+        # Buscar contexto do RAG com mais resultados
         context_documents = []
         if rag_service:
             for query in queries:
                 try:
-                    results = rag_service.search(query, top_k=3, expand_query=False, category='numerology')
+                    results = rag_service.search(query, top_k=5, expand_query=True, category='numerology')
                     context_documents.extend(results)
                 except Exception as e:
                     print(f"[WARNING] Erro ao buscar query '{query}': {e}")
         
-        # Remover duplicatas
+        # Remover duplicatas e ordenar por relevância
         seen_texts = set()
         unique_docs = []
         for doc in sorted(context_documents, key=lambda x: x.get('score', 0), reverse=True):
             doc_text = doc.get('text', '').strip()
-            if doc_text and doc_text not in seen_texts:
+            if doc_text and doc_text not in seen_texts and len(doc_text) > 50:
                 seen_texts.add(doc_text)
                 unique_docs.append(doc)
-                if len(unique_docs) >= 15:
+                if len(unique_docs) >= 20:  # Aumentar para mais contexto
                     break
         
         context_text = "\n\n".join([
             f"[Fonte: {doc.get('source', 'unknown')} - Página {doc.get('page', 1)}]\n{doc.get('text', '')}"
-            for doc in unique_docs[:10]
+            for doc in unique_docs[:15]  # Usar mais documentos
             if doc.get('text')
         ])
         
-        # Gerar interpretação com IA
-        lang = request.language or 'pt'
-        system_prompt = "Você é um Numerólogo Pitagórico profissional. Forneça interpretações detalhadas e terapêuticas."
+        # Preparar informações detalhadas do mapa
+        master_info = []
+        if numerology_map['life_path']['is_master']:
+            master_info.append(f"Caminho de Vida {numerology_map['life_path']['number']} é um Número Mestre")
+        if numerology_map['destiny']['is_master']:
+            master_info.append(f"Destino {numerology_map['destiny']['number']} é um Número Mestre")
+        if numerology_map['soul']['is_master']:
+            master_info.append(f"Alma {numerology_map['soul']['number']} é um Número Mestre")
         
-        user_prompt = f"""Dados do Cliente:
-Nome: {numerology_map['full_name']}
-Caminho de Vida: {numerology_map['life_path']['number']}
-Expressão/Destino: {numerology_map['destiny']['number']}
-Desejo da Alma: {numerology_map['soul']['number']}
-Personalidade: {numerology_map['personality']['number']}
+        master_note = "\n".join(master_info) if master_info else "Nenhum número mestre presente."
+        
+        # Gerar interpretação com IA - prompt muito mais detalhado e inspirador
+        system_prompt = """Você é um Numerólogo Pitagórico experiente e inspirador. Sua missão é ajudar pessoas a compreenderem seus números e usarem essa sabedoria para viverem vidas mais plenas e realizadas.
 
-CONHECIMENTO NUMEROLÓGICO DE REFERÊNCIA:
-{context_text[:3000] if context_text else "Informações numerológicas básicas."}
+DIRETRIZES IMPORTANTES:
+- Use linguagem clara, inspiradora e acolhedora (o usuário é leigo)
+- Sempre equilibre pontos positivos e desafios, mas foque em orientações práticas
+- Forneça exemplos concretos e aplicáveis à vida real
+- Seja encorajador e mostre como transformar desafios em oportunidades
+- Use tom terapêutico e empoderador"""
+        
+        user_prompt = f"""MAPA NUMEROLÓGICO DE {numerology_map['full_name'].upper()}
 
-Forneça uma interpretação completa e detalhada do mapa numerológico."""
+📊 NÚMEROS PRINCIPAIS:
+
+1. CAMINHO DE VIDA: {numerology_map['life_path']['number']} {"(Número Mestre)" if numerology_map['life_path']['is_master'] else ""}
+   - Este é o número mais importante. Representa sua missão de vida, o caminho que você veio percorrer nesta encarnação.
+   - Cálculo: Dia {numerology_map['life_path']['day']} + Mês {numerology_map['life_path']['month']} + Ano {numerology_map['life_path']['year']} = {numerology_map['life_path']['raw_total']} → {numerology_map['life_path']['number']}
+
+2. NÚMERO DO DESTINO (Expressão): {numerology_map['destiny']['number']} {"(Número Mestre)" if numerology_map['destiny']['is_master'] else ""}
+   - Revela seus talentos naturais, habilidades inatas e como você pode expressar seu potencial máximo.
+
+3. NÚMERO DA ALMA (Desejo do Coração): {numerology_map['soul']['number']} {"(Número Mestre)" if numerology_map['soul']['is_master'] else ""}
+   - Mostra suas motivações profundas, o que realmente move seu coração e o que você deseja no nível da alma.
+
+4. NÚMERO DA PERSONALIDADE: {numerology_map['personality']['number']}
+   - Indica como você se apresenta ao mundo, sua máscara social e como os outros te percebem inicialmente.
+
+5. NÚMERO DO ANIVERSÁRIO: {numerology_map['birthday']['number']}
+   - Revela talentos especiais e habilidades que você trouxe ao nascer neste dia específico.
+
+6. NÚMERO DA MATURIDADE: {numerology_map['maturity']['number']}
+   - Indica o potencial que você desenvolverá na segunda metade da vida, após os 35-40 anos.
+
+📝 NOTAS ESPECIAIS:
+{master_note}
+
+📚 CONHECIMENTO NUMEROLÓGICO DE REFERÊNCIA (RAG):
+{context_text[:4000] if context_text else "Informações numerológicas básicas da tradição pitagórica."}
+
+---
+
+INSTRUÇÕES PARA A INTERPRETAÇÃO:
+
+Crie uma interpretação COMPLETA, DETALHADA e INSPIRADORA que inclua:
+
+1. **INTRODUÇÃO ENCORAJADORA** (1 parágrafo)
+   - Dê boas-vindas calorosas e explique que os números são ferramentas de autoconhecimento
+   - Enfatize que não há números "bons" ou "ruins", apenas diferentes caminhos de evolução
+
+2. **CAMINHO DE VIDA** (2-3 parágrafos)
+   - Explique em detalhes o que significa ter Caminho de Vida {numerology_map['life_path']['number']}
+   - Liste 4-5 pontos POSITIVOS (forças, talentos, características positivas)
+   - Liste 2-3 DESAFIOS ou áreas de atenção (sem ser negativo, mas orientador)
+   - Forneça 2-3 orientações práticas de como usar essas energias positivamente
+   - Use exemplos concretos de como esse número se manifesta na vida
+
+3. **NÚMERO DO DESTINO** (2 parágrafos)
+   - Explique os talentos e habilidades naturais associados ao número {numerology_map['destiny']['number']}
+   - Mostre como desenvolver e expressar esses talentos
+   - Oriente sobre carreiras, atividades e formas de expressão que alinham com esse número
+
+4. **NÚMERO DA ALMA** (2 parágrafos)
+   - Revele as motivações profundas e desejos do coração do número {numerology_map['soul']['number']}
+   - Explique como honrar essas necessidades internas
+   - Oriente sobre como criar uma vida que satisfaça essas motivações profundas
+
+5. **NÚMERO DA PERSONALIDADE** (1-2 parágrafos)
+   - Explique como o número {numerology_map['personality']['number']} influencia a primeira impressão
+   - Mostre como usar essa energia de forma positiva
+   - Oriente sobre como equilibrar a personalidade externa com a alma interna
+
+6. **NÚMERO DO ANIVERSÁRIO** (1 parágrafo)
+   - Explique os talentos especiais do dia {numerology_map['birthday']['day']}
+   - Mostre como desenvolver esses dons naturais
+
+7. **NÚMERO DA MATURIDADE** (1 parágrafo)
+   - Explique o potencial futuro do número {numerology_map['maturity']['number']}
+   - Oriente sobre como se preparar para essa evolução
+
+8. **SÍNTESE E ORIENTAÇÃO FINAL** (1-2 parágrafos)
+   - Integre todos os números em uma visão unificada
+   - Forneça orientações práticas e inspiradoras para usar essa sabedoria
+   - Encoraje o usuário a abraçar seu caminho único e desenvolver seus potenciais
+   - Use linguagem empoderadora e esperançosa
+
+ESTILO E TOM:
+- Use linguagem clara, acessível e inspiradora
+- Evite jargões técnicos complexos
+- Seja específico e prático, não vago
+- Equilibre realismo com otimismo
+- Foque em crescimento, evolução e possibilidades
+- Use exemplos da vida real quando possível
+- Seja acolhedor e encorajador
+
+IMPORTANTE: O usuário é leigo e busca orientação prática para viver melhor. Foque em como usar os números de forma positiva e construtiva."""
         
         interpretation_text = provider.generate_text(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             temperature=0.7,
-            max_tokens=4000
+            max_tokens=6000  # Aumentado para permitir interpretação mais detalhada e completa
         )
         
         sources_list = [

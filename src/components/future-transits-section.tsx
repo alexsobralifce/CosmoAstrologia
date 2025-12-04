@@ -226,10 +226,54 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
     );
   };
 
+  // Função para filtrar transitos passados (camada extra de segurança)
+  const filterValidTransits = (transitsToFilter: Transit[]): Transit[] => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Resetar horas para comparar apenas datas
+    
+    return transitsToFilter.filter(transit => {
+      try {
+        // Verificar end_date primeiro (trânsito válido se ainda não terminou)
+        if (transit.end_date) {
+          const endDate = new Date(transit.end_date);
+          endDate.setHours(0, 0, 0, 0);
+          
+          // Trânsito válido se end_date >= hoje
+          if (endDate >= today) {
+            return true;
+          }
+          // Trânsito passado, não incluir
+          return false;
+        }
+        
+        // Se não tem end_date, verificar start_date
+        if (transit.start_date) {
+          const startDate = new Date(transit.start_date);
+          startDate.setHours(0, 0, 0, 0);
+          
+          // Trânsito válido se start_date >= hoje (futuro)
+          if (startDate >= today) {
+            return true;
+          }
+          // Trânsito passado, não incluir
+          return false;
+        }
+        
+        // Se não tem nenhuma data, não incluir (dados inválidos)
+        return false;
+      } catch (error) {
+        // Em caso de erro ao parsear data, não incluir (segurança)
+        console.warn('[Transits] Erro ao processar data do trânsito:', transit.title, error);
+        return false;
+      }
+    });
+  };
+
   useEffect(() => {
-    // Se transits foram passados como prop, usar eles
+    // Se transits foram passados como prop, filtrar e usar eles
     if (propTransits && propTransits.length > 0) {
-      setTransits(propTransits);
+      const validTransits = filterValidTransits(propTransits);
+      setTransits(validTransits);
       setIsLoading(false);
       return;
     }
@@ -245,10 +289,24 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
         });
         
         if (response.transits && response.transits.length > 0) {
-          setTransits(response.transits);
+          // Filtrar transitos passados (camada extra de segurança)
+          const validTransits = filterValidTransits(response.transits);
+          
+          if (validTransits.length > 0) {
+            setTransits(validTransits);
+          } else {
+            // Se após filtrar não houver trânsitos válidos, mostrar mensagem
+            setError('Não há trânsitos futuros disponíveis no momento');
+            setTransits([]);
+          }
         } else {
-          // Se não houver trânsitos, usar os padrão
-          setTransits(defaultTransits);
+          // Se não houver trânsitos, usar os padrão (apenas para desenvolvimento)
+          // Em produção, não usar defaults
+          if (import.meta.env.DEV) {
+            setTransits(defaultTransits);
+          } else {
+            setTransits([]);
+          }
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -257,8 +315,12 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
           console.error('Erro ao buscar trânsitos:', err);
         }
         setError('Não foi possível carregar os trânsitos futuros');
-        // Usar transits padrão em caso de erro
-        setTransits(defaultTransits);
+        // Em produção, não usar defaults em caso de erro
+        if (import.meta.env.DEV) {
+          setTransits(defaultTransits);
+        } else {
+          setTransits([]);
+        }
       } finally {
         setIsLoading(false);
       }

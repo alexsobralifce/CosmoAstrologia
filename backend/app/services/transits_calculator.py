@@ -441,9 +441,24 @@ def calculate_future_transits(
                                     'mars': 'Marte',
                                     'ascendant': 'Ascendente'
                                 }
-                                natal_point_display = natal_point_names.get(natal_name, natal_name.capitalize())
                                 
-                                title = f"{transit_planet} em {aspect_name} com seu {natal_point_display}"
+                                # Mapeamento de gênero para concordância correta
+                                natal_point_gender = {
+                                    'sun': 'masculino',      # seu Sol
+                                    'moon': 'feminino',      # sua Lua
+                                    'mercury': 'masculino',  # seu Mercúrio
+                                    'venus': 'feminino',     # sua Vênus
+                                    'mars': 'masculino',     # seu Marte
+                                    'ascendant': 'masculino' # seu Ascendente
+                                }
+                                
+                                natal_point_display = natal_point_names.get(natal_name, natal_name.capitalize())
+                                gender = natal_point_gender.get(natal_name, 'masculino')
+                                
+                                # Usar "sua" para feminino e "seu" para masculino
+                                possessive = "sua" if gender == 'feminino' else "seu"
+                                
+                                title = f"{transit_planet} em {aspect_name} com {possessive} {natal_point_display}"
                                 description = _generate_detailed_transit_description(
                                     transit_planet, aspect_type, natal_point_display, natal_sign_data['sign'], transit_type
                                 )
@@ -482,11 +497,67 @@ def calculate_future_transits(
     # Ordenar por data e remover duplicatas próximas
     transits.sort(key=lambda x: x['date'])
     
+    # FILTRAR TRANSTOS PASSADOS - Apenas transitos válidos (futuros/atuais)
+    # Um trânsito é válido se end_date >= hoje (ainda não terminou)
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    valid_transits = []
+    
+    for transit in transits:
+        try:
+            # Parsear end_date do trânsito
+            end_date_str = transit.get('end_date', '')
+            if end_date_str:
+                # Parsear ISO format string
+                if isinstance(end_date_str, str):
+                    # Remover timezone se presente
+                    if 'T' in end_date_str:
+                        # Extrair apenas a parte da data
+                        date_part = end_date_str.split('T')[0]
+                        end_date = datetime.strptime(date_part, '%Y-%m-%d')
+                    else:
+                        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                elif isinstance(end_date_str, datetime):
+                    end_date = end_date_str.replace(hour=0, minute=0, second=0, microsecond=0)
+                else:
+                    continue  # Formato desconhecido, pular
+                
+                # Filtrar: apenas transitos que ainda não terminaram
+                if end_date >= today:
+                    valid_transits.append(transit)
+                # else: trânsito já passou, não incluir
+            else:
+                # Se não tem end_date, verificar start_date
+                start_date_str = transit.get('start_date', transit.get('date', ''))
+                if start_date_str:
+                    # Parsear ISO format string
+                    if isinstance(start_date_str, str):
+                        # Remover timezone se presente
+                        if 'T' in start_date_str:
+                            # Extrair apenas a parte da data
+                            date_part = start_date_str.split('T')[0]
+                            start_date = datetime.strptime(date_part, '%Y-%m-%d')
+                        else:
+                            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    elif isinstance(start_date_str, datetime):
+                        start_date = start_date_str.replace(hour=0, minute=0, second=0, microsecond=0)
+                    else:
+                        continue  # Formato desconhecido, pular
+                    
+                    # Se start_date >= hoje, incluir (trânsito futuro)
+                    if start_date >= today:
+                        valid_transits.append(transit)
+                    # else: trânsito já passou, não incluir
+                # Se não tem nenhuma data, não incluir
+        except (ValueError, TypeError) as e:
+            print(f"[WARNING] Erro ao processar data do trânsito no calculador: {e}, transit: {transit.get('title', 'N/A')}")
+            # Em caso de erro, não incluir o trânsito (segurança)
+            continue
+    
     # Filtrar duplicatas (mesmo trânsito em datas próximas)
     filtered_transits = []
     seen_transits = set()
     
-    for transit in transits:
+    for transit in valid_transits:
         key = (transit['planet'], transit['aspect_type'], transit['natal_point'])
         if key not in seen_transits:
             seen_transits.add(key)
@@ -495,7 +566,33 @@ def calculate_future_transits(
             if len(filtered_transits) >= max_transits:
                 break
     
+    print(f"[TRANSITS CALCULATOR] Total calculado: {len(transits)}, Válidos (não passados): {len(valid_transits)}, Após remover duplicatas: {len(filtered_transits)}")
+    
     return filtered_transits[:max_transits]
+
+
+def _get_possessive_for_natal_point(natal_point: str) -> str:
+    """
+    Retorna o possessivo correto (seu/sua) baseado no gênero do ponto natal.
+    """
+    # Mapeamento de gênero para pontos astrológicos
+    gender_map = {
+        'Sol': 'masculino',
+        'Lua': 'feminino',
+        'Mercúrio': 'masculino',
+        'Vênus': 'feminino',
+        'Marte': 'masculino',
+        'Ascendente': 'masculino',
+        'ascendant': 'masculino',
+        'sun': 'masculino',
+        'moon': 'feminino',
+        'mercury': 'masculino',
+        'venus': 'feminino',
+        'mars': 'masculino'
+    }
+    
+    gender = gender_map.get(natal_point, 'masculino')
+    return "sua" if gender == 'feminino' else "seu"
 
 
 def _generate_transit_description(
@@ -505,6 +602,9 @@ def _generate_transit_description(
     natal_sign: str
 ) -> str:
     """Gera descrição do trânsito baseado no planeta, aspecto e ponto natal."""
+    
+    # Obter possessivo correto
+    possessive = _get_possessive_for_natal_point(natal_point)
     
     planet_meanings = {
         'Júpiter': {
@@ -552,7 +652,10 @@ def _generate_transit_description(
         'ascendant': f"Este trânsito influencia sua personalidade externa e como você se apresenta ao mundo. {transit_planet} traz {meaning} em sua imagem e primeira impressão."
     }
     
-    return descriptions.get(natal_point, f"{transit_planet} em {aspect_type} com seu {natal_point} traz {meaning} nesta área do seu mapa.")
+    # Obter possessivo correto para o ponto natal
+    possessive = _get_possessive_for_natal_point(natal_point)
+    default_desc = f"{transit_planet} em {aspect_type} com {possessive} {natal_point} traz {meaning} nesta área do seu mapa."
+    return descriptions.get(natal_point, default_desc)
 
 
 def _generate_detailed_transit_description(
@@ -575,13 +678,16 @@ def _generate_detailed_transit_description(
     
     aspect_display = aspect_names_pt.get(aspect_type, aspect_type.capitalize())
     
+    # Obter possessivo correto para o ponto natal
+    possessive = _get_possessive_for_natal_point(natal_point)
+    
     # Descrições didáticas por planeta e aspecto, focadas no impacto prático
     transit_descriptions = {
         ('Júpiter', 'conjunção'): f"""**O que é uma {aspect_display}?**
-Uma conjunção acontece quando {transit_planet} se alinha exatamente com seu {natal_point}. É como se duas forças cósmicas se unissem, potencializando seus efeitos.
+Uma conjunção acontece quando {transit_planet} se alinha exatamente com {possessive} {natal_point}. É como se duas forças cósmicas se unissem, potencializando seus efeitos.
 
 **Como isso impacta sua rotina:**
-• Você sentirá uma expansão natural nas áreas relacionadas ao seu {natal_point}
+• Você sentirá uma expansão natural nas áreas relacionadas a {possessive} {natal_point}
 • Oportunidades podem aparecer de forma mais frequente e natural
 • Sua confiança e otimismo tendem a aumentar
 • É um período favorável para iniciar projetos importantes relacionados a essa área
@@ -598,11 +704,11 @@ Aproveite este momento para expandir seus horizontes. Se o trânsito afeta seu S
 • Se afeta Marte: "Iniciei um projeto que estava adiando há meses, e a energia para executá-lo veio naturalmente." """,
 
         ('Júpiter', 'oposição'): f"""**O que é uma {aspect_display}?**
-Uma oposição acontece quando {transit_planet} está exatamente oposto ao seu {natal_point} no mapa. É como um espelho que reflete e amplifica as dinâmicas dessa área.
+Uma oposição acontece quando {transit_planet} está exatamente oposto a {possessive} {natal_point} no mapa. É como um espelho que reflete e amplifica as dinâmicas dessa área.
 
 **Como isso impacta sua rotina:**
 • Você pode sentir uma tensão entre suas necessidades internas e oportunidades externas
-• Tendência a excessos ou exageros na área relacionada ao seu {natal_point}
+• Tendência a excessos ou exageros na área relacionada a {possessive} {natal_point}
 • Necessidade de encontrar equilíbrio entre diferentes aspectos da vida
 • Pode haver conflitos entre o que você quer e o que o mundo oferece
 • Período de aprendizado sobre limites e moderação
@@ -618,7 +724,7 @@ Evite exageros e busque equilíbrio. Se o trânsito afeta seu Sol, não se sobre
 • Se afeta Marte: "Aja com impulso e depois me arrependi. Aprendi a pensar antes de agir." """,
 
         ('Júpiter', 'quadratura'): f"""**O que é uma {aspect_display}?**
-Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e seu {natal_point}. É um aspecto desafiador que cria tensão e necessidade de ação.
+Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e {possessive} {natal_point}. É um aspecto desafiador que cria tensão e necessidade de ação.
 
 **Como isso impacta sua rotina:**
 • Júpiter em quadratura traz oportunidades que chegam com obstáculos - você sentirá que precisa "merecer" o que deseja
@@ -638,14 +744,14 @@ Encare os desafios como oportunidades de crescimento. Se o trânsito afeta seu S
 • Se afeta Marte: "Queria iniciar vários projetos ao mesmo tempo, mas aprendi que focar em um de cada vez traz melhores resultados." """,
 
         ('Júpiter', 'sextil'): f"""**O que é um {aspect_display}?**
-Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. É um aspecto harmonioso menor que oferece oportunidades de crescimento.
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e {possessive} {natal_point}. É um aspecto harmonioso menor que oferece oportunidades de crescimento.
 
 **Como isso impacta sua rotina:**
 • Oportunidades de expansão aparecem de forma suave e natural
 • Você sente uma leve expansão de confiança e otimismo
 • Período favorável para pequenos desenvolvimentos e melhorias
 • Coisas tendem a fluir melhor, mas de forma mais sutil que um trígono
-• Menos tensão e mais facilidade nas áreas relacionadas ao seu {natal_point}
+• Menos tensão e mais facilidade nas áreas relacionadas ao {possessive} {natal_point}
 
 **O que fazer na prática:**
 Aproveite as oportunidades que aparecem. Se o trânsito afeta seu Sol, invista em pequenos projetos pessoais. Se afeta sua Lua, cuide das suas emoções. Se afeta Mercúrio, comunique-se e aprenda. Se afeta Vênus, invista em relacionamentos. Se afeta Marte, aja com confiança.
@@ -658,14 +764,14 @@ Aproveite as oportunidades que aparecem. Se o trânsito afeta seu Sol, invista e
 • Se afeta Marte: "Tenho energia para agir e minhas ações têm gerado resultados positivos." """,
 
         ('Júpiter', 'trígono'): f"""**O que é uma {aspect_display}?**
-Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. É um aspecto harmonioso que facilita o fluxo de energia.
+Um trígono forma um ângulo de 120 graus entre {transit_planet} e {possessive} {natal_point}. É um aspecto harmonioso que facilita o fluxo de energia.
 
 **Como isso impacta sua rotina:**
 • As coisas tendem a fluir de forma mais natural e fácil
 • Oportunidades aparecem sem muito esforço
 • Você sente mais confiança e otimismo no dia a dia
 • Período favorável para desenvolvimento e crescimento
-• Menos tensão e mais harmonia nas áreas relacionadas ao seu {natal_point}
+• Menos tensão e mais harmonia nas áreas relacionadas ao {possessive} {natal_point}
 
 **O que fazer na prática:**
 Aproveite este momento harmonioso. Se o trânsito afeta seu Sol, invista em projetos pessoais. Se afeta sua Lua, cuide bem das suas emoções. Se afeta Mercúrio, comunique-se e aprenda. Se afeta Vênus, invista em relacionamentos e criatividade. Se afeta Marte, aja com confiança.
@@ -678,10 +784,10 @@ Aproveite este momento harmonioso. Se o trânsito afeta seu Sol, invista em proj
 • Se afeta Marte: "Tenho energia e confiança para agir, e minhas ações têm gerado resultados positivos." """,
 
         ('Saturno', 'conjunção'): f"""**O que é uma {aspect_display}?**
-Uma conjunção acontece quando {transit_planet} se alinha exatamente com seu {natal_point}. Saturno traz lições de responsabilidade, estrutura e disciplina.
+Uma conjunção acontece quando {transit_planet} se alinha exatamente com {possessive} {natal_point}. Saturno traz lições de responsabilidade, estrutura e disciplina.
 
 **Como isso impacta sua rotina:**
-• Você sentirá necessidade de estruturar e organizar melhor a área relacionada ao seu {natal_point}
+• Você sentirá necessidade de estruturar e organizar melhor a área relacionada ao {possessive} {natal_point}
 • Pode haver restrições ou limitações que exigem paciência
 • Período de amadurecimento e aprendizado sobre responsabilidades
 • Necessidade de trabalhar com disciplina e consistência
@@ -698,7 +804,7 @@ Seja disciplinado e paciente. Se o trânsito afeta seu Sol, estruture seus proje
 • Se afeta Marte: "Canalizei minha energia de forma disciplinada e consegui realizar objetivos que antes pareciam impossíveis." """,
 
         ('Saturno', 'oposição'): f"""**O que é uma {aspect_display}?**
-Uma oposição acontece quando {transit_planet} está exatamente oposto ao seu {natal_point}. Saturno testa seus compromissos e estruturas.
+Uma oposição acontece quando {transit_planet} está exatamente oposto ao {possessive} {natal_point}. Saturno testa seus compromissos e estruturas.
 
 **Como isso impacta sua rotina:**
 • Saturno em oposição cria um espelho de responsabilidades - você verá claramente o que precisa assumir vs. o que pode delegar
@@ -718,7 +824,7 @@ Encontre equilíbrio entre suas necessidades e responsabilidades. Se o trânsito
 • Se afeta Marte: "Minha energia para agir foi testada por responsabilidades que não podia ignorar. Aprendi a priorizar." """,
 
         ('Saturno', 'quadratura'): f"""**O que é uma {aspect_display}?**
-Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e seu {natal_point}. Saturno cria desafios que exigem trabalho árduo.
+Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e {possessive} {natal_point}. Saturno cria desafios que exigem trabalho árduo.
 
 **Como isso impacta sua rotina:**
 • Saturno em quadratura traz restrições práticas e concretas - você sentirá que "nada vem fácil" nesta área
@@ -738,11 +844,11 @@ Seja persistente e disciplinado. Se o trânsito afeta seu Sol, trabalhe com paci
 • Se afeta Marte: "Minha energia para agir foi limitada por obstáculos práticos. Aprendi a trabalhar com disciplina e persistência." """,
 
         ('Saturno', 'sextil'): f"""**O que é um {aspect_display}?**
-Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. Saturno oferece oportunidades suaves de estruturação.
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e {possessive} {natal_point}. Saturno oferece oportunidades suaves de estruturação.
 
 **Como isso impacta sua rotina:**
 • Oportunidades de organização aparecem de forma suave e natural
-• Você sente uma leve necessidade de estruturar melhor a área relacionada ao seu {natal_point}
+• Você sente uma leve necessidade de estruturar melhor a área relacionada ao {possessive} {natal_point}
 • Período favorável para pequenos ajustes e melhorias organizacionais
 • Disciplina e consistência fluem de forma mais fácil, mas de forma mais sutil que um trígono
 • A energia de Saturno trabalha a seu favor de forma suave, trazendo maturidade sem pressão excessiva
@@ -758,7 +864,7 @@ Aproveite para fazer pequenos ajustes organizacionais. Se o trânsito afeta seu 
 • Se afeta Marte: "Canalizei minha energia de forma organizada e consegui realizar objetivos importantes." """,
 
         ('Saturno', 'trígono'): f"""**O que é uma {aspect_display}?**
-Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. Saturno facilita estruturação e organização.
+Um trígono forma um ângulo de 120 graus entre {transit_planet} e {possessive} {natal_point}. Saturno facilita estruturação e organização.
 
 **Como isso impacta sua rotina:**
 • Saturno em trígono traz organização natural - você sentirá que as estruturas que precisa se formam sem muito esforço
@@ -778,7 +884,7 @@ Aproveite para estruturar sua vida. Se o trânsito afeta seu Sol, organize proje
 • Se afeta Marte: "Canalizei minha energia de forma organizada e disciplinada, e consegui realizar objetivos importantes." """,
 
         ('Urano', 'conjunção'): f"""**O que é uma {aspect_display}?**
-Uma conjunção acontece quando {transit_planet} se alinha exatamente com seu {natal_point}. Urano traz mudanças súbitas e inovação.
+Uma conjunção acontece quando {transit_planet} se alinha exatamente com {possessive} {natal_point}. Urano traz mudanças súbitas e inovação.
 
 **Como isso impacta sua rotina:**
 • Urano em conjunção traz rupturas elétricas - sua rotina pode ser completamente transformada por eventos inesperados
@@ -798,7 +904,7 @@ Esteja aberto a mudanças. Se o trânsito afeta seu Sol, aceite transformações
 • Se afeta Marte: "Minha forma de agir mudou completamente. Encontrei novas maneiras de canalizar minha energia que são muito mais eficazes." """,
 
         ('Urano', 'oposição'): f"""**O que é uma {aspect_display}?**
-Uma oposição acontece quando {transit_planet} está exatamente oposto ao seu {natal_point}. Urano cria tensão entre estabilidade e mudança.
+Uma oposição acontece quando {transit_planet} está exatamente oposto ao {possessive} {natal_point}. Urano cria tensão entre estabilidade e mudança.
 
 **Como isso impacta sua rotina:**
 • Urano em oposição cria um espelho de liberdade - você vê claramente o que precisa mudar, mas também o que precisa manter
@@ -818,7 +924,7 @@ Encontre equilíbrio entre estabilidade e mudança. Se o trânsito afeta seu Sol
 • Se afeta Marte: "Minha forma de agir foi tensionada entre padrões antigos e novas possibilidades. Encontrei uma síntese." """,
 
         ('Urano', 'quadratura'): f"""**O que é uma {aspect_display}?**
-Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e seu {natal_point}. Urano cria rupturas e necessidade de adaptação.
+Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e {possessive} {natal_point}. Urano cria rupturas e necessidade de adaptação.
 
 **Como isso impacta sua rotina:**
 • Urano em quadratura traz rupturas forçadas - sua rotina será interrompida por eventos que você não pode controlar
@@ -838,7 +944,7 @@ Seja flexível e adaptável. Se o trânsito afeta seu Sol, aceite mudanças pess
 • Se afeta Marte: "Minha forma de agir foi interrompida por eventos inesperados. Aprendi a ser mais flexível e adaptável." """,
 
         ('Urano', 'trígono'): f"""**O que é uma {aspect_display}?**
-Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. Urano facilita mudanças positivas e inovação.
+Um trígono forma um ângulo de 120 graus entre {transit_planet} e {possessive} {natal_point}. Urano facilita mudanças positivas e inovação.
 
 **Como isso impacta sua rotina:**
 • Urano em trígono traz inovação fluida - mudanças positivas chegam de forma natural e sem resistência
@@ -858,7 +964,7 @@ Aproveite para inovar. Se o trânsito afeta seu Sol, experimente novas formas de
 • Se afeta Marte: "Canalizei minha energia de forma criativa e inovadora. Sinto mais liberdade para agir." """,
 
         ('Netuno', 'conjunção'): f"""**O que é uma {aspect_display}?**
-Uma conjunção acontece quando {transit_planet} se alinha exatamente com seu {natal_point}. Netuno traz inspiração espiritual e criatividade.
+Uma conjunção acontece quando {transit_planet} se alinha exatamente com {possessive} {natal_point}. Netuno traz inspiração espiritual e criatividade.
 
 **Como isso impacta sua rotina:**
 • Netuno em conjunção dissolve fronteiras - sua rotina pode se tornar mais fluida e menos rígida, às vezes confusa
@@ -878,7 +984,7 @@ Conecte-se com sua intuição. Se o trânsito afeta seu Sol, explore sua espirit
 • Se afeta Marte: "Canalizei minha energia de forma mais criativa e inspirada. Sinto que estou servindo a algo maior." """,
 
         ('Netuno', 'oposição'): f"""**O que é uma {aspect_display}?**
-Uma oposição acontece quando {transit_planet} está exatamente oposto ao seu {natal_point}. Netuno pode trazer ilusões e necessidade de clareza.
+Uma oposição acontece quando {transit_planet} está exatamente oposto ao {possessive} {natal_point}. Netuno pode trazer ilusões e necessidade de clareza.
 
 **Como isso impacta sua rotina:**
 • Netuno em oposição cria um espelho de ilusão - você vê claramente o que é real vs. o que é fantasia
@@ -898,7 +1004,7 @@ Busque clareza e discernimento. Se o trânsito afeta seu Sol, seja realista sobr
 • Se afeta Marte: "Precisei equilibrar ação inspirada com ação prática. Aprendi a canalizar energia de forma mais consciente." """,
 
         ('Netuno', 'quadratura'): f"""**O que é uma {aspect_display}?**
-Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e seu {natal_point}. Netuno pode trazer desorientação e necessidade de discernimento.
+Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e {possessive} {natal_point}. Netuno pode trazer desorientação e necessidade de discernimento.
 
 **Como isso impacta sua rotina:**
 • Netuno em quadratura traz confusão forçada - sua rotina pode ser desestabilizada por ilusões que se revelam como falsas
@@ -918,11 +1024,11 @@ Seja prático e discernente. Se o trânsito afeta seu Sol, busque clareza sobre 
 • Se afeta Marte: "Minha forma de agir foi afetada por confusão e falta de direção. Aprendi a canalizar energia de forma mais consciente e prática." """,
 
         ('Netuno', 'sextil'): f"""**O que é um {aspect_display}?**
-Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. Netuno oferece oportunidades suaves de inspiração e criatividade.
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e {possessive} {natal_point}. Netuno oferece oportunidades suaves de inspiração e criatividade.
 
 **Como isso impacta sua rotina:**
 • Oportunidades de inspiração e criatividade aparecem de forma suave e natural
-• Você sente uma leve conexão com algo maior na área relacionada ao seu {natal_point}
+• Você sente uma leve conexão com algo maior na área relacionada ao {possessive} {natal_point}
 • Período favorável para pequenas explorações espirituais e criativas
 • Intuição e criatividade fluem de forma mais fácil, mas de forma mais sutil que um trígono
 • A energia de Netuno trabalha a seu favor de forma suave, trazendo inspiração sem confusão excessiva
@@ -938,7 +1044,7 @@ Aproveite para explorar criatividade e espiritualidade. Se o trânsito afeta seu
 • Se afeta Marte: "Canalizei minha energia de forma criativa. Sinto que estou servindo a algo maior." """,
 
         ('Netuno', 'trígono'): f"""**O que é uma {aspect_display}?**
-Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. Netuno facilita inspiração artística e conexão espiritual.
+Um trígono forma um ângulo de 120 graus entre {transit_planet} e {possessive} {natal_point}. Netuno facilita inspiração artística e conexão espiritual.
 
 **Como isso impacta sua rotina:**
 • Netuno em trígono traz inspiração fluida - criatividade e espiritualidade fluem naturalmente sem confusão excessiva
@@ -958,7 +1064,7 @@ Aproveite para criar e inspirar-se. Se o trânsito afeta seu Sol, explore sua es
 • Se afeta Marte: "Canalizei minha energia de forma criativa e inspirada. Sinto que estou servindo a algo maior." """,
 
         ('Plutão', 'conjunção'): f"""**O que é uma {aspect_display}?**
-Uma conjunção acontece quando {transit_planet} se alinha exatamente com seu {natal_point}. Plutão traz transformação profunda e renascimento.
+Uma conjunção acontece quando {transit_planet} se alinha exatamente com {possessive} {natal_point}. Plutão traz transformação profunda e renascimento.
 
 **Como isso impacta sua rotina:**
 • Plutão em conjunção traz morte e renascimento - sua rotina será completamente transformada através de crises profundas
@@ -978,7 +1084,7 @@ Aceite transformações necessárias. Se o trânsito afeta seu Sol, permita muda
 • Se afeta Marte: "Minha forma de agir foi completamente transformada. Aprendi a usar poder de forma construtiva, não destrutiva." """,
 
         ('Plutão', 'oposição'): f"""**O que é uma {aspect_display}?**
-Uma oposição acontece quando {transit_planet} está exatamente oposto ao seu {natal_point}. Plutão cria confrontos com poder e necessidade de transformação.
+Uma oposição acontece quando {transit_planet} está exatamente oposto ao {possessive} {natal_point}. Plutão cria confrontos com poder e necessidade de transformação.
 
 **Como isso impacta sua rotina:**
 • Plutão em oposição cria um espelho de poder - você vê claramente dinâmicas de controle e manipulação, suas e dos outros
@@ -998,7 +1104,7 @@ Transforme dinâmicas antigas. Se o trânsito afeta seu Sol, não tente controla
 • Se afeta Marte: "Minha forma de agir foi tensionada por confrontos com poder. Aprendi a canalizar poder de forma mais consciente." """,
 
         ('Plutão', 'quadratura'): f"""**O que é uma {aspect_display}?**
-Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e seu {natal_point}. Plutão cria crises transformadoras.
+Uma quadratura forma um ângulo de 90 graus entre {transit_planet} e {possessive} {natal_point}. Plutão cria crises transformadoras.
 
 **Como isso impacta sua rotina:**
 • Plutão em quadratura traz crises forçadas - sua rotina será completamente desestabilizada por eventos transformadores que você não pode evitar
@@ -1018,11 +1124,11 @@ Encare crises como oportunidades de transformação. Se o trânsito afeta seu So
 • Se afeta Marte: "Minha forma de agir foi completamente transformada através de uma crise. Aprendi a usar poder de forma construtiva." """,
 
         ('Plutão', 'sextil'): f"""**O que é um {aspect_display}?**
-Um sextil forma um ângulo de 60 graus entre {transit_planet} e seu {natal_point}. Plutão oferece oportunidades suaves de transformação e renovação.
+Um sextil forma um ângulo de 60 graus entre {transit_planet} e {possessive} {natal_point}. Plutão oferece oportunidades suaves de transformação e renovação.
 
 **Como isso impacta sua rotina:**
 • Oportunidades de transformação aparecem de forma suave e natural
-• Você sente uma leve necessidade de renovar a área relacionada ao seu {natal_point}
+• Você sente uma leve necessidade de renovar a área relacionada ao {possessive} {natal_point}
 • Período favorável para pequenas transformações e renovações
 • Transformações fluem de forma mais fácil, mas de forma mais sutil que um trígono
 • A energia de Plutão trabalha a seu favor de forma suave, trazendo renovação sem crises profundas
@@ -1038,7 +1144,7 @@ Aproveite para fazer pequenas transformações. Se o trânsito afeta seu Sol, pe
 • Se afeta Marte: "Canalizei poder de forma construtiva. Sinto mais força e determinação." """,
 
         ('Plutão', 'trígono'): f"""**O que é uma {aspect_display}?**
-Um trígono forma um ângulo de 120 graus entre {transit_planet} e seu {natal_point}. Plutão facilita transformação positiva e renovação.
+Um trígono forma um ângulo de 120 graus entre {transit_planet} e {possessive} {natal_point}. Plutão facilita transformação positiva e renovação.
 
 **Como isso impacta sua rotina:**
 • Transformações positivas podem acontecer de forma mais suave
@@ -1073,10 +1179,10 @@ Este é um momento crucial para estruturar sua vida. Avalie suas responsabilidad
     if not description:
         # Descrição genérica se não encontrar específica
         description = f"""**O que é uma {aspect_names_pt.get(aspect_type, aspect_type)}?**
-Uma {aspect_type} acontece quando {transit_planet} forma um aspecto específico com seu {natal_point} no mapa natal.
+Uma {aspect_type} acontece quando {transit_planet} forma um aspecto específico com {possessive} {natal_point} no mapa natal.
 
 **Como isso impacta sua rotina:**
-Este trânsito influencia a área da sua vida relacionada ao seu {natal_point}. Preste atenção às mudanças e oportunidades que aparecem durante este período.
+Este trânsito influencia a área da sua vida relacionada ao {possessive} {natal_point}. Preste atenção às mudanças e oportunidades que aparecem durante este período.
 
 **O que fazer na prática:**
 Esteja consciente das influências deste trânsito e use-as de forma construtiva na sua rotina diária."""

@@ -66,22 +66,6 @@ export function LandingPage({ onEnter, onGetStarted }: LandingPageProps) {
           <p className="landing-hero-description">
             Entenda quem você realmente é, tome decisões com confiança e alcance seu verdadeiro potencial através da astrologia e numerologia.
           </p>
-          <form onSubmit={handleSubmit} className="landing-hero-cta">
-            <div className="landing-hero-input-wrapper">
-              <Mail className="landing-hero-input-icon" size={20} />
-              <AstroInput
-                type="email"
-                placeholder="Digite seu melhor email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="landing-hero-input"
-              />
-            </div>
-            <AstroButton type="submit" className="landing-hero-button">
-              Começar Grátis
-              <ArrowRight size={20} />
-            </AstroButton>
-          </form>
           <div className="landing-hero-trust">
             <div className="landing-hero-trust-item">
               <Check size={16} />

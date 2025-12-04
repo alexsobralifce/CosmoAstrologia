@@ -10,10 +10,55 @@ interface BirthChartSection {
   generated_by: string;
 }
 
+interface PlanetInSign {
+  planet: string;
+  planet_key: string;
+  sign: string;
+  degree: number;
+  degree_dms: string;
+  is_retrograde?: boolean; // Opcional para compatibilidade com API
+  house: number;
+}
+
+interface SpecialPoint {
+  point: string;
+  point_key: string;
+  sign: string;
+  degree: number;
+  degree_dms: string;
+  house: number;
+}
+
+interface CompleteChartData {
+  birth_data: {
+    date: string;
+    time: string;
+    latitude: number;
+    longitude: number;
+  };
+  planets_in_signs: PlanetInSign[];
+  special_points: SpecialPoint[];
+  planets_in_houses: Array<{
+    house: number;
+    planets: Array<{
+      planet?: string;
+      point?: string;
+      planet_key?: string;
+      point_key?: string;
+      sign: string;
+      degree: number;
+      degree_dms: string;
+      house: number;
+      is_retrograde?: boolean;
+    }>;
+  }>;
+}
+
 interface GeneratePDFOptions {
   userData: OnboardingData;
   sections: Record<string, BirthChartSection | null>;
   language: 'pt' | 'en';
+  chartData?: CompleteChartData | null; // Dados completos do mapa astral
 }
 
 // ===== CONFIGURAÇÕES PROFISSIONAIS =====
@@ -52,10 +97,78 @@ const PDF_CONFIG = {
   },
 };
 
+// Função para limpar conteúdo técnico (mesma lógica do formatGroqText)
+const cleanTechnicalContent = (text: string): string => {
+  let processedText = text;
+  
+  // Remover informações duplicadas que não devem aparecer em nenhuma seção
+  processedText = processedText.replace(/MAPA ASTRAL DE[\s\S]*?DADOS DE NASCIMENTO[\s\S]*?(?=\n\n|LUMINARES|TEMPERAMENTO|REGENTE|DIGNIDADES|ASPECTOS|$)/gi, '');
+  processedText = processedText.replace(/DADOS DE NASCIMENTO[\s\S]*?(?=\n\n|LUMINARES|TEMPERAMENTO|REGENTE|DIGNIDADES|ASPECTOS|$)/gi, '');
+  processedText = processedText.replace(/Data:[\s\S]*?Local:[\s\S]*?(?=\n\n|LUMINARES|TEMPERAMENTO|REGENTE|DIGNIDADES|ASPECTOS|$)/gi, '');
+  processedText = processedText.replace(/LUMINARES E PLANETAS PESSOAIS[\s\S]*?(?=\n\n|TEMPERAMENTO|REGENTE|DIGNIDADES|ASPECTOS|$)/gi, '');
+  processedText = processedText.replace(/TEMPERAMENTO[\s\S]*?elemento dominante[\s\S]*?(?=\n\n|REGENTE|DIGNIDADES|ASPECTOS|$)/gi, '');
+  processedText = processedText.replace(/O mapa apresenta predominância[\s\S]*?elemento dominante[\s\S]*?(?=\n\n|REGENTE|DIGNIDADES|ASPECTOS|$)/gi, '');
+  processedText = processedText.replace(/REGENTE DO MAPA[\s\S]*?(?=\n\n|DIGNIDADES|ASPECTOS|$)/gi, '');
+  
+  // Remover conteúdo técnico de dados pré-calculados
+  processedText = processedText.replace(/CONTRIBUIÇÃO DE CADA PLANETA[\s\S]*?(?=\n\n|🔒|⚠️|📊|🔗|$)/gi, '');
+  processedText = processedText.replace(/^\s*[\wÀ-ÿ\/]+\s+em\s+[\wÀ-ÿ]+\s+\([\wÀ-ÿ]+\):\s+\d+\s+pontos?\s*$/gmi, '');
+  processedText = processedText.replace(/🔒\s*DADOS PRÉ-CALCULADOS[\s\S]*?(?=\n\n|⚠️|📊|🔗|$)/gi, '');
+  processedText = processedText.replace(/⚠️\s*INSTRUÇÃO CRÍTICA PARA A IA[\s\S]*?(?=\n\n|⚠️|📊|🔗|$)/gi, '');
+  processedText = processedText.replace(/⚠️⚠️⚠️\s*VALIDAÇÃO OBRIGATÓRIA[\s\S]*?(?=\n\n|⚠️|📊|🔗|$)/gi, '');
+  processedText = processedText.replace(/📊[\s\S]*?(?=\n\n|🔗|⚠️|$)/gi, '');
+  processedText = processedText.replace(/🔗\s*ASPECTOS VALIDADOS[\s\S]*?(?=\n\n|LISTA|⚠️|$)/gi, '');
+  processedText = processedText.replace(/LISTA COMPLETA DE ASPECTOS[\s\S]*?(?=\n\n|$)/gi, '');
+  
+  // Remover listas de aspectos individuais
+  processedText = processedText.replace(/^\s*[•·]\s*[\wÀ-ÿ]+\s+(Conjunção|Sextil|Trígono|Quadratura|Oposição|Conjunction|Sextile|Trine|Square|Opposition)\s+[\wÀ-ÿ]+[\s\S]*?distância:[\s\S]*?°\)\s*$/gmi, '');
+  processedText = processedText.replace(/^\s*[•·]\s*[\wÀ-ÿ]+\s+(Conjunção|Sextil|Trígono|Quadratura|Oposição|Conjunction|Sextile|Trine|Square|Opposition)\s+[\wÀ-ÿ]+\s*$/gmi, '');
+  
+  // Remover separadores visuais (barras e linhas decorativas)
+  processedText = processedText.replace(/[═─━┃│┊┋]{3,}/g, '');
+  processedText = processedText.replace(/^[═─━┃│┊┋\s]+$/gm, '');
+  processedText = processedText.replace(/^[-─━─━\s]+$/gm, '');
+  
+  // Remover linhas com apenas emojis ou símbolos técnicos
+  processedText = processedText.replace(/^[🔒⚠️📊🔗⭐🌟\s]+$/gm, '');
+  
+  // Remover dignidades planetárias
+  processedText = processedText.replace(/🌟\s*DIGNIDADES\s*PLANETÁRIAS[\s\S]*?(?=\n\n|🌟|$)/gi, '');
+  processedText = processedText.replace(/DIGNIDADES\s*PLANETÁRIAS[\s\S]*?(?=\n\n|🌟|$)/gi, '');
+  processedText = processedText.replace(/DIGNIDADES[\s\S]*?PLANETÁRIAS[\s\S]*?(?=\n\n|🌟|$)/gi, '');
+  processedText = processedText.replace(/^\s*\*\s+[\wÀ-ÿ]+\s+em\s+[\wÀ-ÿ]+:\s+(QUEDA|PEREGRINO|EXALTAÇÃO|DOMICÍLIO|DETRIMENTO)\s*$/gmi, '');
+  processedText = processedText.replace(/^\s*-\s+[\wÀ-ÿ]+\s+em\s+[\wÀ-ÿ]+:\s+(QUEDA|PEREGRINO|EXALTAÇÃO|DOMICÍLIO|DETRIMENTO)\s*$/gmi, '');
+  processedText = processedText.replace(/^\s*[\wÀ-ÿ]+\s+em\s+[\wÀ-ÿ]+:\s+(QUEDA|PEREGRINO|EXALTAÇÃO|DOMICÍLIO|DETRIMENTO)\s*$/gmi, '');
+  
+  // Remover aspectos
+  processedText = processedText.replace(/ASPECTOS[\s\S]*?(?=\n\n|🌟|$)/gi, '');
+  processedText = processedText.replace(/🌟\s*ASPECTOS[\s\S]*?(?=\n\n|🌟|$)/gi, '');
+  processedText = processedText.replace(/^\s*[-*]\s+(Conjunção|Sextil|Trígono|Quadratura|Oposição|Conjunction|Sextile|Trine|Square|Opposition)\s+[\wÀ-ÿ]+-[\wÀ-ÿ]+\s*$/gmi, '');
+  processedText = processedText.replace(/^\s*(Conjunção|Sextil|Trígono|Quadratura|Oposição|Conjunction|Sextile|Trine|Square|Opposition)\s+[\wÀ-ÿ]+-[\wÀ-ÿ]+\s*$/gmi, '');
+  
+  // Remover conteúdo de suporte
+  processedText = processedText.replace(/##?\s*📞\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
+  processedText = processedText.replace(/##?\s*Suporte[\s\S]*?(?=\n\n|$)/gi, '');
+  processedText = processedText.replace(/Para dúvidas sobre interpretação astrológica[\s\S]*?Consulta com astrólogo profissional[\s\S]*?(?=\n\n|$)/gi, '');
+  processedText = processedText.replace(/Livros de astrologia na pasta.*?/gi, '');
+  processedText = processedText.replace(/Análise com IA.*?/gi, '');
+  processedText = processedText.replace(/Consulta com astrólogo profissional.*?/gi, '');
+  processedText = processedText.replace(/Desenvolvido com.*?autoconhecimento profundo[\s\S]*?(?=\n\n|$)/gi, '');
+  processedText = processedText.replace(/^[-]{3,}$/gm, '');
+  
+  // Limpar linhas vazias extras
+  processedText = processedText.replace(/\n{3,}/g, '\n\n');
+  
+  return processedText;
+};
+
 // Função para limpar e formatar texto preservando estrutura
 const cleanAndFormatText = (text: string): { paragraphs: string[]; hasFormatting: boolean } => {
+  // Primeiro aplicar limpeza técnica (mesma do formatGroqText)
+  let cleaned = cleanTechnicalContent(text);
+  
   // Remove tags HTML mas preserva estrutura
-  let cleaned = text.replace(/<[^>]*>/g, '');
+  cleaned = cleaned.replace(/<[^>]*>/g, '');
   
   // Preserva markdown de negrito e itálico para formatação depois
   const hasBold = cleaned.includes('**');
@@ -71,8 +184,13 @@ const cleanAndFormatText = (text: string): { paragraphs: string[]; hasFormatting
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   cleaned = cleaned.trim();
   
-  // Separa em parágrafos
-  const paragraphs = cleaned.split('\n\n').filter(p => p.trim().length > 0);
+  // Separa em parágrafos e filtra linhas vazias ou apenas traços
+  const paragraphs = cleaned.split('\n\n')
+    .filter(p => {
+      const trimmed = p.trim();
+      // Ignorar parágrafos vazios ou que são apenas traços/hífens
+      return trimmed.length > 0 && !/^[-─━─━\s]+$/.test(trimmed) && trimmed.length > 1;
+    });
   
   return { paragraphs, hasFormatting: hasBold || hasItalic };
 };
@@ -186,10 +304,218 @@ const addLogo = (doc: jsPDF, margin: number): number => {
   return 45;
 };
 
+// Função para adicionar tabela de planetas em signos
+const addPlanetsInSignsTable = (
+  doc: jsPDF,
+  planets: PlanetInSign[],
+  startY: number,
+  pageWidth: number,
+  margin: number,
+  language: 'pt' | 'en'
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  let y = startY;
+  const maxWidth = pageWidth - (margin * 2);
+  
+  // Título da seção
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 100, 200);
+  const title = language === 'pt' ? 'Planetas em Signos' : 'Planets in Signs';
+  doc.text(title, margin, y);
+  y += 10;
+  
+  // Cabeçalho da tabela
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(60, 60, 60);
+  doc.text(language === 'pt' ? 'Planeta' : 'Planet', margin, y);
+  doc.text(language === 'pt' ? 'Signo' : 'Sign', margin + 50, y);
+  doc.text(language === 'pt' ? 'Grau' : 'Degree', margin + 100, y);
+  doc.text(language === 'pt' ? 'Casa' : 'House', margin + 140, y);
+  y += 7;
+  
+  // Linha separadora
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, y - 3, pageWidth - margin, y - 3);
+  y += 3;
+  
+  // Dados dos planetas
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  
+  planets.forEach((planet) => {
+    if (y > pageHeight - 30) {
+      doc.addPage();
+      y = margin + 10;
+    }
+    
+    const planetName = planet.planet;
+    const sign = planet.sign;
+    const degree = planet.degree_dms;
+    const house = planet.house;
+    const retrograde = (planet.is_retrograde === true) ? ' Rx' : '';
+    
+    doc.text(planetName + retrograde, margin, y);
+    doc.text(sign, margin + 50, y);
+    doc.text(degree, margin + 100, y);
+    doc.text(house.toString(), margin + 140, y);
+    y += 6;
+  });
+  
+  return y + 10;
+};
+
+// Função para adicionar pontos especiais
+const addSpecialPointsSection = (
+  doc: jsPDF,
+  points: SpecialPoint[],
+  startY: number,
+  pageWidth: number,
+  margin: number,
+  language: 'pt' | 'en'
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  let y = startY;
+  const maxWidth = pageWidth - (margin * 2);
+  
+  // Título da seção
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 100, 200);
+  const title = language === 'pt' ? 'Pontos Especiais' : 'Special Points';
+  doc.text(title, margin, y);
+  y += 10;
+  
+  // Cabeçalho
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(60, 60, 60);
+  doc.text(language === 'pt' ? 'Ponto' : 'Point', margin, y);
+  doc.text(language === 'pt' ? 'Signo' : 'Sign', margin + 60, y);
+  doc.text(language === 'pt' ? 'Grau' : 'Degree', margin + 110, y);
+  doc.text(language === 'pt' ? 'Casa' : 'House', margin + 150, y);
+  y += 7;
+  
+  // Linha separadora
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, y - 3, pageWidth - margin, y - 3);
+  y += 3;
+  
+  // Dados dos pontos
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  
+  points.forEach((point) => {
+    if (y > pageHeight - 30) {
+      doc.addPage();
+      y = margin + 10;
+    }
+    
+    doc.text(point.point, margin, y);
+    doc.text(point.sign, margin + 60, y);
+    doc.text(point.degree_dms, margin + 110, y);
+    doc.text(point.house.toString(), margin + 150, y);
+    y += 6;
+  });
+  
+  return y + 10;
+};
+
+// Função para adicionar planetas nas casas
+const addPlanetsInHousesSection = (
+  doc: jsPDF,
+  houses: Array<{ 
+    house: number; 
+    planets: Array<{
+      planet?: string;
+      point?: string;
+      planet_key?: string;
+      point_key?: string;
+      sign: string;
+      degree: number;
+      degree_dms: string;
+      house: number;
+      is_retrograde?: boolean;
+    }> 
+  }>,
+  startY: number,
+  pageWidth: number,
+  margin: number,
+  language: 'pt' | 'en'
+): number => {
+  const pageHeight = doc.internal.pageSize.height;
+  let y = startY;
+  const maxWidth = pageWidth - (margin * 2);
+  
+  // Títulos das casas
+  const houseNames = language === 'pt'
+    ? {
+        1: 'Primeira Casa', 2: 'Segunda Casa', 3: 'Terceira Casa', 4: 'Quarta Casa',
+        5: 'Quinta Casa', 6: 'Sexta Casa', 7: 'Sétima Casa', 8: 'Oitava Casa',
+        9: 'Nona Casa', 10: 'Décima Casa', 11: 'Décima Primeira Casa', 12: 'Décima Segunda Casa'
+      }
+    : {
+        1: 'First House', 2: 'Second House', 3: 'Third House', 4: 'Fourth House',
+        5: 'Fifth House', 6: 'Sixth House', 7: 'Seventh House', 8: 'Eighth House',
+        9: 'Ninth House', 10: 'Tenth House', 11: 'Eleventh House', 12: 'Twelfth House'
+      };
+  
+  // Título da seção
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 100, 200);
+  const title = language === 'pt' ? 'Planetas nas Casas' : 'Planets in Houses';
+  doc.text(title, margin, y);
+  y += 10;
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  
+  houses.forEach((houseData) => {
+    if (y > pageHeight - 40) {
+      doc.addPage();
+      y = margin + 10;
+    }
+    
+    const houseNum = houseData.house;
+    const planets = houseData.planets;
+    
+    if (planets.length > 0) {
+      // Nome da casa
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(60, 60, 60);
+      doc.text(`${houseNames[houseNum as keyof typeof houseNames] || `Casa ${houseNum}`}:`, margin, y);
+      y += 6;
+      
+      // Planetas na casa
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 80);
+      planets.forEach((planet) => {
+        const planetName = planet.planet || planet.point || 'N/A';
+        const sign = planet.sign || 'N/A';
+        const degree = planet.degree_dms || 'N/A';
+        const retrograde = (planet.is_retrograde === true) ? ' Rx' : '';
+        
+        doc.text(`  • ${planetName}${retrograde} em ${sign} ${degree}`, margin + 5, y);
+        y += 5;
+      });
+      
+      y += 3;
+    }
+  });
+  
+  return y + 10;
+};
+
 export const generateBirthChartPDF = ({
   userData,
   sections,
-  language
+  language,
+  chartData
 }: GeneratePDFOptions): void => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -286,11 +612,55 @@ export const generateBirthChartPDF = ({
     { align: 'center' }
   );
   
-  // Nova página para as seções
+  // Nova página para os dados do mapa
   doc.addPage();
   y = margin;
   
-  // ===== SEÇÕES DO MAPA ASTRAL =====
+  // ===== DADOS COMPLETOS DO MAPA ASTRAL =====
+  if (chartData) {
+    // Planetas em Signos
+    if (chartData.planets_in_signs && chartData.planets_in_signs.length > 0) {
+      y = addPlanetsInSignsTable(doc, chartData.planets_in_signs, y, pageWidth, margin, language);
+      
+      // Adicionar separador
+      if (y < pageHeight - 30) {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 15;
+      }
+    }
+    
+    // Pontos Especiais
+    if (chartData.special_points && chartData.special_points.length > 0) {
+      if (y > pageHeight - 50) {
+        doc.addPage();
+        y = margin;
+      }
+      y = addSpecialPointsSection(doc, chartData.special_points, y, pageWidth, margin, language);
+      
+      // Adicionar separador
+      if (y < pageHeight - 30) {
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 15;
+      }
+    }
+    
+    // Planetas nas Casas
+    if (chartData.planets_in_houses && chartData.planets_in_houses.length > 0) {
+      if (y > pageHeight - 60) {
+        doc.addPage();
+        y = margin;
+      }
+      y = addPlanetsInHousesSection(doc, chartData.planets_in_houses, y, pageWidth, margin, language);
+    }
+  }
+  
+  // Nova página para as seções de interpretação
+  doc.addPage();
+  y = margin;
+  
+  // ===== SEÇÕES DE INTERPRETAÇÃO DO MAPA ASTRAL =====
   const sectionOrder = ['power', 'triad', 'personal', 'houses', 'karma', 'synthesis'];
   const sectionTitles = {
     pt: {

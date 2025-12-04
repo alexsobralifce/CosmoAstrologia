@@ -5,6 +5,7 @@ import { planets } from './planet-icons';
 import { apiService } from '../services/api';
 import { UIIcons } from './ui-icons';
 import { formatGroqText } from '../utils/formatGroqText';
+import { useLanguage } from '../i18n';
 
 interface ChartRulerSectionProps {
   ascendant: string;
@@ -14,6 +15,7 @@ interface ChartRulerSectionProps {
 }
 
 export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: ChartRulerSectionProps) => {
+  const { language } = useLanguage();
   const [interpretation, setInterpretation] = useState<{
     concept: string;
     positioning: string;
@@ -280,7 +282,7 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
               </button>
             </div>
             <div className="prose prose-sm max-w-none text-foreground/90">
-              {formatGroqText(detailedInterpretation)}
+              {formatGroqText(detailedInterpretation, language)}
             </div>
           </div>
         )}

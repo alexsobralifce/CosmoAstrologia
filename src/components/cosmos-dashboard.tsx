@@ -19,7 +19,7 @@ import {
   SolarReturnSection,
   NumerologySection
 } from './dashboard-sections';
-import { FullBirthChartSection } from './full-birth-chart-section';
+import { CompleteBirthChartSection } from './complete-birth-chart-section';
 
 // Componente de Menu de Configurações
 interface SettingsMenuProps {
@@ -600,7 +600,7 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
         <main className="dashboard-content">
           {/* Renderização condicional baseada na seção ativa */}
           {activeSection === 'mapa-completo' ? (
-            <FullBirthChartSection userData={userData} onBack={() => setActiveSection('inicio')} />
+            <CompleteBirthChartSection userData={userData} onBack={() => setActiveSection('inicio')} />
           ) : activeSection === 'visao-geral' ? (
             <OverviewSection userData={userData} onBack={() => setActiveSection('inicio')} />
           ) : activeSection === 'revolucao-solar' ? (

@@ -54,8 +54,22 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173"
     ]
     
-    # API Keys
-    GROQ_API_KEY: str = ""
+    # AI Provider Configuration
+    AI_PROVIDER: str = "groq"  # Padrão: groq (rápido e profissional)
+    
+    # API Keys - Múltiplos provedores
+    DEEPSEEK_API_KEY: str = ""  # Fallback
+    GROQ_API_KEY: str = ""  # Provedor padrão
+    
+    # Groq Model Configuration (modelos profissionais disponíveis)
+    GROQ_MODEL: str = "llama-3.1-8b-instant"  # Modelo rápido e profissional (8B - sempre disponível)
+    # Outras opções disponíveis (verificar na console.groq.com quais estão habilitados):
+    # - llama-3.1-8b-instant (8B - rápido, padrão, sempre disponível)
+    # - llama-3.3-70b-versatile (70B - pode estar bloqueado no projeto)
+    # - mixtral-8x7b-32768 (56B - pode precisar ser habilitado no projeto)
+    OPENAI_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
     
     # RAG Configuration (consolidado no backend)
     DOCS_PATH: str = "docs"

@@ -1,0 +1,68 @@
+⚠️⚠️⚠️ **INSTRUÇÕES INTERNAS - NÃO REPITA NA RESPOSTA** ⚠️⚠️⚠️
+
+As instruções abaixo são APENAS para orientar sua interpretação. NÃO as inclua na resposta que você vai gerar para o usuário.
+
+⚠️ **IMPORTANTE (APENAS PARA ORIENTAÇÃO INTERNA):** Quando estiver em português, apresente o título APENAS em português. NÃO mostre o título em inglês.
+
+🚨 **INSTRUÇÃO CRÍTICA: NÃO EXIBA INFORMAÇÕES SEPARADAS** 🚨
+
+O sistema NÃO deve exibir informações separadas sobre Sol, Lua e Ascendente. Deve mostrar a INTERPRETAÇÃO SINTÉTICA que integra os três elementos.
+
+**O QUE VOCÊ DEVE FAZER:**
+
+Sintetize Sol (Vontade), Lua (Necessidade Emocional) e Ascendente (Modo de Ação) em uma interpretação integrada.
+
+**Análise Obrigatória:**
+
+1. **Conflito ou Harmonia Sol-Lua:**
+   - NÃO liste separadamente "O Sol em {sunSign} significa... A Lua em {moonSign} significa..."
+   - EXPLIQUE o conflito ou a harmonia entre o que a pessoa quer (Sol) e o que ela precisa (Lua)
+   - Mostre como essa dinâmica se manifesta na vida prática
+
+2. **Dinâmica Tríade Completa:**
+   - NÃO descreva cada elemento isoladamente
+   - ANALISE a dinâmica entre vontade consciente (Sol), necessidades emocionais (Lua) e forma de agir (Ascendente)
+   - Mostre como os três interagem entre si
+
+3. **Equilíbrio ou Conflito:**
+   - EXPLIQUE como eles se equilibram ou conflitam
+   - Identifique onde está o ponto de tensão que pode travar a pessoa na hora de decidir
+   - Mostre as contradições - é nas contradições que a pessoa trava
+
+**Estrutura da Resposta:**
+
+❌ **NUNCA FAÇA (em nenhum momento da resposta):**
+- "O Sol em {sunSign} na Casa {sunHouse} representa..."
+- "A Lua em {moonSign} na Casa {moonHouse} indica..."
+- "O Ascendente em {ascendant} mostra..."
+- "O Sol em {sunSign} e a Lua em {moonSign} criam..."
+- "A Lua em {moonSign} busca... enquanto o Sol em {sunSign} busca..."
+- Qualquer frase que mencione Sol, Lua ou Ascendente separadamente
+- Qualquer estrutura de lista ou tópicos separados para cada elemento
+- Subtítulos ou seções que descrevam cada elemento isoladamente
+
+✅ **SEMPRE FAÇA:**
+- Comece com: "A combinação de Sol em {sunSign}, Lua em {moonSign} e Ascendente em {ascendant} revela..."
+- Ou: "Esta tríade mostra uma personalidade que..."
+- Ou: "A dinâmica entre Sol, Lua e Ascendente neste mapa revela..."
+- Integre os três elementos em TODOS os parágrafos narrativos
+- Sempre mencione os três elementos juntos quando fizer referência a eles
+- Conte a história da pessoa através da interação entre os três
+- Use frases como: "A vontade consciente (Sol) busca X, enquanto a necessidade emocional (Lua) precisa de Y, e o modo de agir (Ascendente) expressa Z..."
+
+**Foco no Regente do Ascendente:** Onde ele está e como ele direciona o foco principal da vida.
+
+DADOS (use apenas como referência interna, não liste na resposta):
+- Sol em {sunSign} na Casa {sunHouse}
+- Lua em {moonSign} na Casa {moonHouse}
+- Ascendente em {ascendant}
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação
+- Se a casa não estiver disponível, foque apenas no signo
+- Use linguagem narrativa e integrada, não descritiva e fragmentada
+- Mostre a INTERPRETAÇÃO, não os dados brutos
+

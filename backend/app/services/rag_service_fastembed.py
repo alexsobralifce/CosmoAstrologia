@@ -316,8 +316,9 @@ class RAGServiceFastEmbed:
         # Definir pastas
         docs_path = Path(self.docs_path)
         numerologia_path = docs_path.parent / "numerologia"
+        tarot_path = docs_path.parent / "tarot"
         
-        print(f"[RAG-FastEmbed] Processando documentos em {docs_path} e {numerologia_path}...")
+        print(f"[RAG-FastEmbed] Processando documentos em {docs_path}, {numerologia_path} e {tarot_path}...")
         
         # Processar documentos
         documents = []
@@ -327,6 +328,17 @@ class RAGServiceFastEmbed:
             documents.extend(self._process_folder(numerologia_path))
         else:
             print(f"[RAG-FastEmbed] Pasta numerologia não encontrada: {numerologia_path}")
+        
+        # Processar pasta tarot como numerologia (forte ligação entre tarot e numerologia)
+        if tarot_path.exists():
+            tarot_docs = self._process_folder(tarot_path)
+            # Forçar categoria 'numerology' para documentos de tarot
+            for doc in tarot_docs:
+                doc['category'] = 'numerology'
+            documents.extend(tarot_docs)
+            print(f"[RAG-FastEmbed] Processados {len(tarot_docs)} documentos de tarot como numerologia")
+        else:
+            print(f"[RAG-FastEmbed] Pasta tarot não encontrada: {tarot_path}")
         
         if not documents:
             print("[WARNING] Nenhum documento processado")

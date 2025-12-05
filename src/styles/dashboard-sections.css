@@ -2442,8 +2442,8 @@
  * ============================================================================ */
 .solar-return-info-card {
   margin-bottom: 2rem;
-  background: linear-gradient(135deg, hsl(var(--accent) / 0.05) 0%, hsl(var(--background)) 100%);
-  border: 1px solid hsl(var(--accent) / 0.2);
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
 }
 
 .solar-return-info-content {

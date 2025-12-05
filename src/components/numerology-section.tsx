@@ -1124,7 +1124,7 @@ export const NumerologySection = ({ userData, onBack }: NumerologySectionProps) 
               {/* Visualização do Triângulo Divino */}
               <div style={{
                 padding: '2rem',
-                background: 'linear-gradient(135deg, hsl(var(--muted) / 0.3) 0%, hsl(var(--card)) 100%)',
+                backgroundColor: 'hsl(var(--card))',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '0.75rem',
                 marginTop: '1.5rem',

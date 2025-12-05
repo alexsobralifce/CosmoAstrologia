@@ -34,7 +34,7 @@
 
 .numerology-card-primary {
   grid-column: 1 / -1;
-  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--muted)) 100%);
+  background-color: hsl(var(--card));
   border-color: hsl(var(--accent) / 0.3);
 }
 
@@ -277,7 +277,7 @@
   align-items: center;
   text-align: center;
   padding: 2rem;
-  background: linear-gradient(135deg, hsl(var(--muted) / 0.3) 0%, hsl(var(--card)) 100%);
+  background-color: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: 0.75rem;
   margin-top: 1.5rem;

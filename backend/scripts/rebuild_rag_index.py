@@ -11,7 +11,7 @@ from pathlib import Path
 backend_path = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_path))
 
-from app.services.rag_service_wrapper import get_rag_service
+from app.services.rag_service_fastembed import get_rag_service
 
 def rebuild_index():
     """Reconstrói o índice RAG processando todos os documentos."""
@@ -26,6 +26,7 @@ def rebuild_index():
         print("\n[1/3] Processando documentos (PDFs e Markdowns)...")
         print("      - Pasta docs/ (astrologia)")
         print("      - Pasta numerologia/ (numerologia)")
+        print("      - Pasta tarot/ (numerologia - conexão tarot-numerologia)")
         
         num_chunks = rag_service.process_all_documents()
         
@@ -34,6 +35,7 @@ def rebuild_index():
             print("   Verifique se há PDFs nas pastas:")
             print(f"   - {backend_path / 'docs'}")
             print(f"   - {backend_path / 'numerologia'}")
+            print(f"   - {backend_path / 'tarot'}")
             return False
         
         print(f"\n✅ {num_chunks} chunks processados com sucesso!")

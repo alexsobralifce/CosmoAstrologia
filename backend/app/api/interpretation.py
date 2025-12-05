@@ -1640,7 +1640,60 @@ async def get_numerology_interpretation(
         if numerology_map['soul']['is_master']:
             queries.append(f"master number {numerology_map['soul']['number']} soul heart desire")
         
-        # Buscar contexto do RAG com mais resultados
+        # Adicionar queries expandidas sobre tarot e numerologia para CADA número (forte ligação)
+        # Caminho de Vida - Tarot
+        queries.extend([
+            f"tarot numerologia número {numerology_map['life_path']['number']} arcano correspondente significado",
+            f"arcano maior número {numerology_map['life_path']['number']} tarot numerologia",
+            f"carta tarot número {numerology_map['life_path']['number']} numerologia pitagórica",
+            f"tarot arcano {numerology_map['life_path']['number']} caminho de vida numerologia",
+            f"numerologia tarot conexão número {numerology_map['life_path']['number']} interpretação",
+            f"arcanos maiores tarot numerologia número {numerology_map['life_path']['number']} significado completo",
+        ])
+        
+        # Número do Destino - Tarot
+        queries.extend([
+            f"tarot numerologia número {numerology_map['destiny']['number']} arcano destino expressão",
+            f"arcano maior número {numerology_map['destiny']['number']} tarot numerologia destino",
+            f"carta tarot número {numerology_map['destiny']['number']} numerologia expressão",
+            f"tarot arcano {numerology_map['destiny']['number']} destino numerologia",
+            f"numerologia tarot conexão número {numerology_map['destiny']['number']} talentos",
+        ])
+        
+        # Número da Alma - Tarot
+        queries.extend([
+            f"tarot numerologia número {numerology_map['soul']['number']} arcano alma desejo coração",
+            f"arcano maior número {numerology_map['soul']['number']} tarot numerologia alma",
+            f"carta tarot número {numerology_map['soul']['number']} numerologia desejo coração",
+            f"tarot arcano {numerology_map['soul']['number']} alma numerologia motivações",
+            f"numerologia tarot conexão número {numerology_map['soul']['number']} desejos internos",
+        ])
+        
+        # Número da Personalidade - Tarot
+        queries.extend([
+            f"tarot numerologia número {numerology_map['personality']['number']} arcano personalidade",
+            f"arcano maior número {numerology_map['personality']['number']} tarot numerologia personalidade",
+            f"carta tarot número {numerology_map['personality']['number']} numerologia aparência",
+            f"tarot arcano {numerology_map['personality']['number']} personalidade numerologia",
+        ])
+        
+        # Número do Aniversário - Tarot
+        queries.extend([
+            f"tarot numerologia número {numerology_map['birthday']['number']} arcano aniversário",
+            f"arcano maior número {numerology_map['birthday']['number']} tarot numerologia aniversário",
+            f"carta tarot número {numerology_map['birthday']['number']} numerologia dia nascimento",
+            f"tarot arcano {numerology_map['birthday']['number']} aniversário numerologia talentos",
+        ])
+        
+        # Número da Maturidade - Tarot
+        queries.extend([
+            f"tarot numerologia número {numerology_map['maturity']['number']} arcano maturidade",
+            f"arcano maior número {numerology_map['maturity']['number']} tarot numerologia maturidade",
+            f"carta tarot número {numerology_map['maturity']['number']} numerologia segunda metade vida",
+            f"tarot arcano {numerology_map['maturity']['number']} maturidade numerologia futuro",
+        ])
+        
+        # Buscar contexto do RAG com mais resultados (aumentado para incluir mais contexto de tarot)
         context_documents = []
         if rag_service:
             for query in queries:
@@ -1650,7 +1703,7 @@ async def get_numerology_interpretation(
                 except Exception as e:
                     print(f"[WARNING] Erro ao buscar query '{query}': {e}")
         
-        # Remover duplicatas e ordenar por relevância
+        # Remover duplicatas e ordenar por relevância (aumentado limite para mais contexto de tarot)
         seen_texts = set()
         unique_docs = []
         for doc in sorted(context_documents, key=lambda x: x.get('score', 0), reverse=True):
@@ -1658,12 +1711,12 @@ async def get_numerology_interpretation(
             if doc_text and doc_text not in seen_texts and len(doc_text) > 50:
                 seen_texts.add(doc_text)
                 unique_docs.append(doc)
-                if len(unique_docs) >= 20:  # Aumentar para mais contexto
+                if len(unique_docs) >= 30:  # Aumentado de 20 para 30 para incluir mais contexto de tarot
                     break
         
         context_text = "\n\n".join([
             f"[Fonte: {doc.get('source', 'unknown')} - Página {doc.get('page', 1)}]\n{doc.get('text', '')}"
-            for doc in unique_docs[:15]  # Usar mais documentos
+            for doc in unique_docs[:20]  # Aumentado de 15 para 20 para incluir mais contexto de tarot
             if doc.get('text')
         ])
         
@@ -1679,14 +1732,41 @@ async def get_numerology_interpretation(
         master_note = "\n".join(master_info) if master_info else "Nenhum número mestre presente."
         
         # Gerar interpretação com IA - prompt muito mais detalhado e inspirador
-        system_prompt = """Você é um Numerólogo Pitagórico experiente e inspirador. Sua missão é ajudar pessoas a compreenderem seus números e usarem essa sabedoria para viverem vidas mais plenas e realizadas.
+        system_prompt = """Você é um Numerólogo Pitagórico experiente e inspirador, com profundo conhecimento da conexão entre Numerologia e Tarot. Sua missão é ajudar pessoas a compreenderem seus números e usarem essa sabedoria para viverem vidas mais plenas e realizadas.
+
+CONHECIMENTO INTEGRADO - TAROT E NUMEROLOGIA:
+- Numerologia e Tarot têm uma forte ligação histórica e simbólica que remonta séculos
+- Cada número na numerologia (1-9 e números mestres) corresponde a um Arcano Maior do Tarot
+- A integração Tarot-Numerologia é ESSENCIAL para uma interpretação completa e rica
+- O Tarot oferece símbolos visuais e arquetípicos que facilitam o entendimento dos números
+- Cada Arcano traz camadas adicionais de significado que enriquecem a interpretação numerológica
+
+REGRAS OBRIGATÓRIAS PARA INTERPRETAÇÃO:
+1. **PARA CADA NÚMERO DO MAPA NUMEROLÓGICO, VOCÊ DEVE:**
+   - Identificar o Arcano do Tarot correspondente ao número
+   - Incluir uma subseção dedicada ao Arcano em cada seção do número
+   - Explicar o significado simbólico do Arcano
+   - Mostrar como o Arcano complementa a interpretação numerológica
+   - Conectar os ensinamentos do Arcano com os aspectos práticos do número
+   - Usar a sabedoria do Arcano para oferecer orientações práticas
+
+2. **ESTRUTURA OBRIGATÓRIA PARA CADA NÚMERO:**
+   - Interpretação numerológica do número
+   - **Subseção: "O Arcano do Tarot Correspondente"** (com nome do Arcano)
+   - Significado simbólico do Arcano
+   - Conexões entre número e Arcano
+   - Como usar a sabedoria do Arcano na vida prática
+   - Pontos positivos e desafios (integrados com sabedoria do Tarot)
+   - Orientações práticas
 
 DIRETRIZES IMPORTANTES:
 - Use linguagem clara, inspiradora e acolhedora (o usuário é leigo)
 - Sempre equilibre pontos positivos e desafios, mas foque em orientações práticas
 - Forneça exemplos concretos e aplicáveis à vida real
 - Seja encorajador e mostre como transformar desafios em oportunidades
-- Use tom terapêutico e empoderador"""
+- Use tom terapêutico e empoderador
+- Quando mencionar conexões com Tarot, explique de forma simples e acessível
+- NUNCA omita a interpretação do Tarot - ela é parte essencial da interpretação numerológica completa"""
         
         user_prompt = f"""MAPA NUMEROLÓGICO DE {numerology_map['full_name'].upper()}
 
@@ -1714,8 +1794,15 @@ DIRETRIZES IMPORTANTES:
 📝 NOTAS ESPECIAIS:
 {master_note}
 
-📚 CONHECIMENTO NUMEROLÓGICO DE REFERÊNCIA (RAG):
-{context_text[:4000] if context_text else "Informações numerológicas básicas da tradição pitagórica."}
+📚 CONHECIMENTO NUMEROLÓGICO E TAROT DE REFERÊNCIA (RAG):
+{context_text[:6000] if context_text else "Informações numerológicas básicas da tradição pitagórica e conexões com Tarot."}
+
+NOTA CRÍTICA: O contexto RAG inclui informações detalhadas sobre Numerologia e também sobre a conexão entre Numerologia e Tarot. É OBRIGATÓRIO que você:
+1. Identifique o Arcano do Tarot correspondente a CADA número do mapa numerológico
+2. Inclua uma subseção sobre o Arcano em CADA seção do número correspondente
+3. Explique como o Arcano complementa e enriquece a interpretação numerológica
+4. Use as informações do contexto RAG sobre tarot para fornecer interpretações completas e detalhadas
+5. Facilite o entendimento do usuário através das conexões simbólicas entre números e cartas do Tarot
 
 ---
 
@@ -1727,34 +1814,65 @@ Crie uma interpretação COMPLETA, DETALHADA e INSPIRADORA que inclua:
    - Dê boas-vindas calorosas e explique que os números são ferramentas de autoconhecimento
    - Enfatize que não há números "bons" ou "ruins", apenas diferentes caminhos de evolução
 
-2. **CAMINHO DE VIDA** (2-3 parágrafos)
+2. **CAMINHO DE VIDA** (3-4 parágrafos)
    - Explique em detalhes o que significa ter Caminho de Vida {numerology_map['life_path']['number']}
+   - **OBRIGATÓRIO: Inclua uma subseção sobre o Arcano do Tarot correspondente ao número {numerology_map['life_path']['number']}**
+     * Nome do Arcano correspondente
+     * Significado simbólico do Arcano
+     * Como o Arcano complementa e enriquece a interpretação numerológica
+     * Conexões entre o número e a carta do Tarot
+     * Como usar a sabedoria do Arcano para viver melhor o Caminho de Vida
    - Liste 4-5 pontos POSITIVOS (forças, talentos, características positivas)
    - Liste 2-3 DESAFIOS ou áreas de atenção (sem ser negativo, mas orientador)
    - Forneça 2-3 orientações práticas de como usar essas energias positivamente
    - Use exemplos concretos de como esse número se manifesta na vida
 
-3. **NÚMERO DO DESTINO** (2 parágrafos)
+3. **NÚMERO DO DESTINO** (2-3 parágrafos)
    - Explique os talentos e habilidades naturais associados ao número {numerology_map['destiny']['number']}
+   - **OBRIGATÓRIO: Inclua uma subseção sobre o Arcano do Tarot correspondente ao número {numerology_map['destiny']['number']}**
+     * Nome do Arcano correspondente
+     * Como o Arcano revela os talentos e potencial de expressão
+     * Conexões entre o número do Destino e a carta do Tarot
+     * Como usar a sabedoria do Arcano para desenvolver os talentos
    - Mostre como desenvolver e expressar esses talentos
    - Oriente sobre carreiras, atividades e formas de expressão que alinham com esse número
 
-4. **NÚMERO DA ALMA** (2 parágrafos)
+4. **NÚMERO DA ALMA** (2-3 parágrafos)
    - Revele as motivações profundas e desejos do coração do número {numerology_map['soul']['number']}
+   - **OBRIGATÓRIO: Inclua uma subseção sobre o Arcano do Tarot correspondente ao número {numerology_map['soul']['number']}**
+     * Nome do Arcano correspondente
+     * Como o Arcano revela os desejos profundos da alma
+     * Conexões entre o número da Alma e a carta do Tarot
+     * Como usar a sabedoria do Arcano para honrar as necessidades internas
    - Explique como honrar essas necessidades internas
    - Oriente sobre como criar uma vida que satisfaça essas motivações profundas
 
-5. **NÚMERO DA PERSONALIDADE** (1-2 parágrafos)
+5. **NÚMERO DA PERSONALIDADE** (2 parágrafos)
    - Explique como o número {numerology_map['personality']['number']} influencia a primeira impressão
+   - **OBRIGATÓRIO: Inclua uma subseção sobre o Arcano do Tarot correspondente ao número {numerology_map['personality']['number']}**
+     * Nome do Arcano correspondente
+     * Como o Arcano revela a máscara social e primeira impressão
+     * Conexões entre o número da Personalidade e a carta do Tarot
+     * Como usar a sabedoria do Arcano para apresentar-se ao mundo
    - Mostre como usar essa energia de forma positiva
    - Oriente sobre como equilibrar a personalidade externa com a alma interna
 
-6. **NÚMERO DO ANIVERSÁRIO** (1 parágrafo)
+6. **NÚMERO DO ANIVERSÁRIO** (1-2 parágrafos)
    - Explique os talentos especiais do dia {numerology_map['birthday']['day']}
+   - **OBRIGATÓRIO: Inclua uma subseção sobre o Arcano do Tarot correspondente ao número {numerology_map['birthday']['number']}**
+     * Nome do Arcano correspondente
+     * Como o Arcano revela os dons especiais do dia de nascimento
+     * Conexões entre o número do Aniversário e a carta do Tarot
+     * Como usar a sabedoria do Arcano para desenvolver os talentos inatos
    - Mostre como desenvolver esses dons naturais
 
-7. **NÚMERO DA MATURIDADE** (1 parágrafo)
+7. **NÚMERO DA MATURIDADE** (1-2 parágrafos)
    - Explique o potencial futuro do número {numerology_map['maturity']['number']}
+   - **OBRIGATÓRIO: Inclua uma subseção sobre o Arcano do Tarot correspondente ao número {numerology_map['maturity']['number']}**
+     * Nome do Arcano correspondente
+     * Como o Arcano revela o potencial de evolução na segunda metade da vida
+     * Conexões entre o número da Maturidade e a carta do Tarot
+     * Como usar a sabedoria do Arcano para se preparar para a evolução futura
    - Oriente sobre como se preparar para essa evolução
 
 8. **SÍNTESE E ORIENTAÇÃO FINAL** (1-2 parágrafos)

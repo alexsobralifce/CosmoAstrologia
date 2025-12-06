@@ -198,7 +198,20 @@ export const BestTimingSection: React.FC<BestTimingSectionProps> = ({ userData }
         return true;
       });
       
-      // Log para debug
+      // Log para debug - ANTES de qualquer processamento
+      console.log('[BestTiming] Resposta RAW da API (antes de validação):', {
+        action: selectedAction,
+        total_moments: response.best_moments.length,
+        moments_raw: response.best_moments.slice(0, 5).map((m: any) => ({
+          date: m.date,
+          score: m.score,
+          aspects_count: m.aspects?.length || 0,
+          aspects_raw: m.aspects || [],
+          aspects_str: m.aspects?.map((a: any) => `${a.planet} em ${a.aspect_type} com Casa ${a.house}`) || []
+        }))
+      });
+      
+      // Log para debug - DEPOIS da validação
       console.log('[BestTiming] Resposta da API validada:', {
         action: selectedAction,
         total_recebidos: response.best_moments.length,
@@ -534,7 +547,10 @@ export const BestTimingSection: React.FC<BestTimingSectionProps> = ({ userData }
                 }
                 
                 // Log detalhado ANTES de processar aspectos
+                // CRÍTICO: Mostrar aspectos RAW do backend antes de qualquer processamento
                 console.log(`[BestTiming] Processando ${validMomentsForGroup.length} momentos válidos para ${groupDateKey}:`, {
+                  action: selectedAction,
+                  group_date: groupDateKey,
                   moments: validMomentsForGroup.map(m => {
                     const dateMatch = m.date?.match(/^(\d{4}-\d{2}-\d{2})/);
                     const extractedDate = dateMatch ? dateMatch[1] : 'INVÁLIDA';
@@ -543,6 +559,7 @@ export const BestTimingSection: React.FC<BestTimingSectionProps> = ({ userData }
                       extracted_date: extractedDate,
                       score: m.score,
                       aspects_count: m.aspects?.length || 0,
+                      aspects_raw: m.aspects || [], // Mostrar aspectos RAW do backend
                       aspects: m.aspects?.map((a: any) => ({
                         planet: a.planet,
                         aspect_type: a.aspect_type,

@@ -789,6 +789,36 @@
   font-size: 0.75rem;
   color: hsl(var(--muted-foreground));
   margin: 0;
+  font-weight: 600;
+}
+
+.biorhythm-card-cycle-info {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.biorhythm-card-cycle-dates {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0.5rem 0 0 0;
+  line-height: 1.5;
+}
+
+.biorhythm-card-cycle-progress {
+  font-size: 0.75rem;
+  color: hsl(var(--foreground));
+  margin: 0.5rem 0 0 0;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.biorhythm-card-next-critical {
+  font-size: 0.75rem;
+  color: hsl(var(--accent));
+  margin: 0.5rem 0 0 0;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 /* Summary Card */
@@ -815,6 +845,228 @@
   margin: 0;
 }
 
+/* Profile Discovery Card */
+.biorhythms-profile-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  padding: 2rem;
+  margin-top: 2rem;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.1);
+}
+
+.biorhythms-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid hsl(var(--accent) / 0.3);
+}
+
+.biorhythms-profile-icon {
+  color: hsl(var(--accent));
+}
+
+.biorhythms-profile-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.biorhythms-profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.biorhythms-profile-intro {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground) / 0.9);
+  margin: 0;
+}
+
+/* Analysis Section */
+.biorhythms-profile-analysis {
+  padding: 1.5rem;
+  background-color: hsl(var(--muted) / 0.2);
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.biorhythms-profile-analysis-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.biorhythms-profile-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.biorhythms-profile-suggestion {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  align-items: flex-start;
+}
+
+.biorhythms-profile-suggestion-high {
+  background-color: hsl(var(--accent) / 0.1);
+  border: 1px solid hsl(var(--accent) / 0.3);
+}
+
+.biorhythms-profile-suggestion-low {
+  background-color: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border));
+}
+
+.biorhythms-profile-suggestion svg {
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+  color: hsl(var(--accent));
+}
+
+.biorhythms-profile-suggestion-low svg {
+  color: hsl(var(--muted-foreground));
+}
+
+.biorhythms-profile-suggestion strong {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.5rem;
+}
+
+.biorhythms-profile-suggestion p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.8);
+  margin: 0;
+}
+
+/* Guide Section */
+.biorhythms-profile-guide {
+  padding: 1.5rem;
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.biorhythms-profile-guide-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1.5rem 0;
+}
+
+.biorhythms-profile-guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.biorhythms-profile-guide-step {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.biorhythms-profile-guide-step-number {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: hsl(var(--accent) / 0.1);
+  border: 2px solid hsl(var(--accent));
+  border-radius: 50%;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--accent));
+}
+
+.biorhythms-profile-guide-step-content {
+  flex: 1;
+}
+
+.biorhythms-profile-guide-step-content h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.biorhythms-profile-guide-step-content p {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.8);
+  margin: 0;
+}
+
+/* Recommendations Section */
+.biorhythms-profile-recommendations {
+  padding: 1.5rem;
+  background-color: hsl(var(--muted) / 0.2);
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.biorhythms-profile-recommendations-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.biorhythms-profile-recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.biorhythms-profile-recommendation {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background-color: hsl(var(--card));
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.biorhythms-profile-recommendation svg {
+  flex-shrink: 0;
+  color: hsl(var(--accent));
+}
+
+.biorhythms-profile-recommendation-rest {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.biorhythms-profile-recommendation-rest svg {
+  color: hsl(var(--muted-foreground));
+}
+
+.biorhythms-profile-recommendation span {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: hsl(var(--foreground));
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .biorhythms-benefits-grid {
@@ -827,6 +1079,26 @@
 
   .biorhythms-importance-card {
     padding: 1.5rem;
+  }
+
+  .biorhythms-profile-card {
+    padding: 1.5rem;
+  }
+
+  .biorhythms-profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .biorhythms-profile-guide-step {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .biorhythms-profile-suggestion {
+    flex-direction: column;
+    gap: 0.75rem;
   }
 }
 

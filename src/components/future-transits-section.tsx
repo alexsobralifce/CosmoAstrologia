@@ -58,6 +58,17 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
   const [transits, setTransits] = useState<Transit[]>(defaultTransits);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentTransits, setCurrentTransits] = useState<any[]>([]);
+  const [moonVoid, setMoonVoid] = useState<{
+    is_void: boolean;
+    void_end?: string;
+    void_start?: string;
+    next_aspect?: string;
+    next_aspect_time?: string;
+    current_moon_sign?: string;
+    void_duration_hours?: number;
+  } | null>(null);
+  const [isLoadingCurrent, setIsLoadingCurrent] = useState(true);
 
   // Função para formatar data
   const formatDate = (dateString: string): string => {
@@ -329,6 +340,31 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
     fetchTransits();
   }, [propTransits]);
 
+  // Buscar trânsitos atuais em tempo real
+  useEffect(() => {
+    const fetchCurrentTransits = async () => {
+      try {
+        setIsLoadingCurrent(true);
+        const response = await apiService.getCurrentPersonalTransits();
+        
+        if (response.active_transits && response.active_transits.length > 0) {
+          setCurrentTransits(response.active_transits);
+        }
+        
+        if (response.moon_void_of_course) {
+          setMoonVoid(response.moon_void_of_course);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar trânsitos atuais:', err);
+        // Não mostrar erro, apenas não exibir seção
+      } finally {
+        setIsLoadingCurrent(false);
+      }
+    };
+
+    fetchCurrentTransits();
+  }, []);
+
   // Função para determinar o tipo de aspecto e retornar classe CSS
   const getAspectTypeClass = (aspectType?: string): string => {
     if (!aspectType) return 'other';
@@ -398,51 +434,65 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
         </div>
       )}
 
-      {/* Timeline com cards e linha do tempo horizontal */}
-      {!isLoading && !error && (
-        <div className="transits-timeline-wrapper">
-          {/* Linha do tempo horizontal */}
-          {transits.length > 0 && (
-            <div className="transits-horizontal-timeline">
-              <div className="transits-timeline-track">
-                {transits.map((transit, index) => {
-                  const aspectClass = getAspectTypeClass(transit.aspect_type);
-                  const startDate = transit.start_date ? new Date(transit.start_date) : null;
-                  const endDate = transit.end_date ? new Date(transit.end_date) : null;
-                  const now = new Date();
-                  
-                  // Calcular posição na timeline (0-100%)
-                  let position = 0;
-                  if (transits.length > 1 && startDate) {
-                    const firstDate = transits[0].start_date ? new Date(transits[0].start_date) : now;
-                    const lastDate = transits[transits.length - 1].end_date 
-                      ? new Date(transits[transits.length - 1].end_date) 
-                      : new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-                    const totalDuration = lastDate.getTime() - firstDate.getTime();
-                    const transitStart = startDate.getTime() - firstDate.getTime();
-                    position = (transitStart / totalDuration) * 100;
-                  }
-                  
-                  return (
-                    <div 
-                      key={`timeline-${transit.id}`}
-                      className={`transits-timeline-marker transits-timeline-marker-${aspectClass}`}
-                      style={{ left: `${position}%` }}
-                      title={transit.title}
-                    >
-                      <div className="transits-timeline-marker-dot"></div>
-                      {startDate && (
-                        <div className="transits-timeline-marker-date">
-                          {formatDateShort(transit.start_date)}
+      {/* Alerta de Lua Fora de Curso */}
+      {!isLoadingCurrent && moonVoid && (
+        <div className="transits-current-section">
+          <div className={`transits-moon-void-card ${moonVoid.is_void ? 'transits-moon-void-active' : 'transits-moon-void-inactive'}`}>
+              <div className="transits-moon-void-indicator">
+                <div className={`transits-moon-void-light ${moonVoid.is_void ? 'transits-moon-void-red' : 'transits-moon-void-green'}`}></div>
+                <div className="transits-moon-void-content">
+                  <h4 className="transits-moon-void-title">
+                    {moonVoid.is_void ? '⚠️ Lua Fora de Curso' : '✅ Lua em Aspecto'}
+                  </h4>
+                  <div className="transits-moon-void-description">
+                    {moonVoid.is_void 
+                      ? (
+                        <p>
+                          A Lua não está fazendo aspectos maiores com nenhum planeta até {moonVoid.void_end ? new Date(moonVoid.void_end).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'mudar de signo'}. Evite iniciar projetos importantes, reuniões decisivas ou tomar decisões significativas durante este período.
+                        </p>
+                      )
+                      : (
+                        <div>
+                          <p>
+                            <strong>O que isso significa:</strong> A Lua está formando aspectos ativos com outros planetas, o que significa que suas emoções e necessidades estão sendo influenciadas e ativadas. Este é um período de movimento emocional e ação.
+                          </p>
+                          <p>
+                            <strong>Como isso influencia você:</strong>
+                          </p>
+                          <ul>
+                            <li>Suas emoções estão mais receptivas e ativas</li>
+                            <li>É um bom momento para tomar decisões baseadas em intuição</li>
+                            <li>Comunicação emocional e relacionamentos podem fluir melhor</li>
+                            <li>Iniciar projetos e ações tem maior probabilidade de sucesso</li>
+                            <li>Reuniões importantes e negociações tendem a ser mais produtivas</li>
+                          </ul>
+                          {moonVoid.next_aspect && (
+                            <p>
+                              <strong>Próximo aspecto:</strong> {moonVoid.next_aspect}
+                              <br />
+                              <span style={{ fontSize: '0.875rem', color: 'hsl(var(--muted-foreground))' }}>
+                                Este aspecto específico trará influências adicionais quando ocorrer.
+                              </span>
+                            </p>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      )
+                    }
+                  </div>
+                  {moonVoid.is_void && moonVoid.void_duration_hours && (
+                    <p className="transits-moon-void-duration">
+                      Duração restante: {Math.round(moonVoid.void_duration_hours)} horas
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          )}
+        </div>
+      )}
 
+      {/* Timeline com cards */}
+      {!isLoading && !error && (
+        <div className="transits-timeline-wrapper">
           {/* Container com linha vertical e cards */}
           <div className="transits-timeline-container">
             {/* Linha vertical */}

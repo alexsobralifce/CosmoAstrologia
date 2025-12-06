@@ -8,6 +8,72 @@ from app.models.database import BirthChart
 
 router = APIRouter()
 
+
+# ============================================================================
+# INFORMAÇÕES DO DIA ATUAL - Endpoint
+# ============================================================================
+
+@router.get("/daily-info")
+async def get_daily_info(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna informações astrológicas do dia atual:
+    - Data formatada
+    - Fase lunar
+    - Signo da Lua
+    
+    Todos os cálculos são feitos usando Swiss Ephemeris (biblioteca padrão).
+    """
+    try:
+        from app.services.daily_info_calculator import get_daily_info
+        
+        # Tentar obter coordenadas do usuário autenticado
+        user_lat = latitude
+        user_lon = longitude
+        
+        if authorization:
+            try:
+                from app.api.auth import get_current_user
+                current_user = get_current_user(authorization, db)
+                if current_user:
+                    # Tentar obter coordenadas do mapa astral
+                    birth_chart = db.query(BirthChart).filter(
+                        BirthChart.user_id == current_user.id,
+                        BirthChart.is_primary == True
+                    ).first()
+                    
+                    if birth_chart:
+                        user_lat = birth_chart.latitude
+                        user_lon = birth_chart.longitude
+            except:
+                pass  # Se não conseguir autenticar, usar coordenadas padrão
+        
+        # Usar coordenadas padrão (São Paulo) se não fornecidas
+        if user_lat is None or user_lon is None:
+            user_lat = -23.5505
+            user_lon = -46.6333
+        
+        # Calcular informações do dia
+        daily_info = get_daily_info(
+            latitude=user_lat,
+            longitude=user_lon
+        )
+        
+        return daily_info
+        
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao calcular informações do dia: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao calcular informações do dia: {str(e)}"
+        )
+
 class PlanetInterpretationRequest(BaseModel):
     planet: str
     sign: str
@@ -408,6 +474,270 @@ async def get_future_transits(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao calcular trânsitos: {str(e)}"
+        )
+
+
+# ============================================================================
+# TRÂNSITOS PESSOAIS EM TEMPO REAL - Endpoints
+# ============================================================================
+
+@router.get("/transits/current")
+async def get_current_personal_transits(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Calcula trânsitos pessoais em tempo real (hoje/agora) baseados no mapa astral do usuário.
+    
+    IMPORTANTE: 
+    - Todos os cálculos são feitos pela biblioteca local (Swiss Ephemeris)
+    - A IA apenas interpreta os dados calculados, NUNCA inventa trânsitos
+    - Retorna apenas trânsitos reais calculados matematicamente para HOJE
+    
+    Args:
+        authorization: Token JWT do usuário autenticado
+    
+    Returns:
+        Dicionário com trânsitos atuais e Lua Fora de Curso
+    """
+    try:
+        # Obter usuário autenticado
+        from app.api.auth import get_current_user
+        current_user = get_current_user(authorization, db)
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Não autenticado"
+            )
+        
+        # Obter mapa astral primário do usuário
+        birth_chart = db.query(BirthChart).filter(
+            BirthChart.user_id == current_user.id,
+            BirthChart.is_primary == True
+        ).first()
+        
+        if not birth_chart:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mapa astral não encontrado. Por favor, registre seu mapa astral primeiro."
+            )
+        
+        # Importar calculadores
+        from app.services.transits_calculator import calculate_future_transits
+        from app.services.moon_void_calculator import calculate_moon_void_of_course
+        
+        # Calcular trânsitos para hoje (apenas 1 dia à frente para pegar trânsitos ativos)
+        today_transits = calculate_future_transits(
+            birth_date=birth_chart.birth_date,
+            birth_time=birth_chart.birth_time,
+            latitude=birth_chart.latitude,
+            longitude=birth_chart.longitude,
+            months_ahead=1,  # Apenas 1 mês para pegar trânsitos ativos
+            max_transits=20  # Mais trânsitos para filtrar os ativos
+        )
+        
+        # Filtrar apenas trânsitos ATIVOS (que estão acontecendo hoje)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        active_transits = []
+        
+        for transit in today_transits:
+            try:
+                start_date_str = transit.get('start_date', '')
+                end_date_str = transit.get('end_date', '')
+                
+                if start_date_str and end_date_str:
+                    # Parsear datas
+                    if isinstance(start_date_str, str):
+                        if 'T' in start_date_str:
+                            date_part = start_date_str.split('T')[0]
+                            start_date = datetime.strptime(date_part, '%Y-%m-%d')
+                        else:
+                            start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    else:
+                        start_date = start_date_str.replace(hour=0, minute=0, second=0, microsecond=0)
+                    
+                    if isinstance(end_date_str, str):
+                        if 'T' in end_date_str:
+                            date_part = end_date_str.split('T')[0]
+                            end_date = datetime.strptime(date_part, '%Y-%m-%d')
+                        else:
+                            end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    else:
+                        end_date = end_date_str.replace(hour=0, minute=0, second=0, microsecond=0)
+                    
+                    # Trânsito ativo se hoje está entre start_date e end_date
+                    if start_date <= today <= end_date:
+                        active_transits.append(transit)
+            except Exception as e:
+                print(f"[WARNING] Erro ao processar trânsito para hoje: {e}")
+                continue
+        
+        # Calcular Lua Fora de Curso
+        moon_void = calculate_moon_void_of_course(
+            check_date=datetime.now(),
+            latitude=birth_chart.latitude,
+            longitude=birth_chart.longitude
+        )
+        
+        # Formatar trânsitos ativos
+        formatted_active_transits = []
+        for transit in active_transits:
+            aspect_type_display_map = {
+                'conjunção': 'Conjunção',
+                'oposição': 'Oposição',
+                'quadratura': 'Quadratura',
+                'trígono': 'Trígono',
+                'sextil': 'Sextil'
+            }
+            
+            aspect_type_display = aspect_type_display_map.get(
+                transit.get('aspect_type', ''), 
+                transit.get('aspect_type', 'Aspecto')
+            )
+            
+            transit_type = transit.get('transit_type', 'jupiter')
+            if transit.get('planet') == 'Júpiter':
+                transit_type_frontend = 'jupiter'
+            elif transit.get('planet') == 'Urano':
+                transit_type_frontend = 'uranus'
+            elif transit.get('planet') == 'Netuno':
+                transit_type_frontend = 'neptune'
+            elif transit.get('planet') == 'Plutão':
+                transit_type_frontend = 'pluto'
+            elif transit_type == 'saturn-return':
+                transit_type_frontend = 'saturn-return'
+            else:
+                transit_type_frontend = 'jupiter'
+            
+            transit_id = f"{transit.get('planet', '')}_{transit.get('aspect_type', '')}_{transit.get('natal_point', '')}_{transit.get('date', '')}"
+            
+            formatted_active_transits.append({
+                'id': transit_id,
+                'type': transit_type_frontend,
+                'title': transit.get('title', 'Trânsito'),
+                'planet': transit.get('planet', ''),
+                'description': transit.get('description', ''),
+                'isActive': True,
+                'start_date': transit.get('start_date', ''),
+                'end_date': transit.get('end_date', ''),
+                'aspect_type': transit.get('aspect_type', ''),
+                'aspect_type_display': aspect_type_display,
+                'natal_point': transit.get('natal_point', '')
+            })
+        
+        # Formatar Lua Fora de Curso
+        void_info = {
+            'is_void': moon_void.get('is_void', False),
+            'void_end': moon_void.get('void_end').isoformat() if moon_void.get('void_end') else None,
+            'void_start': moon_void.get('void_start').isoformat() if moon_void.get('void_start') else None,
+            'next_aspect': moon_void.get('next_aspect', ''),
+            'next_aspect_time': moon_void.get('next_aspect_time').isoformat() if moon_void.get('next_aspect_time') else None,
+            'current_moon_sign': moon_void.get('current_moon_sign', ''),
+            'void_duration_hours': moon_void.get('void_duration_hours')
+        }
+        
+        return {
+            "active_transits": formatted_active_transits,
+            "moon_void_of_course": void_info,
+            "date": datetime.now().isoformat(),
+            "count": len(formatted_active_transits)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao calcular trânsitos atuais: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao calcular trânsitos atuais: {str(e)}"
+        )
+
+
+# ============================================================================
+# AGENDA DE MELHORES MOMENTOS - Endpoints
+# ============================================================================
+
+class BestTimingRequest(BaseModel):
+    """Request para cálculo de melhores momentos."""
+    action_type: str  # Ex: 'pedir_aumento', 'assinar_contrato', 'primeiro_encontro'
+    days_ahead: int = 30  # Quantos dias à frente calcular
+
+
+@router.post("/best-timing/calculate")
+async def calculate_best_timing(
+    request: BestTimingRequest,
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Calcula os melhores momentos para uma ação específica baseado em aspectos e casas astrológicas.
+    
+    IMPORTANTE:
+    - Todos os cálculos são feitos pela biblioteca local (Swiss Ephemeris)
+    - A IA apenas organiza e contextualiza os dados calculados, NUNCA inventa momentos
+    - Retorna apenas momentos reais calculados matematicamente
+    
+    Args:
+        request: Tipo de ação e parâmetros
+        authorization: Token JWT do usuário autenticado
+    
+    Returns:
+        Lista de melhores momentos com scores e aspectos
+    """
+    try:
+        # Obter usuário autenticado
+        from app.api.auth import get_current_user
+        current_user = get_current_user(authorization, db)
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Não autenticado"
+            )
+        
+        # Obter mapa astral primário do usuário
+        birth_chart = db.query(BirthChart).filter(
+            BirthChart.user_id == current_user.id,
+            BirthChart.is_primary == True
+        ).first()
+        
+        if not birth_chart:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Mapa astral não encontrado. Por favor, registre seu mapa astral primeiro."
+            )
+        
+        # Importar calculador
+        from app.services.best_timing_calculator import calculate_best_timing
+        
+        # Calcular melhores momentos usando biblioteca local
+        result = calculate_best_timing(
+            action_type=request.action_type,
+            birth_date=birth_chart.birth_date,
+            birth_time=birth_chart.birth_time,
+            latitude=birth_chart.latitude,
+            longitude=birth_chart.longitude,
+            days_ahead=min(request.days_ahead, 90)  # Máximo 90 dias
+        )
+        
+        if 'error' in result:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result['error']
+            )
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Erro ao calcular melhores momentos: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao calcular melhores momentos: {str(e)}"
         )
 
 

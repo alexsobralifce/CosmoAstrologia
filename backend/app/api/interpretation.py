@@ -727,6 +727,26 @@ async def calculate_best_timing(
                 detail=result['error']
             )
         
+        # VALIDAÇÃO FINAL: Garantir que best_moments é uma lista válida
+        if 'best_moments' not in result:
+            result['best_moments'] = []
+        elif not isinstance(result['best_moments'], list):
+            result['best_moments'] = []
+        
+        # Garantir que todos os momentos retornados são válidos
+        validated_moments = []
+        for moment in result.get('best_moments', []):
+            if (isinstance(moment, dict) and 
+                'date' in moment and 
+                'score' in moment and 
+                'aspects' in moment and
+                isinstance(moment.get('aspects'), list) and
+                len(moment.get('aspects', [])) > 0):
+                validated_moments.append(moment)
+        
+        result['best_moments'] = validated_moments
+        result['total_valid'] = len(validated_moments)
+        
         return result
         
     except HTTPException:

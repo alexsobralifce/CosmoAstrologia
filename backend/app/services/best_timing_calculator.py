@@ -6,7 +6,7 @@ Utiliza aspectos e casas astrológicas para determinar timing ideal.
 import ephem
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from app.services.astrology_calculator import get_zodiac_sign
+from app.services.astrology_calculator import get_zodiac_sign, shortest_angular_distance
 from app.services.transits_calculator import calculate_aspect_angle, get_aspect_type
 
 
@@ -330,8 +330,13 @@ def calculate_best_timing(
                             target_angle = aspect_targets.get(aspect_type)
                             
                             # Validar se está realmente dentro do orbe de 8°
+                            # CORREÇÃO: Usar shortest_angular_distance para lidar corretamente com geometria circular
+                            # Isso garante que ângulos próximos de 0° ou 180° sejam tratados corretamente
                             if target_angle is not None:
-                                angle_diff = abs(angle - target_angle)
+                                # angle já é a menor distância (0-180°) de calculate_aspect_angle
+                                # Mas precisamos comparar com target_angle considerando geometria circular
+                                # Exemplo: angle=179° e target=180° deve dar diff=1°, não 179°
+                                angle_diff = shortest_angular_distance(angle, target_angle)
                                 if angle_diff > 8.0:
                                     # Aspecto fora do orbe - não adicionar
                                     continue
@@ -390,8 +395,13 @@ def calculate_best_timing(
                             target_angle = aspect_targets.get(aspect_type)
                             
                             # Validar se está realmente dentro do orbe de 8°
+                            # CORREÇÃO: Usar shortest_angular_distance para lidar corretamente com geometria circular
+                            # Isso garante que ângulos próximos de 0° ou 180° sejam tratados corretamente
                             if target_angle is not None:
-                                angle_diff = abs(angle - target_angle)
+                                # angle já é a menor distância (0-180°) de calculate_aspect_angle
+                                # Mas precisamos comparar com target_angle considerando geometria circular
+                                # Exemplo: angle=179° e target=180° deve dar diff=1°, não 179°
+                                angle_diff = shortest_angular_distance(angle, target_angle)
                                 if angle_diff > 8.0:
                                     # Aspecto fora do orbe - não adicionar
                                     continue
@@ -466,15 +476,83 @@ def calculate_best_timing(
         
         current_date += check_interval
     
-    # Ordenar por score (maior primeiro)
-    best_moments.sort(key=lambda x: x['score'], reverse=True)
+    # VALIDAÇÃO E FILTRAGEM: Validar e filtrar momentos antes de retornar
+    def validate_moment(moment: Dict) -> bool:
+        """Valida se um momento tem todos os campos obrigatórios e válidos."""
+        if not isinstance(moment, dict):
+            return False
+        
+        # Validar data
+        if 'date' not in moment or not moment['date']:
+            return False
+        try:
+            # Verificar se é uma data ISO válida
+            datetime.fromisoformat(moment['date'].replace('Z', '+00:00'))
+        except (ValueError, AttributeError):
+            return False
+        
+        # Validar score
+        if 'score' not in moment or not isinstance(moment['score'], (int, float)):
+            return False
+        if moment['score'] <= 0:
+            return False
+        
+        # Validar aspectos
+        if 'aspects' not in moment or not isinstance(moment['aspects'], list):
+            return False
+        if len(moment['aspects']) == 0:
+            return False
+        
+        # Validar cada aspecto - CRÍTICO: Garantir que apenas planetas permitidos apareçam
+        valid_aspects = []
+        beneficial_planets = action_config['beneficial_planets']
+        
+        for aspect in moment['aspects']:
+            if not isinstance(aspect, dict):
+                continue
+            if 'planet' not in aspect or not isinstance(aspect['planet'], str) or not aspect['planet']:
+                continue
+            if 'aspect_type' not in aspect or not isinstance(aspect['aspect_type'], str) or not aspect['aspect_type']:
+                continue
+            if 'house' not in aspect or not isinstance(aspect['house'], int):
+                continue
+            if aspect['house'] < 1 or aspect['house'] > 12:
+                continue
+            
+            # VALIDAÇÃO CRÍTICA: Garantir que o planeta está na lista de planetas benéficos
+            if aspect['planet'] not in beneficial_planets:
+                print(f"[VALIDATION] Removendo aspecto com planeta não permitido: {aspect['planet']} (permitidos: {beneficial_planets})")
+                continue
+            
+            # Validar que o tipo de aspecto está na lista preferida
+            if aspect['aspect_type'] not in action_config['preferred_aspects']:
+                print(f"[VALIDATION] Removendo aspecto com tipo não permitido: {aspect['aspect_type']} (permitidos: {action_config['preferred_aspects']})")
+                continue
+            
+            valid_aspects.append(aspect)
+        
+        # Se não houver aspectos válidos após filtragem, momento é inválido
+        if len(valid_aspects) == 0:
+            return False
+        
+        # Atualizar aspectos do momento com apenas os válidos
+        moment['aspects'] = valid_aspects
+        
+        return True
     
-    # Retornar top 10 melhores momentos
+    # Filtrar apenas momentos válidos
+    valid_moments = [m for m in best_moments if validate_moment(m)]
+    
+    # Ordenar por score (maior primeiro)
+    valid_moments.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Retornar top 10 melhores momentos (apenas os válidos)
     return {
         'action_type': action_type,
         'action_config': action_config,
-        'best_moments': best_moments[:10],
+        'best_moments': valid_moments[:10],
         'total_checked': len(best_moments),
+        'total_valid': len(valid_moments),
         'analysis_date': datetime.now().isoformat()
     }
 

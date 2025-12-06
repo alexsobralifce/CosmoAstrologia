@@ -3096,21 +3096,19 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
       
       console.log(`[Sinastria] Buscando compatibilidade: ${userSunSign} + ${partnerSign}`);
       
-      // Query mais específica e detalhada para sinastria
-      const compatibilityQuery = language === 'pt'
-        ? `sinastria compatibilidade ${userSunSign} com ${partnerSign} relacionamento amor casal dinâmica pontos fortes desafios comunicação intimidade valores objetivos vida prática atual`
-        : `synastry compatibility ${userSunSign} with ${partnerSign} relationship love couple dynamics strengths challenges communication intimacy values life goals practical current`;
-      
-      const result = await apiService.getInterpretation({
-        custom_query: compatibilityQuery,
-        use_groq: true,
+      // Usar o novo endpoint específico de sinastria que busca características de cada signo
+      const result = await apiService.getSynastryInterpretation({
+        sign1: userSunSign,
+        sign2: partnerSign,
+        language: language,
       });
       
       console.log('[Sinastria] Resposta recebida:', {
         hasInterpretation: !!result?.interpretation,
         length: result?.interpretation?.length || 0,
         generatedBy: result?.generated_by,
-        queryUsed: result?.query_used
+        hasSign1Info: !!result?.sign1_info,
+        hasSign2Info: !!result?.sign2_info
       });
       
       // Verificar se a interpretação foi gerada corretamente
@@ -3122,57 +3120,55 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
           setInterpretation(interpretationText);
           console.log('[Sinastria] Interpretação definida com sucesso');
         } else {
-          console.warn('[Sinastria] Interpretação muito curta, usando fallback');
-          throw new Error('Interpretação muito curta');
+          console.warn('[Sinastria] Interpretação muito curta - pode ser que não houve informações suficientes no RAG');
+          throw new Error(language === 'pt' 
+            ? 'Interpretação muito curta. Pode não haver informações suficientes sobre estes signos na base de conhecimento.'
+            : 'Interpretation too short. There may not be enough information about these signs in the knowledge base.');
         }
       } else {
         console.error('[Sinastria] Resposta sem interpretação válida');
         throw new Error('Resposta sem interpretação');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Sinastria] Erro ao buscar compatibilidade:', error);
       
-      // Fallback mais detalhado
-      const fallbackText = language === 'pt'
-        ? `**Compatibilidade entre ${userSunSign} e ${partnerSign}**
+      // Não usar fallback estático - mostrar erro real
+      const errorMessage = language === 'pt'
+        ? `**Erro ao gerar interpretação de sinastria**
 
-A combinação entre ${userSunSign} e ${partnerSign} traz dinâmicas únicas para o relacionamento. Cada signo contribui com suas qualidades e desafios, criando uma conexão que pode ser tanto complementar quanto desafiadora.
+Não foi possível gerar uma interpretação personalizada para ${userSunSign} e ${partnerSign} no momento.
 
-**Pontos Fortes:**
-- Cada signo traz características que podem complementar o outro
-- A diferença entre os signos pode criar atração e interesse mútuo
-- O relacionamento pode oferecer oportunidades de crescimento pessoal
+**Possíveis causas:**
+- Informações insuficientes na base de conhecimento sobre estes signos
+- Problema temporário no serviço de interpretação
+- Erro de conexão com o servidor
 
-**Desafios:**
-- Pode haver diferenças na forma de expressar emoções e necessidades
-- Estilos de comunicação podem variar e precisar de ajustes
-- Valores e prioridades podem diferir, exigindo diálogo e compreensão
+**O que fazer:**
+- Tente novamente em alguns instantes
+- Verifique sua conexão com a internet
+- Se o problema persistir, entre em contato com o suporte
 
-**Orientações Práticas:**
-- Comunicação aberta e honesta é fundamental
-- Respeitar as diferenças e buscar pontos em comum
-- Trabalhar juntos para construir uma base sólida de confiança e respeito`
-        : `**Compatibility between ${userSunSign} and ${partnerSign}**
+**Detalhes técnicos:**
+${error?.message || 'Erro desconhecido'}`
+        : `**Error generating synastry interpretation**
 
-The combination between ${userSunSign} and ${partnerSign} brings unique dynamics to the relationship. Each sign contributes its qualities and challenges, creating a connection that can be both complementary and challenging.
+Unable to generate a personalized interpretation for ${userSunSign} and ${partnerSign} at this time.
 
-**Strengths:**
-- Each sign brings characteristics that can complement the other
-- The difference between signs can create attraction and mutual interest
-- The relationship can offer opportunities for personal growth
+**Possible causes:**
+- Insufficient information in the knowledge base about these signs
+- Temporary problem with the interpretation service
+- Connection error with the server
 
-**Challenges:**
-- There may be differences in how emotions and needs are expressed
-- Communication styles may vary and need adjustments
-- Values and priorities may differ, requiring dialogue and understanding
+**What to do:**
+- Try again in a few moments
+- Check your internet connection
+- If the problem persists, contact support
 
-**Practical Guidance:**
-- Open and honest communication is fundamental
-- Respect differences and seek common ground
-- Work together to build a solid foundation of trust and respect`;
+**Technical details:**
+${error?.message || 'Unknown error'}`;
       
-      setInterpretation(fallbackText);
-      console.log('[Sinastria] Fallback aplicado');
+      setInterpretation(errorMessage);
+      console.error('[Sinastria] Erro capturado - sem fallback estático');
     } finally {
       setIsLoading(false);
     }

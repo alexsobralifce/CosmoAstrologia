@@ -885,6 +885,22 @@ class ApiService {
       body: JSON.stringify(params),
     }, 60000);
   }
+
+  async getSynastryInterpretation(params: {
+    sign1: string;
+    sign2: string;
+    language?: string;
+  }): Promise<{
+    interpretation: string;
+    generated_by: string;
+    sign1_info?: string;
+    sign2_info?: string;
+  }> {
+    return await this.request('/api/synastry/interpretation', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 120000); // Timeout maior para interpretações completas
+  }
 }
 
 export const apiService = new ApiService();

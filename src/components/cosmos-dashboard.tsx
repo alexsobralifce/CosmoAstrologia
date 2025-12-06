@@ -7,6 +7,7 @@ import { useTheme } from './theme-provider';
 import { useLanguage } from '../i18n';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import { InactivityWarningModal } from './inactivity-warning-modal';
+import { apiService } from '../services/api';
 import { 
   OverviewSection, 
   PlanetsSection, 
@@ -20,6 +21,7 @@ import {
   NumerologySection
 } from './dashboard-sections';
 import { CompleteBirthChartSection } from './complete-birth-chart-section';
+import { BestTimingSection } from './best-timing-section';
 
 // Componente de Menu de Configurações
 interface SettingsMenuProps {
@@ -154,6 +156,19 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
   // Estado para modal de aviso de inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const [warningCountdown, setWarningCountdown] = useState(60); // 1 minuto em segundos
+  
+  // Estado para informações do dia atual
+  const [dailyInfo, setDailyInfo] = useState<{
+    date: string;
+    day_name: string;
+    day: number;
+    month: string;
+    year: number;
+    moon_phase: string;
+    moon_sign: string;
+    moon_phase_description: string;
+  } | null>(null);
+  const [isLoadingDailyInfo, setIsLoadingDailyInfo] = useState(false);
 
   // Sistema de timeout de inatividade
   // Timeout de 10 minutos de inatividade com aviso de 1 minuto antes
@@ -199,6 +214,56 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
       setCurrentMonth(currentMonth + 1);
     }
   };
+
+  // Buscar informações do dia atual
+  useEffect(() => {
+    const fetchDailyInfo = async () => {
+      try {
+        setIsLoadingDailyInfo(true);
+        const info = await apiService.getDailyInfo({
+          latitude: userData.coordinates?.latitude,
+          longitude: userData.coordinates?.longitude
+        });
+        setDailyInfo(info);
+      } catch (error) {
+        console.error('[CosmosDashboard] Erro ao buscar informações do dia:', error);
+        // Em caso de erro, usar data atual como fallback
+        const now = new Date();
+        const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 
+                           'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        setDailyInfo({
+          date: `${daysOfWeek[now.getDay()]}, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`,
+          day_name: daysOfWeek[now.getDay()],
+          day: now.getDate(),
+          month: months[now.getMonth()],
+          year: now.getFullYear(),
+          moon_phase: 'N/A',
+          moon_sign: 'N/A',
+          moon_phase_description: 'N/A'
+        });
+      } finally {
+        setIsLoadingDailyInfo(false);
+      }
+    };
+    
+    fetchDailyInfo();
+    
+    // Atualizar a cada dia (verificar a cada hora se mudou o dia)
+    const interval = setInterval(() => {
+      const now = new Date();
+      const lastUpdate = localStorage.getItem('daily_info_last_update');
+      const today = now.toDateString();
+      
+      if (lastUpdate !== today) {
+        localStorage.setItem('daily_info_last_update', today);
+        fetchDailyInfo();
+      }
+    }, 60 * 60 * 1000); // Verificar a cada hora
+    
+    return () => clearInterval(interval);
+  }, [userData.coordinates]);
 
   // Handler para notificações
   const handleNotificationsClick = () => {
@@ -424,11 +489,12 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
     affinity: t('compatibilitySection', 'affinity'),
     viewAll: t('compatibilitySection', 'viewAll'),
     footer: t('footer', 'copyright'),
-    monday: language === 'pt' ? 'Segunda' : 'Monday',
+    // Usar dados dinâmicos do dia atual (ou fallback se não carregado)
+    monday: dailyInfo?.day_name || (language === 'pt' ? 'Segunda' : 'Monday'),
     heroText: language === 'pt' 
       ? 'Hoje os astros alinham-se para trazer clareza aos seus caminhos. Mercúrio retrógrado em Capricórnio convida à reflexão profunda sobre suas metas e ambições.'
       : 'Today the stars align to bring clarity to your paths. Mercury retrograde in Capricorn invites deep reflection on your goals and ambitions.',
-    waxingMoonIn: language === 'pt' ? 'Lua Crescente em Aquário' : 'Waxing Moon in Aquarius',
+    waxingMoonIn: dailyInfo?.moon_phase_description || (language === 'pt' ? 'Lua Crescente em Aquário' : 'Waxing Moon in Aquarius'),
   };
 
   return (
@@ -644,11 +710,15 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               <div className="dashboard-hero-tags">
                 <div className="dashboard-hero-tag">
                   <UIIcons.Calendar size={16} className="dashboard-hero-tag-icon" />
-                  <span className="dashboard-hero-tag-text">{texts.monday}, 24 {texts.of} {texts.november}</span>
+                  <span className="dashboard-hero-tag-text">
+                    {dailyInfo ? dailyInfo.date : (isLoadingDailyInfo ? 'Carregando...' : `${texts.monday}, ${new Date().getDate()} ${texts.of} ${texts.november}`)}
+                  </span>
                 </div>
                 <div className="dashboard-hero-tag">
                   <UIIcons.Moon size={16} className="dashboard-hero-tag-icon" />
-                  <span className="dashboard-hero-tag-text dashboard-hero-tag-text-yellow">{texts.waxingMoonIn}</span>
+                  <span className="dashboard-hero-tag-text dashboard-hero-tag-text-yellow">
+                    {dailyInfo ? dailyInfo.moon_phase_description : (isLoadingDailyInfo ? 'Carregando...' : texts.waxingMoonIn)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -760,45 +830,9 @@ export const CosmosDashboard = ({ userData, onViewInterpretation, onLogout }: Co
               </div>
             </div>
 
-            {/* Compatibilidade */}
+            {/* Agenda de Melhores Momentos */}
             <div className="dashboard-bottom-card">
-              <h3 className="dashboard-bottom-card-title">{texts.compatibility}</h3>
-              
-
-              <p className="dashboard-compatibility-subtitle">
-                <UIIcons.Users size={14} />
-                {texts.closePeople}
-              </p>
-
-              <div className="dashboard-compatibility-list">
-                {compatibility.map((person, i) => (
-                  <div key={i} className="dashboard-compatibility-item">
-                    <div className="dashboard-compatibility-item-left">
-                      <div className={`dashboard-compatibility-avatar ${person.color}`}>
-                        {person.avatar}
-                      </div>
-                      <div className="dashboard-compatibility-info">
-                        <p className="dashboard-compatibility-name">{person.name}</p>
-                        <div className="dashboard-compatibility-sign">
-                          <UIIcons.Star size={12} />
-                          <span>{person.sign}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="dashboard-compatibility-item-right">
-                      <p className="dashboard-compatibility-percentage">{person.compatibility}%</p>
-                      <p className="dashboard-compatibility-label">{texts.affinity}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button 
-                className="dashboard-compatibility-button"
-                onClick={handleViewAllCompatibility}
-              >
-                {texts.viewAll}
-              </button>
+              <BestTimingSection userData={userData} />
             </div>
           </div>
 

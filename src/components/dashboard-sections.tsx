@@ -9,6 +9,7 @@ import { apiService } from '../services/api';
 import { useLanguage } from '../i18n';
 import { OnboardingData } from './onboarding';
 import { AstroCard } from './astro-card';
+import { AstroButton } from './astro-button';
 
 // Função utilitária para remover informações de suporte e conteúdo técnico
 const removeSupportAndTechnicalContent = (text: string): string => {
@@ -3541,20 +3542,23 @@ ${error?.message || 'Unknown error'}`;
         </div>
         
         {partnerSign && (
-          <button
-            onClick={fetchCompatibility}
-            disabled={isLoading}
-            className="synastry-analyze-button"
-          >
-            {isLoading ? (
-              <span className="synastry-analyze-button-content">
-                <UIIcons.Loader className="synastry-analyze-button-loader" />
-                {language === 'pt' ? 'Analisando...' : 'Analyzing...'}
-              </span>
-            ) : (
-              language === 'pt' ? 'Analisar Compatibilidade' : 'Analyze Compatibility'
-            )}
-          </button>
+          <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+            <AstroButton
+              onClick={fetchCompatibility}
+              disabled={isLoading}
+              variant="primary"
+              size="md"
+            >
+              {isLoading ? (
+                <>
+                  <UIIcons.Loader className="synastry-analyze-button-loader" />
+                  {language === 'pt' ? 'Analisando...' : 'Analyzing...'}
+                </>
+              ) : (
+                language === 'pt' ? 'Analisar Compatibilidade' : 'Analyze Compatibility'
+              )}
+            </AstroButton>
+          </div>
         )}
       </div>
 

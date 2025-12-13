@@ -167,11 +167,11 @@ def start_manually() -> Dict[str, Optional[subprocess.Popen]]:
             processes["backend"] = None
     
     # Frontend
-    if check_port(5173):
-        print_warning("Frontend já está rodando na porta 5173")
+    if check_port(3000):
+        print_warning("Frontend já está rodando na porta 3000")
         processes["frontend"] = None
     else:
-        print_info("Iniciando Frontend na porta 5173...")
+        print_info("Iniciando Frontend na porta 3000...")
         if Path("package.json").exists():
             try:
                 log_file = open("logs/frontend.log", "w")
@@ -182,6 +182,7 @@ def start_manually() -> Dict[str, Optional[subprocess.Popen]]:
                 )
                 processes["frontend"] = process
                 print_success(f"Frontend iniciado (PID: {process.pid})")
+                print_info("Frontend rodando em http://localhost:3000 (Vite + React Router)")
             except Exception as e:
                 print_error(f"Erro ao iniciar Frontend: {e}")
                 processes["frontend"] = None
@@ -220,8 +221,8 @@ def check_services_status():
         print_error("Backend: Não está rodando")
     
     # Frontend
-    if check_port(5173):
-        print_success("Frontend: Rodando em http://localhost:5173")
+    if check_port(3000):
+        print_success("Frontend: Rodando em http://localhost:3000")
     else:
         print_warning("Frontend: Não está rodando")
 
@@ -256,7 +257,7 @@ def stop_services(processes: Optional[Dict] = None):
     
     # Parar processos nas portas
     import socket
-    for port in [8001, 8000, 5173]:
+    for port in [8001, 8000, 3000]:
         if check_port(port):
             print_warning(f"Porta {port} ainda em uso. Você pode precisar parar manualmente.")
 
@@ -320,7 +321,7 @@ def main():
         print_info("URLs:")
         print_info("  - RAG Service: http://localhost:8001")
         print_info("  - Backend: http://localhost:8000")
-        print_info("  - Frontend: http://localhost:5173")
+        print_info("  - Frontend: http://localhost:3000")
         
         # Salvar PIDs para poder parar depois
         if processes:

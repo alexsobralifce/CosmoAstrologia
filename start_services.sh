@@ -116,16 +116,17 @@ start_manually() {
         print_success "Backend iniciado (PID: $BACKEND_PID)"
     fi
     
-    if is_service_running 5173 "Frontend"; then
-        print_warning "Frontend já está rodando na porta 5173"
+    if is_service_running 3000 "Frontend"; then
+        print_warning "Frontend já está rodando na porta 3000"
     else
-        print_info "Iniciando Frontend na porta 5173..."
+        print_info "Iniciando Frontend na porta 3000..."
         # Verificar se é Vite
         if [ -f "package.json" ]; then
             nohup npm run dev > logs/frontend.log 2>&1 &
             FRONTEND_PID=$!
             echo $FRONTEND_PID > logs/frontend.pid
             print_success "Frontend iniciado (PID: $FRONTEND_PID)"
+            print_info "Frontend rodando em http://localhost:3000 (Vite + React Router)"
         else
             print_warning "Frontend não encontrado (package.json não existe)"
         fi
@@ -166,8 +167,8 @@ check_services_status() {
     fi
     
     # Frontend
-    if is_service_running 5173 "Frontend"; then
-        print_success "Frontend: Rodando em http://localhost:5173"
+    if is_service_running 3000 "Frontend"; then
+        print_success "Frontend: Rodando em http://localhost:3000"
     else
         print_warning "Frontend: Não está rodando"
     fi
@@ -214,7 +215,7 @@ stop_services() {
     fi
     
     # Parar processos nas portas
-    for port in 8001 8000 5173; do
+    for port in 8001 8000 3000; do
         PID=$(lsof -ti:$port 2>/dev/null || true)
         if [ ! -z "$PID" ]; then
             kill $PID 2>/dev/null || true
@@ -268,7 +269,7 @@ main() {
             print_info "URLs:"
             print_info "  - RAG Service: http://localhost:8001"
             print_info "  - Backend: http://localhost:8000"
-            print_info "  - Frontend: http://localhost:5173"
+            print_info "  - Frontend: http://localhost:3000"
             ;;
         
         stop)

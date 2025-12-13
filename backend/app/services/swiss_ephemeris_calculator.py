@@ -323,14 +323,20 @@ def calculate_birth_chart(
         "chiron": chiron_longitude,
     })
     
+    # Calcular casas dos planetas principais (Sol e Lua)
+    sun_house = get_planet_house(kr, "sun")
+    moon_house = get_planet_house(kr, "moon")
+    
     result = {
         # Luminares
         "sun_sign": planet_data["sun"]["sign"],
         "sun_degree": planet_data["sun"]["degree"],
         "sun_longitude": planet_data["sun"]["longitude"],
+        "sun_house": sun_house,
         "moon_sign": planet_data["moon"]["sign"],
         "moon_degree": planet_data["moon"]["degree"],
         "moon_longitude": planet_data["moon"]["longitude"],
+        "moon_house": moon_house,
         
         # Ascendente e MC
         "ascendant_sign": asc_data["sign"],

@@ -105,7 +105,7 @@ export const NumerologySection = ({ userData, onBack }: NumerologySectionProps) 
       setNumerologyMap(result);
     } catch (err: any) {
       // Log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV === 'development') {
         console.error('[Numerology] Erro ao buscar mapa:', err);
       }
       setError(err.message || (language === 'pt' 
@@ -136,7 +136,7 @@ export const NumerologySection = ({ userData, onBack }: NumerologySectionProps) 
       setInterpretation(result.interpretation);
     } catch (err: any) {
       // Log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV === 'development') {
         console.error('[Numerology] Erro ao buscar interpretação:', err);
       }
       setError(err.message || (language === 'pt' 

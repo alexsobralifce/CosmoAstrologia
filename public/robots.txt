@@ -7,13 +7,19 @@ Allow: /
 # Sitemap
 Sitemap: https://cosmoastral.com.br/sitemap.xml
 
-# Desabilitar indexação de arquivos de build e assets
+# IMPORTANTE: Permitir JavaScript e CSS (necessários para renderização SPA)
+# O Google precisa acessar esses arquivos para executar o JavaScript e renderizar o conteúdo
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.json$
+
+# Bloquear apenas diretórios de desenvolvimento
 Disallow: /build/
 Disallow: /node_modules/
 Disallow: /src/
-Disallow: /*.json$
-Disallow: /*.js$
-Disallow: /*.css$
+Disallow: /backend/
+Disallow: /docs/
+Disallow: /tests/
 
 # Permitir indexação de páginas principais
 Allow: /

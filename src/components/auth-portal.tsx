@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AstroButton } from './astro-button';
@@ -568,7 +570,11 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
   const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
   const isProcessingGoogleLogin = useRef(false);
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  // Support Next.js (process.env) and window global (for tests)
+  const googleClientId = 
+    (typeof window !== 'undefined' && (window as any).__GOOGLE_CLIENT_ID__) ||
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_GOOGLE_CLIENT_ID) ||
+    '';
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   // Função para lidar com o callback do Google OAuth
@@ -843,8 +849,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
             : 'Google OAuth not configured',
           {
             description: language === 'pt'
-              ? 'Usando modo de teste. Configure VITE_GOOGLE_CLIENT_ID para usar OAuth real.'
-              : 'Using test mode. Configure VITE_GOOGLE_CLIENT_ID to use real OAuth.',
+              ? 'Usando modo de teste. Configure NEXT_PUBLIC_GOOGLE_CLIENT_ID no .env.local para usar OAuth real.'
+              : 'Using test mode. Configure NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local to use real OAuth.',
             duration: 5000
           }
         );

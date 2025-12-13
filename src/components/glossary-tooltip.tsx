@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useRef, useEffect } from 'react';
 import { getGlossaryTerm } from '../utils/astrologicalGlossary';
 import { useLanguage } from '../i18n';

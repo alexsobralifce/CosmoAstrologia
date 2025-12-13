@@ -559,11 +559,11 @@ export const FullBirthChartSection = ({ userData, onBack }: FullBirthChartProps)
               } catch (error) {
                 console.error('Erro ao buscar dados do mapa para PDF:', error);
                 // Gerar PDF mesmo sem dados do mapa (com interpretações apenas)
-                generateBirthChartPDF({
-                  userData,
-                  sections,
-                  language
-                });
+            generateBirthChartPDF({
+              userData,
+              sections,
+              language
+            });
               }
             };
             

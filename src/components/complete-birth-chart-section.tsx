@@ -789,7 +789,7 @@ export const CompleteBirthChartSection = ({ userData, onBack }: CompleteBirthCha
         
         <div className="birth-chart-sections-list">
           {getAllItems().map(item => renderItem(item))}
-        </div>
+          </div>
         </div>
 
       {/* Botão de PDF ao final */}
@@ -856,7 +856,7 @@ export const CompleteBirthChartSection = ({ userData, onBack }: CompleteBirthCha
             ? 'Baixe seu mapa astral completo em PDF com todos os planetas, pontos especiais, casas e interpretações organizadas.'
             : 'Download your complete birth chart in PDF format with all planets, special points, houses and organized interpretations.'}
         </p>
-      </div>
+        </div>
     </div>
   );
 };

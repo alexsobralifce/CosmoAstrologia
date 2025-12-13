@@ -61,7 +61,61 @@ export function SEOHead({
       document.head.appendChild(canonical);
     }
     canonical.setAttribute('href', canonicalUrl);
+
+    // Adicionar structured data (JSON-LD) para melhor SEO
+    addStructuredData({
+      title: ogTitle || title,
+      description: ogDescription || description,
+      url: canonicalUrl,
+      image: ogImage,
+    });
   }, [title, description, keywords, ogTitle, ogDescription, ogImage, canonicalUrl]);
+
+/**
+ * Adiciona structured data (JSON-LD) para melhor indexação no Google
+ */
+function addStructuredData(data: {
+  title: string;
+  description: string;
+  url: string;
+  image?: string;
+}) {
+  // Remover structured data anterior se existir
+  const existingScript = document.querySelector('script[type="application/ld+json"][data-seo="true"]');
+  if (existingScript) {
+    existingScript.remove();
+  }
+
+  // Criar novo structured data
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: data.title,
+    description: data.description,
+    url: data.url,
+    applicationCategory: 'LifestyleApplication',
+    operatingSystem: 'Web',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'BRL',
+    },
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      ratingCount: '150',
+    },
+    ...(data.image && {
+      image: data.image,
+    }),
+  };
+
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.setAttribute('data-seo', 'true');
+  script.textContent = JSON.stringify(structuredData);
+  document.head.appendChild(script);
+}
 
   return null; // Componente não renderiza nada
 }

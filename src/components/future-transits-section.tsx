@@ -313,7 +313,7 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
         } else {
           // Se não houver trânsitos, usar os padrão (apenas para desenvolvimento)
           // Em produção, não usar defaults
-          if (import.meta.env.DEV) {
+          if (process.env.NODE_ENV === 'development') {
             setTransits(defaultTransits);
           } else {
             setTransits([]);
@@ -327,7 +327,7 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
         }
         setError('Não foi possível carregar os trânsitos futuros');
         // Em produção, não usar defaults em caso de erro
-        if (import.meta.env.DEV) {
+        if (process.env.NODE_ENV === 'development') {
           setTransits(defaultTransits);
         } else {
           setTransits([]);

@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { ArrowRight, Mail, Star, Users, FileText, TrendingUp, Zap, Target, Heart, Check, Shield } from 'lucide-react';
 import { AstroButton } from './astro-button';
@@ -11,6 +13,8 @@ interface LandingPageProps {
 
 export function LandingPage({ onEnter, onGetStarted }: LandingPageProps) {
   const [email, setEmail] = useState('');
+
+  // Debug code removed for production
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,0 +1,2290 @@
+/*!*****************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[3]!./src/styles/transits-section.css ***!
+  \*****************************************************************************************************************************************************************************************************************************************************************************/
+/* 
+ * ============================================================================
+ * TRANTS SECTION - CSS PURO (FLEXBOX E CSS GRID)
+ * ============================================================================
+ * Estilos para a seção de Trânsitos Astrológicos
+ * Layout responsivo com linha do tempo vertical
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * CONTAINER PRINCIPAL
+ * ============================================================================ */
+.transits-section-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 2rem;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  box-sizing: border-box;
+}
+
+/* ============================================================================
+ * HEADER DA SEÇÃO
+ * ============================================================================ */
+.transits-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.transits-header-content {
+  flex: 1 1;
+  min-width: 0;
+}
+
+.transits-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.transits-subtitle {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.transits-back-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.transits-back-button:hover {
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+/* ============================================================================
+ * CARDS DE DESTAQUES
+ * ============================================================================ */
+.transits-highlights-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.transits-highlights-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.transits-highlights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-gap: 1rem;
+  gap: 1rem;
+}
+
+.transits-highlight-item {
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border) / 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.transits-highlight-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.transits-highlight-icon {
+  font-size: 1.5rem;
+}
+
+.transits-highlight-period {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.transits-highlight-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.transits-highlight-desc {
+  font-size: 0.75rem;
+  color: hsl(var(--foreground));
+  margin: 0.25rem 0 0 0;
+}
+
+/* ============================================================================
+ * LEGENDA DE TIPOS
+ * ============================================================================ */
+.transits-legend-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.transits-legend-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.transits-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-gap: 0.75rem;
+  gap: 0.75rem;
+}
+
+.transits-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+}
+
+.transits-legend-icon {
+  font-size: 1.125rem;
+}
+
+.transits-legend-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.transits-legend-name {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.transits-legend-planet {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* ============================================================================
+ * LINHA DO TEMPO (WRAPPER)
+ * ============================================================================ */
+.transits-timeline-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* ============================================================================
+ * LINHA DO TEMPO HORIZONTAL
+ * ============================================================================ */
+.transits-horizontal-timeline {
+  width: 100%;
+  padding: 1rem 0;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.transits-timeline-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    hsl(var(--accent)),
+    hsl(var(--accent) / 0.5),
+    hsl(var(--accent) / 0.1)
+  );
+  border-radius: 2px;
+  margin: 2rem 0;
+}
+
+.transits-timeline-marker {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 3;
+}
+
+.transits-timeline-marker-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 2px 4px hsl(var(--foreground) / 0.2);
+}
+
+.transits-timeline-marker-harmonious .transits-timeline-marker-dot {
+  background-color: hsl(160, 70%, 50%);
+  border-color: hsl(160, 70%, 50%);
+}
+
+.transits-timeline-marker-tense .transits-timeline-marker-dot {
+  background-color: hsl(0, 70%, 60%);
+  border-color: hsl(0, 70%, 60%);
+}
+
+.transits-timeline-marker-conjunction .transits-timeline-marker-dot {
+  background-color: hsl(45, 90%, 60%);
+  border-color: hsl(45, 90%, 60%);
+}
+
+.transits-timeline-marker-other .transits-timeline-marker-dot {
+  background-color: hsl(var(--accent));
+  border-color: hsl(var(--accent));
+}
+
+.transits-timeline-marker-date {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  background-color: hsl(var(--card));
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid hsl(var(--border));
+  margin-top: 0.5rem;
+}
+
+.transits-timeline-marker:hover .transits-timeline-marker-date {
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--accent));
+}
+
+/* ============================================================================
+ * LINHA DO TEMPO VERTICAL
+ * ============================================================================ */
+.transits-timeline-container {
+  position: relative;
+  padding-left: 2rem;
+  padding-right: 0.5rem;
+  max-height: none;
+  overflow-y: visible;
+  overflow-x: hidden;
+}
+
+/* Scrollbar customizada */
+.transits-timeline-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.transits-timeline-container::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 4px;
+}
+
+.transits-timeline-container::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.5);
+  border-radius: 4px;
+}
+
+.transits-timeline-container::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.7);
+}
+
+/* Linha vertical da timeline */
+.transits-timeline-line {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    hsl(var(--accent)),
+    hsl(var(--accent) / 0.5),
+    hsl(var(--accent) / 0.1)
+  );
+}
+
+/* Container de cada item da timeline */
+.transits-timeline-item {
+  position: relative;
+  margin-bottom: 1.5rem;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Ponto na linha do tempo */
+.transits-timeline-dot {
+  position: absolute;
+  left: -1.8125rem;
+  top: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 2px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.transits-timeline-dot-active {
+  animation: pulse 2s infinite;
+}
+
+.transits-timeline-dot-inner {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: hsl(var(--background));
+}
+
+/* Cores baseadas no tipo de aspecto */
+/* Verde - Aspectos harmoniosos (trígono, sextil) */
+.transits-timeline-dot-harmonious {
+  border-color: hsl(160, 70%, 50%);
+  background-color: hsl(160, 70%, 50%);
+}
+
+/* Vermelho - Aspectos tensos (quadratura, oposição) */
+.transits-timeline-dot-tense {
+  border-color: hsl(0, 70%, 60%);
+  background-color: hsl(0, 70%, 60%);
+}
+
+/* Amarelo/Dourado - Conjunção (neutro/transformação) */
+.transits-timeline-dot-conjunction {
+  border-color: hsl(45, 90%, 60%);
+  background-color: hsl(45, 90%, 60%);
+}
+
+/* Outros tipos */
+.transits-timeline-dot-other {
+  border-color: hsl(var(--accent));
+  background-color: hsl(var(--background));
+}
+
+/* Card do trânsito */
+.transits-transit-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.transits-transit-card:hover {
+  border-color: hsl(var(--accent) / 0.4);
+  box-shadow: 0 4px 12px hsl(var(--accent) / 0.1);
+}
+
+/* Header do card */
+.transits-transit-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.transits-transit-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1 1;
+  min-width: 0;
+}
+
+.transits-transit-icon-container {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.transits-transit-icon-container-harmonious {
+  background-color: hsl(160, 70%, 50% / 0.2);
+}
+
+.transits-transit-icon-container-tense {
+  background-color: hsl(0, 70%, 60% / 0.2);
+}
+
+.transits-transit-icon-container-conjunction {
+  background-color: hsl(45, 90%, 60% / 0.2);
+}
+
+.transits-transit-icon-container-other {
+  background-color: hsl(var(--primary) / 0.2);
+}
+
+.transits-transit-content {
+  flex: 1 1;
+  min-width: 0;
+}
+
+.transits-transit-title {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.transits-transit-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.transits-transit-dates {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.transits-transit-date-item {
+  margin: 0;
+}
+
+.transits-transit-date-label {
+  font-weight: 500;
+}
+
+.transits-transit-timeframe {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* Descrição formatada */
+.transits-transit-description {
+  border-left: 2px solid hsl(var(--accent) / 0.3);
+  padding-left: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0 0.5rem 0.5rem 0;
+  margin-bottom: 1rem;
+  /* Garantir que todo o conteúdo seja exibido */
+  overflow: visible;
+  max-height: none;
+}
+
+.transits-transit-description-container {
+  width: 100%;
+  /* Garantir que todo o conteúdo seja exibido */
+  overflow: visible;
+}
+
+.transits-description-section {
+  margin-bottom: 1.5rem;
+  /* Garantir que todo o conteúdo seja exibido */
+  overflow: visible;
+}
+
+.transits-transit-description-paragraph {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground) / 0.9);
+  line-height: 1.6;
+  margin: 0 0 0.5rem 0;
+}
+
+.transits-transit-description-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.transits-transit-description-list {
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+}
+
+.transits-transit-description-list-item {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground) / 0.9);
+  line-height: 1.6;
+  margin: 0.25rem 0;
+}
+
+/* Tags do tipo */
+.transits-transit-type-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.transits-transit-type-label {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.transits-transit-type-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+}
+
+/* ============================================================================
+ * ESTADOS DE CARREGAMENTO E ERRO
+ * ============================================================================ */
+.transits-loading-card,
+.transits-error-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.transits-loading-content,
+.transits-error-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.transits-error-content {
+  color: hsl(var(--destructive));
+}
+
+/* ============================================================================
+ * FOOTER INFORMATIVO
+ * ============================================================================ */
+.transits-info-card {
+  background-color: hsl(var(--muted) / 0.2);
+  border: 1px solid hsl(var(--muted-foreground) / 0.2);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-top: 2rem;
+}
+
+.transits-info-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.transits-info-icon {
+  color: hsl(var(--muted-foreground));
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.transits-info-text {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  line-height: 1.6;
+}
+
+.transits-info-text-bold {
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+
+/* ============================================================================
+ * EXEMPLOS PRÁTICOS
+ * ============================================================================ */
+.transits-examples-title {
+  color: hsl(var(--accent));
+  border-bottom: 2px solid hsl(var(--accent) / 0.3);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.transits-examples-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.transits-example-item {
+  background-color: hsl(var(--muted) / 0.2);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border-left: 3px solid hsl(var(--accent));
+  margin-left: 0 !important;
+  font-style: italic;
+}
+
+.transits-example-box {
+  background-color: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border));
+  border-left: 4px solid hsl(var(--accent));
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 0.5rem 0;
+}
+
+.transits-example-text {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground) / 0.9);
+  line-height: 1.6;
+  margin: 0;
+  font-style: italic;
+}
+
+.transits-example-text::before {
+  content: '"';
+  color: hsl(var(--accent));
+  font-size: 1.2em;
+  margin-right: 0.25rem;
+}
+
+.transits-example-text::after {
+  content: '"';
+  color: hsl(var(--accent));
+  font-size: 1.2em;
+  margin-left: 0.25rem;
+}
+
+/* ============================================================================
+ * BADGES
+ * ============================================================================ */
+.transits-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  border: 1px solid;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.transits-badge-primary {
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.3);
+}
+
+.transits-badge-accent {
+  background-color: hsl(var(--accent) / 0.2);
+  color: hsl(var(--accent));
+  border-color: hsl(var(--accent) / 0.4);
+}
+
+/* ============================================================================
+ * RESPONSIVIDADE
+ * ============================================================================ */
+@media (max-width: 768px) {
+  .transits-section-container {
+    padding: 1rem;
+  }
+
+  .transits-title {
+    font-size: 1.5rem;
+  }
+
+  .transits-highlights-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .transits-legend-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .transits-horizontal-timeline {
+    padding: 1rem;
+  }
+
+  .transits-timeline-track {
+    margin: 1.5rem 0;
+  }
+
+  .transits-timeline-marker-date {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+  }
+
+  .transits-timeline-container {
+    padding-left: 1.5rem;
+  }
+
+  .transits-timeline-dot {
+    left: -1.3125rem;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .transits-transit-card {
+    padding: 1rem;
+  }
+
+  .transits-transit-icon-container {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .transits-highlights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transits-legend-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transits-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .transits-back-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================================================
+ * ANIMAÇÕES
+ * ============================================================================ */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+ * TRÂNSITOS PESSOAIS EM TEMPO REAL
+ * ============================================================================ */
+.transits-current-section {
+  margin-top: 3rem;
+  padding: 2rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.05);
+}
+
+.transits-current-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid hsl(var(--accent) / 0.2);
+}
+
+.transits-current-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.transits-current-subtitle {
+  font-size: 0.9375rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Lua Fora de Curso */
+.transits-moon-void-card {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 2px solid;
+  background-color: hsl(var(--card));
+}
+
+.transits-moon-void-active {
+  border-color: hsl(var(--destructive) / 0.5);
+  background-color: hsl(var(--destructive) / 0.05);
+}
+
+.transits-moon-void-inactive {
+  border-color: hsl(var(--accent) / 0.5);
+  background-color: hsl(var(--accent) / 0.05);
+}
+
+.transits-moon-void-indicator {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.transits-moon-void-light {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+  box-shadow: 0 0 12px currentColor;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.transits-moon-void-red {
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive));
+}
+
+.transits-moon-void-green {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent));
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.transits-moon-void-content {
+  flex: 1 1;
+}
+
+.transits-moon-void-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.transits-moon-void-description {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: hsl(var(--foreground) / 0.9);
+  margin: 0 0 0.5rem 0;
+}
+
+.transits-moon-void-description p {
+  margin: 0.5rem 0;
+}
+
+.transits-moon-void-description p:first-child {
+  margin-top: 0;
+}
+
+.transits-moon-void-description strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+.transits-moon-void-description ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+
+.transits-moon-void-description li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+
+.transits-moon-void-duration {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Trânsitos Ativos Hoje */
+.transits-current-transits {
+  margin-top: 2rem;
+}
+
+.transits-current-transits-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.transits-current-transits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-gap: 1rem;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.transits-current-transit-card {
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  transition: all 0.2s ease;
+}
+
+.transits-current-transit-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px hsl(var(--foreground) / 0.1);
+}
+
+.transits-current-transit-harmonious {
+  border-left: 4px solid hsl(var(--accent));
+}
+
+.transits-current-transit-tense {
+  border-left: 4px solid hsl(var(--destructive));
+}
+
+.transits-current-transit-conjunction {
+  border-left: 4px solid hsl(var(--accent) / 0.7);
+}
+
+.transits-current-transit-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.transits-current-transit-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.transits-current-transit-icon-harmonious {
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent));
+}
+
+.transits-current-transit-icon-tense {
+  background-color: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+}
+
+.transits-current-transit-icon-conjunction {
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent) / 0.7);
+}
+
+.transits-current-transit-info {
+  flex: 1 1;
+}
+
+.transits-current-transit-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.transits-current-transit-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.transits-current-transit-badge-harmonious {
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent));
+}
+
+.transits-current-transit-badge-tense {
+  background-color: hsl(var(--destructive) / 0.1);
+  color: hsl(var(--destructive));
+}
+
+.transits-current-transit-badge-conjunction {
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent) / 0.7);
+}
+
+.transits-current-transit-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.8);
+  margin: 0 0 0.75rem 0;
+}
+
+.transits-current-transit-dates {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.transits-current-transit-date-label {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.transits-current-transit-date-value {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.transits-current-empty {
+  padding: 2rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.9375rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .transits-current-transits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transits-current-section {
+    padding: 1.5rem;
+  }
+
+  .transits-moon-void-indicator {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
+/*!***********************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[3]!./src/styles/components.css ***!
+  \***********************************************************************************************************************************************************************************************************************************************************************/
+/* 
+ * ============================================================================
+ * COMPONENTES - CSS PURO (FLEXBOX E CSS GRID)
+ * ============================================================================
+ * Estilos para componentes usando Flexbox e CSS Grid
+ * Substituição completa do Tailwind
+ * ============================================================================
+ */
+
+/* ============================================================================
+ * ASTRO BUTTON
+ * ============================================================================
+ */
+.astro-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* 8px */
+  border-radius: 0.5rem; /* 8px */
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-sans);
+}
+
+.astro-button:focus-visible {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+}
+
+.astro-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Variantes */
+.astro-button-primary {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.astro-button-primary:hover:not(:disabled) {
+  background-color: hsl(var(--accent) / 0.9);
+  transform: scale(1.05);
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.astro-button-secondary {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border));
+}
+
+.astro-button-secondary:hover:not(:disabled) {
+  background-color: hsl(var(--card) / 0.8);
+  transform: scale(1.05);
+  border-color: hsl(var(--accent) / 0.4);
+  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.astro-button-google {
+  background-color: #FFFFFF;
+  color: #1F2937;
+  border: 1px solid #D1D5DB;
+}
+
+.dark .astro-button-google {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+.astro-button-google:hover:not(:disabled) {
+  background-color: #F9FAFB;
+  transform: scale(1.05);
+  box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+}
+
+.dark .astro-button-google:hover:not(:disabled) {
+  background-color: hsl(var(--card) / 0.8);
+}
+
+/* Tamanhos */
+.astro-button-sm {
+  padding: 0.5rem 1rem; /* 8px 16px */
+  font-size: 0.875rem; /* 14px */
+}
+
+.astro-button-md {
+  padding: 0.75rem 1.5rem; /* 12px 24px */
+  font-size: 0.875rem; /* 14px */
+}
+
+.astro-button-lg {
+  padding: 1rem 2rem; /* 16px 32px */
+  font-size: 1rem; /* 16px */
+}
+
+/* ============================================================================
+ * ASTRO CARD
+ * ============================================================================
+ */
+.astro-card {
+  border-radius: 0.5rem; /* 8px */
+  padding: 1.5rem; /* 24px */
+  box-shadow: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05);
+  font-family: var(--font-sans);
+}
+
+.astro-card-default {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+}
+
+.astro-card-glass {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+.astro-card-solid {
+  background-color: hsl(var(--card) / 0.9);
+  color: hsl(var(--card-foreground));
+  -webkit-backdrop-filter: blur(12px);
+          backdrop-filter: blur(12px);
+}
+
+/* Garantir contraste adequado em cards */
+.astro-card {
+  color: hsl(var(--card-foreground));
+}
+
+/* Dark mode: fundo escuro = texto claro */
+.dark .astro-card {
+  background-color: hsl(var(--card)); /* #1C1726 */
+  color: hsl(var(--card-foreground)); /* #F2F1F4 - branco */
+}
+
+/* Light mode: fundo claro = texto escuro */
+.light .astro-card {
+  background-color: hsl(var(--card)); /* #FFFFFF */
+  color: hsl(var(--card-foreground)); /* #160F24 - escuro */
+}
+
+/* ============================================================================
+ * LOADING SCREEN
+ * ============================================================================
+ */
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: linear-gradient(to bottom, hsl(var(--background)), hsl(var(--background)));
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-screen-particles {
+  position: absolute;
+  inset: 0;
+  opacity: 0.3;
+}
+
+.loading-screen-particle {
+  position: absolute;
+  width: 0.25rem; /* 4px */
+  height: 0.25rem; /* 4px */
+  background-color: hsl(var(--accent));
+  border-radius: 50%;
+}
+
+.loading-screen-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* 16px */
+}
+
+.loading-screen-icon {
+  width: 4rem; /* 64px */
+  height: 4rem; /* 64px */
+  border-radius: 50%;
+  background-color: hsl(var(--accent) / 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.loading-screen-text {
+  color: hsl(var(--muted-foreground));
+  font-family: var(--font-sans);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ============================================================================
+ * UTILITÁRIOS GERAIS
+ * ============================================================================
+ */
+.text-center {
+  text-align: center;
+}
+
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+.z-50 {
+  z-index: 50;
+}
+
+.inset-0 {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.opacity-30 {
+  opacity: 0.3;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+/* ============================================================================
+ * HOVER GLOBAL PARA BOTÕES E ELEMENTOS CLICÁVEIS
+ * ============================================================================
+ * Garante que todos os botões e elementos clicáveis tenham hover visível
+ * para melhorar a UX e indicar interatividade
+ * ============================================================================ */
+
+/* Todos os botões devem ter cursor pointer e hover */
+button:not(:disabled) {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover padrão para botões sem classe específica */
+button:not(.astro-button):not(.dashboard-section-back-button):not(.section-back-button):not(.synastry-sign-button):not(.synastry-analyze-button):not(:disabled):hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover mais sutil para botões de texto/ícone */
+button[class*="icon"]:hover:not(:disabled),
+button[class*="Icon"]:hover:not(:disabled) {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+/* Elementos com cursor pointer devem ter hover */
+[style*="cursor: pointer"]:hover,
+[style*="cursor:pointer"]:hover {
+  opacity: 0.9;
+}
+
+/* Links e elementos clicáveis */
+a[href]:hover,
+[role="button"]:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Garantir que elementos interativos tenham cursor pointer */
+button:not(:disabled),
+a[href],
+[role="button"]:not([aria-disabled="true"]),
+[tabindex="0"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* Elementos desabilitados não devem ter cursor pointer */
+button:disabled,
+[disabled],
+[aria-disabled="true"] {
+  cursor: not-allowed !important;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Hover para elementos com onClick (React) */
+[onclick]:hover,
+[onClick]:hover {
+  opacity: 0.9;
+  cursor: pointer;
+}
+
+/* Melhorar feedback visual em elementos interativos */
+button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+
+/*!*******************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[3]!./src/styles/numerology-section.css ***!
+  \*******************************************************************************************************************************************************************************************************************************************************************************/
+/* ============================================================================
+ * NUMEROLOGY SECTION STYLES
+ * Seguindo os padrões de cores e tipografia do sistema
+ * ============================================================================ */
+
+.numerology-map-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Main Numbers Grid */
+.numerology-main-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-gap: 1.5rem;
+  gap: 1.5rem;
+}
+
+/* Numerology Cards */
+.numerology-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.numerology-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.numerology-card-primary {
+  grid-column: 1 / -1;
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--accent) / 0.3);
+}
+
+.numerology-card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+}
+
+.numerology-card-title {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.numerology-card-number {
+  font-family: var(--font-serif);
+  font-size: 3rem;
+  font-weight: 700;
+  color: hsl(var(--accent));
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.numerology-card-number-large {
+  font-family: var(--font-serif);
+  font-size: 4.5rem;
+  font-weight: 700;
+  color: hsl(var(--accent));
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.numerology-number {
+  display: inline-block;
+}
+
+.numerology-master-number {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  position: relative;
+}
+
+.numerology-master-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--accent));
+  background-color: hsl(var(--accent) / 0.1);
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  margin-top: -0.5rem;
+}
+
+.numerology-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.numerology-card-description {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+  margin: 0;
+}
+
+.numerology-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.numerology-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.numerology-detail-label {
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+}
+
+.numerology-detail-value {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+/* Section Cards */
+.numerology-section-card {
+  padding: 2rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+}
+
+.numerology-section-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+}
+
+.numerology-section-subtitle {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 1.5rem 0;
+}
+
+/* Pinnacles Grid */
+.numerology-pinnacles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-gap: 1.5rem;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.numerology-pinnacle-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
+  background-color: hsl(var(--muted) / 0.3);
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.numerology-pinnacle-item:hover {
+  transform: translateY(-2px);
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.numerology-pinnacle-number {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: hsl(var(--accent));
+  margin-bottom: 0.75rem;
+}
+
+.numerology-pinnacle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.numerology-pinnacle-title {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.numerology-pinnacle-period {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* Challenges Grid */
+.numerology-challenges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-gap: 1.5rem;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.numerology-challenge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem;
+  background-color: hsl(var(--muted) / 0.2);
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.numerology-challenge-item:hover {
+  transform: translateY(-2px);
+  background-color: hsl(var(--muted) / 0.4);
+}
+
+.numerology-challenge-number {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: hsl(var(--destructive) / 0.8);
+  margin-bottom: 0.75rem;
+}
+
+.numerology-challenge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.numerology-challenge-title {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.numerology-challenge-period {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+/* Personal Year */
+.numerology-personal-year {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.numerology-personal-year-number {
+  font-family: var(--font-serif);
+  font-size: 4rem;
+  font-weight: 700;
+  color: hsl(var(--accent));
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.numerology-personal-year-description {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0;
+}
+
+/* Interpretation Card */
+.numerology-interpretation-card {
+  padding: 2rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  margin-top: 2rem;
+}
+
+.numerology-interpretation-title {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid hsl(var(--accent) / 0.3);
+}
+
+.numerology-interpretation-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.numerology-interpretation-content {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: hsl(var(--foreground));
+}
+
+.numerology-interpretation-content h2,
+.numerology-interpretation-content h3 {
+  font-family: var(--font-serif);
+  color: hsl(var(--foreground));
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.numerology-interpretation-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.numerology-interpretation-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.numerology-interpretation-content p {
+  margin-bottom: 1rem;
+  color: hsl(var(--foreground));
+}
+
+.numerology-interpretation-content ul,
+.numerology-interpretation-content ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+.numerology-interpretation-content li {
+  margin-bottom: 0.5rem;
+  color: hsl(var(--foreground));
+}
+
+.numerology-interpretation-content strong {
+  color: hsl(var(--accent));
+  font-weight: 600;
+}
+
+/* Botões inline e elementos clicáveis */
+button[onClick],
+button[type="button"],
+button:not([disabled]) {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover para botões inline sem classe específica */
+button:not(.astro-button):not(.dashboard-section-back-button):not(:disabled):hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Botão de explicação de quantidades */
+button[style*="backgroundColor"]:hover:not(:disabled) {
+  background-color: hsl(var(--accent) / 0.2) !important;
+  border-color: hsl(var(--accent) / 0.5) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px hsl(var(--accent) / 0.2);
+}
+
+/* Garantir que elementos com cursor pointer tenham hover */
+[style*="cursor: pointer"]:hover {
+  opacity: 0.9;
+}
+
+/* Cards de dívidas cármicas - hover para melhorar UX */
+div[style*="backgroundColor"][style*="destructive"] {
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+div[style*="backgroundColor"][style*="destructive"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px hsl(var(--destructive) / 0.2);
+  border-color: hsl(var(--destructive) / 0.5) !important;
+}
+
+/* Cards de lições cármicas (missing numbers) */
+div[style*="borderLeft"][style*="4px solid"] {
+  transition: all 0.2s ease;
+}
+
+div[style*="borderLeft"][style*="4px solid"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: hsl(var(--destructive)) !important;
+}
+
+/* Explicação sobre dívidas cármicas - hover sutil */
+div[style*="backgroundColor"][style*="muted"]:not([style*="cursor"]) {
+  transition: all 0.2s ease;
+}
+
+div[style*="backgroundColor"][style*="muted"]:not([style*="cursor"]):hover {
+  background-color: hsl(var(--muted) / 0.3) !important;
+  border-color: hsl(var(--border) / 0.8) !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .numerology-main-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .numerology-card-primary {
+    grid-column: 1;
+  }
+  
+  .numerology-card-number-large {
+    font-size: 3.5rem;
+  }
+  
+  .numerology-pinnacles-grid,
+  .numerology-challenges-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .numerology-personal-year-number {
+    font-size: 3rem;
+  }
+  
+  .numerology-interpretation-card {
+    padding: 1.5rem;
+  }
+}
+
+
+/*!********************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[2]!./node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[12].use[3]!./src/styles/best-timing-section.css ***!
+  \********************************************************************************************************************************************************************************************************************************************************************************/
+.best-timing-section {
+  width: 100%;
+  padding: 1.5rem;
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.best-timing-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.best-timing-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.best-timing-subtitle {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.best-timing-actions {
+  margin-bottom: 1.5rem;
+}
+
+.best-timing-actions-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.75rem;
+}
+
+.best-timing-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-gap: 0.75rem;
+  gap: 0.75rem;
+}
+
+.best-timing-action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  background-color: hsl(var(--card));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.best-timing-action-button:hover {
+  background-color: hsl(var(--muted) / 0.5);
+  transform: translateY(-2px);
+}
+
+.best-timing-action-button-active {
+  border-color: hsl(var(--accent));
+  background-color: hsl(var(--accent) / 0.1);
+  box-shadow: 0 0 0 2px hsl(var(--accent) / 0.2);
+}
+
+.best-timing-action-icon {
+  font-size: 1.5rem;
+}
+
+.best-timing-action-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.best-timing-action-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.best-timing-action-desc {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.best-timing-loading,
+.best-timing-error,
+.best-timing-empty {
+  padding: 2rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.best-timing-error {
+  color: hsl(var(--destructive));
+}
+
+.best-timing-results {
+  margin-top: 1.5rem;
+}
+
+.best-timing-results-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.best-timing-moments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.best-timing-moment-card {
+  padding: 1.25rem;
+  border-left: 4px solid;
+}
+
+.best-timing-moment-high {
+  border-left-color: hsl(var(--accent));
+  background-color: hsl(var(--accent) / 0.05);
+}
+
+.best-timing-moment-medium {
+  border-left-color: hsl(var(--accent) / 0.7);
+  background-color: hsl(var(--accent) / 0.03);
+}
+
+.best-timing-moment-low {
+  border-left-color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+.best-timing-moment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.best-timing-moment-date {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1;
+}
+
+.best-timing-moment-date strong {
+  display: block;
+  font-size: 1rem;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.25rem;
+}
+
+.best-timing-moment-time {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.best-timing-moment-times {
+  display: block;
+  font-size: 0.875rem;
+  color: hsl(var(--accent));
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.best-timing-moment-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  min-width: 80px;
+  position: relative;
+}
+
+.best-timing-moment-score-tooltip {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  cursor: help;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.best-timing-moment-score-tooltip:hover {
+  opacity: 1;
+}
+
+.best-timing-moment-score-high {
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent));
+}
+
+.best-timing-moment-score-medium {
+  background-color: hsl(var(--accent) / 0.05);
+  color: hsl(var(--accent) / 0.8);
+}
+
+.best-timing-moment-score-low {
+  background-color: hsl(var(--muted) / 0.3);
+  color: hsl(var(--muted-foreground));
+}
+
+.best-timing-moment-score-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.best-timing-moment-score-label {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.best-timing-moment-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background-color: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive) / 0.3);
+  border-radius: 0.5rem;
+  color: hsl(var(--destructive));
+  font-size: 0.875rem;
+}
+
+.best-timing-moment-aspects,
+.best-timing-moment-warnings {
+  margin-top: 0.75rem;
+}
+
+.best-timing-moment-aspects strong,
+.best-timing-moment-warnings strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.5rem;
+}
+
+.best-timing-moment-aspects ul,
+.best-timing-moment-warnings ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.best-timing-moment-aspects li,
+.best-timing-moment-warnings li {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground) / 0.9);
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.best-timing-moment-warnings {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.best-timing-moment-warnings strong {
+  color: hsl(var(--destructive));
+}
+
+.best-timing-moment-warnings li {
+  color: hsl(var(--destructive) / 0.9);
+}
+
+.best-timing-moment-score-explanation {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.5rem;
+  border-left: 3px solid hsl(var(--accent) / 0.5);
+}
+
+.best-timing-moment-score-explanation-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.9);
+  margin: 0;
+}
+
+.best-timing-moment-score-explanation-text strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.best-timing-moment-score-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.best-timing-moment-score-details-summary {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--accent));
+  cursor: pointer;
+  list-style: none;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+
+.best-timing-moment-score-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.best-timing-moment-score-details-summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 0.5rem;
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.best-timing-moment-score-details[open] .best-timing-moment-score-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.best-timing-moment-score-details-content {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.9);
+}
+
+.best-timing-moment-score-details-content p {
+  margin: 0.5rem 0;
+}
+
+.best-timing-moment-score-details-content ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.best-timing-moment-score-details-content li {
+  margin: 0.25rem 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .best-timing-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .best-timing-moment-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .best-timing-moment-score {
+    align-self: flex-end;
+  }
+}
+
+

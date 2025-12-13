@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useRef, useEffect } from 'react';
 import { OnboardingData } from './onboarding';
 import { UIIcons } from './ui-icons';

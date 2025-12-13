@@ -1,5 +1,8 @@
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+'use client';
+
+import { createContext, useContext, ReactNode, useCallback, useEffect, useState } from 'react';
 import { translations, Language } from './translations';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 interface LanguageContextType {
   language: Language;
@@ -11,34 +14,43 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguageState] = useState<Language>(() => {
-    // Check localStorage first
-    const savedLang = localStorage.getItem('astro-language') as Language;
-    if (savedLang && (savedLang === 'pt' || savedLang === 'en')) {
-      return savedLang;
+  const [storedLanguage, setStoredLanguage] = useLocalStorage<Language>('astro-language', 'pt');
+  const [language, setLanguageState] = useState<Language>('pt');
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    if (typeof window !== 'undefined') {
+      // Check browser language on first load
+      const browserLang = navigator.language.toLowerCase();
+      if (!storedLanguage && browserLang.startsWith('pt')) {
+        setLanguageState('pt');
+      } else if (storedLanguage && (storedLanguage === 'pt' || storedLanguage === 'en')) {
+        setLanguageState(storedLanguage);
+      } else {
+        setLanguageState('pt');
+      }
     }
-    
-    // Check browser language
-    const browserLang = navigator.language.toLowerCase();
-    if (browserLang.startsWith('pt')) {
-      return 'pt';
+  }, []);
+
+  useEffect(() => {
+    if (isClient && storedLanguage) {
+      setLanguageState(storedLanguage);
     }
-    
-    return 'pt'; // Default to Portuguese
-  });
+  }, [storedLanguage, isClient]);
 
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('astro-language', lang);
-  }, []);
+    setStoredLanguage(lang);
+  }, [setStoredLanguage]);
 
   const toggleLanguage = useCallback(() => {
     setLanguageState((prev) => {
       const newLang = prev === 'pt' ? 'en' : 'pt';
-      localStorage.setItem('astro-language', newLang);
+      setStoredLanguage(newLang);
       return newLang;
     });
-  }, []);
+  }, [setStoredLanguage]);
 
   // Translation function
   const t = useCallback((category: string, key: string): string => {

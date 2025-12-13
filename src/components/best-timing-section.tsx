@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { AstroCard } from './astro-card';
 import { UIIcons } from './ui-icons';

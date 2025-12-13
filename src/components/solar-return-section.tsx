@@ -52,8 +52,8 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
       await fetchInterpretation(result);
     } catch (err: any) {
       // Log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
-      console.error('[Solar Return] Erro ao calcular:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Solar Return] Erro ao calcular:', err);
       }
       setError(err.message || (language === 'pt' 
         ? 'Erro ao calcular revolução solar' 
@@ -109,8 +109,8 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
       }
     } catch (err: any) {
       // Log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
-      console.error('[Solar Return] Erro ao buscar interpretação:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Solar Return] Erro ao buscar interpretação:', err);
       }
       setError(err.message || (language === 'pt' 
         ? 'Erro ao gerar interpretação' 
@@ -258,17 +258,19 @@ export const SolarReturnSection = ({ userData, onBack }: SolarReturnSectionProps
                 <UIIcons.ChevronRight size={20} />
               </button>
             </div>
-            <AstroButton
-              onClick={calculateSolarReturn}
-              disabled={isCalculating}
-              variant="primary"
-              size="md"
-            >
-              {isCalculating 
-                ? (language === 'pt' ? 'Calculando...' : 'Calculating...')
-                : (language === 'pt' ? 'Calcular Revolução Solar' : 'Calculate Solar Return')
-              }
-            </AstroButton>
+            <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+              <AstroButton
+                onClick={calculateSolarReturn}
+                disabled={isCalculating}
+                variant="primary"
+                size="md"
+              >
+                {isCalculating 
+                  ? (language === 'pt' ? 'Calculando...' : 'Calculating...')
+                  : (language === 'pt' ? 'Calcular Revolução Solar' : 'Calculate Solar Return')
+                }
+              </AstroButton>
+            </div>
           </div>
         </AstroCard>
 

@@ -71,6 +71,9 @@ export function SEOHead({
     });
   }, [title, description, keywords, ogTitle, ogDescription, ogImage, canonicalUrl]);
 
+  return null; // Componente não renderiza nada
+}
+
 /**
  * Adiciona structured data (JSON-LD) para melhor indexação no Google
  */
@@ -115,9 +118,6 @@ function addStructuredData(data: {
   script.setAttribute('data-seo', 'true');
   script.textContent = JSON.stringify(structuredData);
   document.head.appendChild(script);
-}
-
-  return null; // Componente não renderiza nada
 }
 
 /**

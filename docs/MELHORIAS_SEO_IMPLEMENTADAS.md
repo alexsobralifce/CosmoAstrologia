@@ -64,13 +64,20 @@ Tornar o site facilmente encontrável no Google através de otimizações de SEO
 
 ---
 
-### 5. 🗺️ Sitemap Atualizado ✅
+### 5. 🗺️ Sitemap Atualizado e Corrigido ✅
 
-**Arquivo:** `public/sitemap.xml`
+**Arquivos:**
 
-- ✅ Adicionada página de interpretação
-- ✅ Prioridades definidas
-- ✅ Frequência de atualização configurada
+- `public/sitemap.xml` (estático, corrigido)
+- `app/sitemap.ts` (dinâmico, Next.js nativo)
+
+**Correções aplicadas:**
+
+- ✅ Formato de data corrigido para ISO 8601 (`YYYY-MM-DDThh:mm:ss+00:00`)
+- ✅ Datas atualizadas para data atual
+- ✅ Espaços em branco removidos
+- ✅ XML validado e bem formado
+- ✅ Sitemap dinâmico criado usando Next.js nativo (mais confiável)
 
 **Estrutura:**
 
@@ -78,6 +85,11 @@ Tornar o site facilmente encontrável no Google através de otimizações de SEO
 - `/dashboard` - Prioridade 0.9 (diária)
 - `/login` - Prioridade 0.8 (mensal)
 - `/interpretation` - Prioridade 0.8 (semanal)
+
+**Validação:**
+
+- ✅ Script de validação criado: `validate_sitemap.py`
+- ✅ Guia de troubleshooting: `docs/TROUBLESHOOTING_SITEMAP.md`
 
 ---
 
@@ -202,9 +214,9 @@ Tornar o site facilmente encontrável no Google através de otimizações de SEO
 
 ### 4. Analytics
 
-- [ ] Configurar Google Analytics
-- [ ] Configurar Google Search Console
-- [ ] Monitorar palavras-chave
+- [x] Google Analytics configurado (código adicionado, requer `NEXT_PUBLIC_GA_ID`)
+- [x] Guia de configuração do Google Search Console criado
+- [ ] Monitorar palavras-chave (após configurar Search Console)
 
 ---
 
@@ -221,6 +233,10 @@ Tornar o site facilmente encontrável no Google através de otimizações de SEO
 - [x] Canonical URLs
 - [x] Mobile tags
 - [x] Código de debug removido
+- [x] Google Analytics (código implementado)
+- [x] Imagens OG (placeholders SVG criados)
+- [x] Guia Google Search Console criado
+- [x] Guia de criação de imagens OG criado
 
 ---
 
@@ -228,9 +244,46 @@ Tornar o site facilmente encontrável no Google através de otimizações de SEO
 
 ### Google Search Console
 
+✅ **Guia completo criado:** `docs/GUIA_GOOGLE_SEARCH_CONSOLE.md`
+
+**Passos principais:**
+
 1. Adicionar propriedade: https://search.google.com/search-console
 2. Verificar propriedade (HTML tag ou DNS)
 3. Enviar sitemap: `https://cosmoastral.com.br/sitemap.xml`
+
+**📖 Consulte o guia completo para instruções detalhadas.**
+
+### Imagens OG (Open Graph)
+
+✅ **Guia completo criado:** `docs/GUIA_IMAGENS_OG.md`  
+✅ **Placeholders SVG criados:** `public/og-image.svg` e `public/twitter-image.svg`
+
+**⚠️ Importante:** Os placeholders SVG são temporários. Substitua por imagens JPG/PNG profissionais seguindo o guia.
+
+**Especificações:**
+
+- Dimensões: 1200 x 630 pixels
+- Formato: JPG ou PNG
+- Localização: `public/og-image.jpg` e `public/twitter-image.jpg`
+
+**📖 Consulte o guia completo para instruções de criação.**
+
+### Google Analytics
+
+✅ **Código implementado em `app/layout.tsx`**
+
+**Para ativar:**
+
+1. Obtenha o Measurement ID do Google Analytics (formato: `G-XXXXXXXXXX`)
+2. Adicione ao `.env.local`:
+   ```
+   NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+   ```
+3. Faça deploy do site
+4. Google Analytics começará a coletar dados automaticamente
+
+**⚠️ Nota:** Google Analytics é opcional. O código só será carregado se `NEXT_PUBLIC_GA_ID` estiver configurado.
 
 ### Teste de Rich Results
 
@@ -246,5 +299,12 @@ Tornar o site facilmente encontrável no Google através de otimizações de SEO
 
 ---
 
-**Última atualização:** 2024  
+## 📚 Documentação Adicional
+
+- **Guia Google Search Console:** `docs/GUIA_GOOGLE_SEARCH_CONSOLE.md`
+- **Guia Imagens OG:** `docs/GUIA_IMAGENS_OG.md`
+
+---
+
+**Última atualização:** 2025-01-15  
 **Status:** ✅ Melhorias implementadas e prontas para produção

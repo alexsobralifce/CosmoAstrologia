@@ -1,0 +1,26 @@
+# RAG Service Requirements
+# Dependências mínimas para o microsserviço RAG
+
+# Core API
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+
+# Validation
+pydantic==2.10.0
+pydantic-settings==2.6.0
+
+# Groq API
+groq>=0.4.1
+
+# Utilities
+PyPDF2==3.0.1
+numpy<2.0
+
+# Testing (opcional, para desenvolvimento)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+httpx>=0.24.0
+
+# RAG Dependencies
+fastembed>=0.2.0
+

@@ -1,4 +1,30 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Get API base URL from environment variable
+// In production, NEXT_PUBLIC_API_URL must be set to the backend URL
+// In development, falls back to localhost:8000
+const getApiBaseUrl = (): string => {
+  // Priority 1: Environment variable (required in production)
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Priority 2: Development fallback
+  if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+    return 'http://localhost:8000';
+  }
+
+  // Production without API URL configured - log error
+  if (typeof window !== 'undefined') {
+    console.error(
+      '⚠️ NEXT_PUBLIC_API_URL não está configurado! ' +
+      'Configure esta variável no Vercel para produção.'
+    );
+  }
+
+  // Fallback to localhost (will fail in production, but prevents build errors)
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface BirthData {
   name: string;
@@ -72,6 +98,9 @@ export interface BirthChartResponse {
 
 class ApiService {
   private getAuthToken(): string | null {
+    if (typeof window === 'undefined') {
+      return null;
+    }
     return localStorage.getItem('auth_token');
   }
 
@@ -95,12 +124,12 @@ class ApiService {
 
     const url = `${API_BASE_URL}${endpoint}`;
     // Log apenas em desenvolvimento
-    if (import.meta.env.DEV) {
+    if (process.env.NODE_ENV === 'development') {
       console.log(`[API] Requisição: ${options.method || 'GET'} ${url}`);
     }
 
     let response: Response;
-    
+
     try {
       response = await fetch(url, {
         ...options,
@@ -109,36 +138,36 @@ class ApiService {
       });
     } catch (fetchError) {
       clearTimeout(timeoutId);
-      
+
       if (fetchError instanceof Error) {
         if (fetchError.name === 'AbortError') {
           throw new Error(`Timeout: A requisição demorou mais de ${timeout / 1000}s.`);
         }
-        
+
         // Erro de conexão
-        if (fetchError.message.includes('Failed to fetch') || 
-            fetchError.message.includes('NetworkError') ||
-            fetchError.message.includes('Network request failed')) {
+        if (fetchError.message.includes('Failed to fetch') ||
+          fetchError.message.includes('NetworkError') ||
+          fetchError.message.includes('Network request failed')) {
           throw new Error(
             `Não foi possível conectar ao backend em ${API_BASE_URL}.\n\n` +
             `Verifique se o backend está rodando e acessível.`
           );
         }
       }
-      
+
       throw fetchError;
     } finally {
       clearTimeout(timeoutId);
     }
 
-      // Log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
-        console.log(`[API] Resposta: ${response.status} ${response.statusText}`);
-      }
+    // Log apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[API] Resposta: ${response.status} ${response.statusText}`);
+    }
 
     // Clonar a resposta para poder ler o body com segurança
     const clonedResponse = response.clone();
-    
+
     let data: T | null = null;
     let errorText = '';
 
@@ -156,7 +185,7 @@ class ApiService {
 
     if (!response.ok) {
       let errorMessage = `Erro ${response.status}`;
-      
+
       if (data && typeof data === 'object') {
         const errorData = data as Record<string, unknown>;
         errorMessage = (errorData.detail as string) || (errorData.message as string) || errorMessage;
@@ -169,9 +198,9 @@ class ApiService {
           errorMessage = errorText || errorMessage;
         }
       }
-      
+
       // Log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV === 'development') {
         console.error('[API] Erro:', errorMessage);
       }
       throw new Error(errorMessage);
@@ -179,7 +208,7 @@ class ApiService {
 
     if (data !== null) {
       // Log apenas em desenvolvimento
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV === 'development') {
         console.log('[API] Dados recebidos');
       }
       return data;
@@ -188,18 +217,44 @@ class ApiService {
     return null as T;
   }
 
-  async registerUser(data: UserRegisterData): Promise<AuthToken> {
-    const response = await this.request<AuthToken>('/api/auth/register', {
+  async registerUser(data: UserRegisterData): Promise<AuthToken | { message: string; requires_verification: boolean; email: string }> {
+    // Timeout maior para registro (60s) pois inclui cálculo do mapa astral
+    const response = await this.request<AuthToken | { message: string; requires_verification: boolean; email: string }>(
+      '/api/auth/register',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+      60000 // 60 segundos de timeout
+    );
+
+    // Se retornou token, salvar (caso não precise verificação)
+    if (response && 'access_token' in response && response.access_token) {
+      localStorage.setItem('auth_token', response.access_token);
+    }
+
+    return response;
+  }
+
+  async verifyEmail(email: string, code: string): Promise<AuthToken> {
+    const response = await this.request<AuthToken>('/api/auth/verify-email', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ email, code }),
     });
 
-    // Salvar token
+    // Salvar token após verificação
     if (response.access_token) {
       localStorage.setItem('auth_token', response.access_token);
     }
 
     return response;
+  }
+
+  async resendVerificationCode(email: string): Promise<void> {
+    await this.request('/api/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
   }
 
   async loginUser(email: string, password: string): Promise<AuthToken> {
@@ -259,7 +314,7 @@ class ApiService {
   }
 
   // ===== AUTENTICAÇÃO GOOGLE =====
-  
+
   async verifyGoogleToken(credential: string): Promise<{
     email: string;
     name: string;
@@ -374,6 +429,75 @@ class ApiService {
   }
 
   // Trânsitos Futuros
+  async getBestTiming(params: {
+    action_type: string;
+    days_ahead?: number;
+  }): Promise<{
+    action_type: string;
+    action_config: any;
+    best_moments: Array<{
+      date: string;
+      score: number;
+      aspects: any[];
+      reasons: string[];
+      is_moon_void: boolean;
+    }>;
+    total_checked: number;
+    analysis_date: string;
+  }> {
+    return await this.request('/api/best-timing/calculate', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 60000);
+  }
+
+  async getCurrentPersonalTransits(): Promise<{
+    active_transits: any[];
+    moon_void_of_course: {
+      is_void: boolean;
+      void_end?: string;
+      void_start?: string;
+      next_aspect?: string;
+      next_aspect_time?: string;
+      current_moon_sign?: string;
+      void_duration_hours?: number;
+    };
+    date: string;
+    count: number;
+  }> {
+    return await this.request('/api/transits/current', {
+      method: 'GET',
+    }, 60000);
+  }
+
+  async getDailyInfo(params?: {
+    latitude?: number;
+    longitude?: number;
+  }): Promise<{
+    date: string;
+    day_name: string;
+    day: number;
+    month: string;
+    year: number;
+    moon_phase: string;
+    moon_sign: string;
+    moon_phase_description: string;
+    calculated_at: string;
+  }> {
+    const queryParams = new URLSearchParams();
+    if (params?.latitude !== undefined) {
+      queryParams.append('latitude', params.latitude.toString());
+    }
+    if (params?.longitude !== undefined) {
+      queryParams.append('longitude', params.longitude.toString());
+    }
+
+    const url = `/api/daily-info${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return await this.request(url, {
+      method: 'GET',
+    });
+  }
+
   async getFutureTransits(params?: {
     months_ahead?: number;
     max_transits?: number;
@@ -429,11 +553,11 @@ class ApiService {
     query_used: string;
     generated_by?: string;
   }> {
-    // Timeout maior para interpretações com RAG/Groq (60 segundos)
+    // Timeout maior para interpretações com RAG/DeepSeek (120 segundos)
     return await this.request('/api/interpretation/planet', {
       method: 'POST',
       body: JSON.stringify(params),
-    }, 60000);
+    }, 120000);
   }
 
   async getChartRulerInterpretation(params: {
@@ -526,6 +650,65 @@ class ApiService {
   }
 
   // ===== MAPA ASTRAL COMPLETO =====
+
+  async getCompleteChart(params: {
+    birthDate: string; // DD/MM/YYYY
+    birthTime: string; // HH:MM
+    latitude: number;
+    longitude: number;
+    birthPlace: string;
+    name: string;
+  }): Promise<{
+    birth_data: {
+      date: string;
+      time: string;
+      latitude: number;
+      longitude: number;
+    };
+    planets_in_signs: Array<{
+      planet: string;
+      planet_key: string;
+      sign: string;
+      degree: number;
+      degree_dms: string;
+      is_retrograde: boolean;
+      house: number;
+    }>;
+    special_points: Array<{
+      point: string;
+      point_key: string;
+      sign: string;
+      degree: number;
+      degree_dms: string;
+      house: number;
+    }>;
+    planets_in_houses: Array<{
+      house: number;
+      planets: Array<{
+        planet: string;
+        planet_key: string;
+        sign: string;
+        degree: number;
+        degree_dms: string;
+        house: number;
+        is_retrograde?: boolean;
+      }>;
+    }>;
+  }> {
+    // Timeout maior para cálculo completo do mapa astral (120 segundos)
+    // O cálculo com casas astrológicas pode ser demorado
+    return await this.request('/api/interpretation/complete-chart', {
+      method: 'POST',
+      body: JSON.stringify({
+        birth_date: params.birthDate,
+        birth_time: params.birthTime,
+        latitude: params.latitude,
+        longitude: params.longitude,
+        birth_place: params.birthPlace,
+        name: params.name,
+      }),
+    }, 120000); // 120 segundos de timeout
+  }
 
   async generateBirthChartSection(params: {
     name: string;
@@ -651,10 +834,10 @@ class ApiService {
   async getSolarReturnInterpretation(params: {
     natal_sun_sign: string;
     natal_ascendant?: string;
-    solar_return_ascendant: string;
-    solar_return_sun_house: number;
-    solar_return_moon_sign: string;
-    solar_return_moon_house: number;
+    solar_return_ascendant?: string;
+    solar_return_sun_house?: number;
+    solar_return_moon_sign?: string;
+    solar_return_moon_house?: number;
     solar_return_venus_sign?: string;
     solar_return_venus_house?: number;
     solar_return_mars_sign?: string;
@@ -665,6 +848,11 @@ class ApiService {
     solar_return_midheaven?: string;
     target_year?: number;
     language?: string;
+    // Dados para recálculo (opcional)
+    birth_date?: string;
+    birth_time?: string;
+    latitude?: number;
+    longitude?: number;
   }): Promise<{
     interpretation: string;
     sources: Array<{
@@ -683,7 +871,7 @@ class ApiService {
   }
 
   // ===== NUMEROLOGY MAP =====
-  
+
   async getNumerologyMap(): Promise<{
     full_name: string;
     birth_date: string;
@@ -754,9 +942,10 @@ class ApiService {
       age: number;
     };
   }> {
+    // Timeout maior para cálculo completo do mapa numerológico (120 segundos)
     return await this.request('/api/numerology/map', {
       method: 'GET',
-    });
+    }, 120000);
   }
 
   async getNumerologyInterpretation(params: {
@@ -772,6 +961,40 @@ class ApiService {
     generated_by?: string;
   }> {
     return await this.request('/api/numerology/interpretation', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 120000); // Timeout maior para interpretações completas
+  }
+
+  async getBirthGridQuantitiesInterpretation(params: {
+    grid: Record<number, number>;
+    language?: string;
+  }): Promise<{
+    explanation: string;
+    sources: Array<{
+      source: string;
+      page: number;
+      relevance: number;
+    }>;
+    query_used: string;
+  }> {
+    return await this.request('/api/numerology/birth-grid-quantities', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    }, 60000);
+  }
+
+  async getSynastryInterpretation(params: {
+    sign1: string;
+    sign2: string;
+    language?: string;
+  }): Promise<{
+    interpretation: string;
+    generated_by: string;
+    sign1_info?: string;
+    sign2_info?: string;
+  }> {
+    return await this.request('/api/synastry/interpretation', {
       method: 'POST',
       body: JSON.stringify(params),
     }, 120000); // Timeout maior para interpretações completas

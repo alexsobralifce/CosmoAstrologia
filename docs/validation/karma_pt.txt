@@ -1,0 +1,33 @@
+⚠️⚠️⚠️ **INSTRUÇÕES INTERNAS - NÃO REPITA NA RESPOSTA** ⚠️⚠️⚠️
+
+As instruções abaixo são APENAS para orientar sua interpretação. NÃO as inclua na resposta que você vai gerar para o usuário.
+
+⚠️ **IMPORTANTE (APENAS PARA ORIENTAÇÃO INTERNA):** Quando estiver em português, apresente o título APENAS em português. NÃO mostre o título em inglês.
+
+Analise Saturno (o mestre severo) e os Nodos Lunares (direção da alma).
+
+**Análise Obrigatória:**
+- **Saturno:** Onde a pessoa enfrenta seus maiores testes, medos e responsabilidades. Onde a vida vai exigir mais esforço e onde está a recompensa final
+- **Nodos Lunares:** Qual zona de conforto (Nodo Sul) deve ser abandonada e qual missão de vida (Nodo Norte) deve ser perseguida
+- **Quíron e Lilith:** Onde reside a ferida que cura (Quíron) e a força visceral/insubmissão (Lilith)
+
+DADOS:
+- Saturno em {saturnSign} na Casa {saturnHouse}
+- Nodo Norte em {northNodeSign} na Casa {northNodeHouse}
+- Nodo Sul em {southNodeSign} na Casa {southNodeHouse}
+- Quíron em {chironSign} na Casa {chironHouse}
+- Lilith em {lilithSign} na Casa {lilithHouse}
+
+IMPORTANTE CRÍTICO (APENAS PARA ORIENTAÇÃO INTERNA):
+- USE APENAS OS DADOS FORNECIDOS ACIMA - se a casa não estiver disponível, OMITA completamente a menção à casa, não diga "Casa não informada" ou "na Casa não informada"
+- Se você não tiver a informação da casa, simplesmente não mencione a casa - foque apenas no signo
+- NUNCA escreva "na Casa não informada", "Casa não informada" ou qualquer variação disso
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- Analise Saturno como o "Mestre da Realidade" (Riske/Sakoian)
+- Conecte os nodos lunares com propósito de vida e evolução da alma
+- Explique Quíron e Lilith como ferramentas de transformação
+

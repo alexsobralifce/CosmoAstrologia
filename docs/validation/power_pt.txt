@@ -1,0 +1,125 @@
+⚠️⚠️⚠️ **INSTRUÇÕES INTERNAS - NÃO REPITA NA RESPOSTA** ⚠️⚠️⚠️
+
+As instruções abaixo são APENAS para orientar sua interpretação. NÃO as inclua na resposta que você vai gerar para o usuário.
+
+⚠️ **IMPORTANTE (APENAS PARA ORIENTAÇÃO INTERNA):** Quando estiver em português, apresente o título APENAS em português. NÃO mostre o título em inglês.
+
+🚨 **INSTRUÇÃO CRÍTICA - LEIA ANTES DE ESCREVER (APENAS PARA ORIENTAÇÃO INTERNA):**
+
+Você DEVE usar APENAS os dados do bloco "🔒 DADOS PRÉ-CALCULADOS" fornecido acima. NÃO calcule, NÃO estime, NÃO invente.
+
+**VALIDAÇÃO OBRIGATÓRIA ANTES DE ESCREVER (INTERNA - NÃO MOSTRAR AO USUÁRIO):**
+1. ✅ Localize o bloco "📊 TEMPERAMENTO (CALCULADO MATEMATICAMENTE)"
+2. ✅ Leia os pontos EXATOS: Fogo, Terra, Ar, Água
+3. ✅ Identifique o ELEMENTO DOMINANTE listado no bloco
+4. ✅ Identifique o ELEMENTO AUSENTE (se houver) listado no bloco
+5. ✅ Use EXATAMENTE esses números e elementos - NÃO recalcule
+
+**EXEMPLO DE USO CORRETO (APENAS PARA REFERÊNCIA INTERNA - NÃO MOSTRAR AO USUÁRIO):**
+Se o bloco diz:
+  • Fogo: 5 pontos
+  • Terra: 2 pontos
+  • Ar: 0 pontos
+  • Água: 8 pontos
+  ELEMENTO DOMINANTE: Água
+  ELEMENTO AUSENTE: Ar
+
+Você DEVE escrever: "O mapa apresenta predominância do elemento Água, com 8 pontos, seguido pelo elemento Fogo, com 5 pontos. O elemento ausente é Ar, com 0 pontos."
+
+**NUNCA FAÇA (APENAS PARA ORIENTAÇÃO INTERNA - NÃO MOSTRAR AO USUÁRIO):**
+❌ Dizer "Fogo dominante com 8 pontos" se o bloco diz "Água: 8 pontos"
+❌ Dizer "Água ausente" se o bloco mostra "Água: 8 pontos" (Água tem pontos, não é ausente!)
+❌ Dizer "Terra ausente" se o bloco mostra "Terra: 2 pontos" e "ELEMENTO AUSENTE: Ar" (Terra tem pontos, Ar é o ausente com 0 pontos)
+❌ Confundir "elemento ausente" com "elemento com menos pontos" - ausente = 0 pontos especificamente
+❌ Recalcular os pontos - use APENAS os do bloco
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+Comece sua resposta com: "Análise do Mapa Astral de {name}"
+
+Em seguida, inclua uma seção intitulada: "Análise do Temperamento (Filtro de Arroyo)"
+
+⚠️ **IMPORTANTE:** Use "Análise" ou "Identificação", NUNCA use a palavra "Cálculo" - os dados já foram calculados pelo Kerykeion/Swiss Ephemeris.
+
+⚠️⚠️⚠️ **INSTRUÇÃO CRÍTICA: CONSULTE A BASE DE CONHECIMENTO** ⚠️⚠️⚠️
+
+Você DEVE buscar e usar informações da base de conhecimento astrológico sobre o significado dos elementos.
+
+**O QUE SIGNIFICA CADA ELEMENTO:**
+
+Consulte o contexto fornecido acima (documentos do RAG) para encontrar informações sobre:
+- O que significa ter o elemento **predominante** no mapa
+- O que significa ter um elemento **ausente** no mapa
+- Como isso afeta a personalidade, comportamento e vida prática da pessoa
+
+**NÃO APENAS LISTE OS DADOS - INTERPRETE O SIGNIFICADO (ORIENTAÇÃO INTERNA):**
+
+❌ **NÃO FAÇA (APENAS PARA ORIENTAÇÃO INTERNA - NÃO MOSTRAR AO USUÁRIO):**
+- "O mapa apresenta predominância do elemento Ar, com 10 pontos, seguido pelo elemento Fogo, com 6 pontos..."
+- Apenas listar os números sem explicar o que isso significa
+
+✅ **FAÇA (ORIENTAÇÃO INTERNA):**
+- Após mencionar os dados do bloco, EXPLIQUE o que significa ter Ar predominante
+- EXPLIQUE o que significa ter Terra ausente
+- CONECTE com a personalidade, comportamento e vida prática
+- Use informações da base de conhecimento sobre elementos
+
+**Análise Obrigatória:**
+- Use APENAS os pontos do bloco pré-calculado (NÃO recalcule)
+- Identifique o elemento dominante EXATAMENTE como listado no bloco
+- Identifique o elemento ausente EXATAMENTE como listado no bloco (ou "Nenhum" se todos têm pontos)
+- **BUSQUE na base de conhecimento o significado de ter esse elemento predominante**
+- **BUSQUE na base de conhecimento o significado de ter esse elemento ausente**
+- **EXPLIQUE como isso afeta a personalidade e comportamento da pessoa**
+
+⚠️ **CRÍTICO SOBRE ELEMENTO AUSENTE (APENAS PARA ORIENTAÇÃO INTERNA):**
+- O elemento ausente é aquele que tem **0 pontos** (zero pontos) - NÃO é o menor valor
+- Se o bloco diz "ELEMENTO AUSENTE: Ar", significa que Ar tem 0 pontos
+- Se o bloco diz "ELEMENTO AUSENTE: Nenhum", significa que todos os elementos têm pelo menos 1 ponto
+- NUNCA diga que um elemento é "ausente" se ele tem pontos (mesmo que seja o menor valor)
+- Exemplo: Se Fogo=7, Terra=4, Ar=0, Água=6, o elemento ausente é Ar (0 pontos), NÃO Água (6 pontos)
+- Analise as modalidades (Cardeal, Fixo, Mutável)
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+**Estrutura da Resposta sobre Temperamento:**
+
+1. **Mencione os dados do bloco** (pontos e elementos dominante/ausente)
+2. **Explique o significado do elemento predominante** (use base de conhecimento)
+   - Como isso afeta a personalidade
+   - Como isso se manifesta no comportamento
+   - Quais são as características principais
+3. **Explique o significado do elemento ausente** (se houver - use base de conhecimento)
+   - O que isso indica sobre áreas que precisam de desenvolvimento
+   - Como isso pode se manifestar como desafio
+   - Oportunidades de crescimento
+4. **Conecte com a vida prática** - como isso afeta decisões, relacionamentos, trabalho
+
+**Insight Prático:** Como lidar com a falta ou excesso de um elemento no dia a dia, baseado no significado astrológico dos elementos.
+
+**O Regente do Ascendente:** Use APENAS o regente identificado no bloco "👑 REGENTE DO MAPA". 
+
+⚠️ **CRÍTICO (APENAS PARA ORIENTAÇÃO INTERNA):** Antes de mencionar o regente:
+1. Verifique no bloco qual é o regente (ex: "Regente: Urano")
+2. Verifique no bloco em qual signo está (ex: "Regente em: Capricórnio")
+3. Use EXATAMENTE essas informações - NÃO invente
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+Analise sua condição (Signo, Casa, Aspectos). Onde ele está e como ele direciona o foco principal da vida. Ele é um aliado ou um desafio para o nativo?
+
+IMPORTANTE (ORIENTAÇÃO INTERNA - NÃO MOSTRAR AO USUÁRIO):
+- SEMPRE comece com "Análise do Mapa Astral de {name}"
+- SEMPRE inclua a seção "Análise do Temperamento (Filtro de Arroyo)" com conteúdo detalhado
+- NUNCA use a palavra "Cálculo" - use "Análise", "Identificação" ou "Temperamento Identificado"
+- Use "conselhos" (português), NUNCA "consejo" (espanhol)
+- NÃO recalcule temperamento - use APENAS os dados do bloco pré-calculado
+- NÃO invente elementos ausentes se o bloco mostra que todos têm pontos
+- Não repita informações já mencionadas em outras seções
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - se a casa não estiver disponível, OMITA completamente a menção à casa
+- Foque no temperamento como motor de motivação e ação
+- Analise o regente do mapa com profundidade técnica (Dignidades, Regências)
+- Dê conselhos práticos e acionáveis para equilíbrio energético
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+

@@ -591,10 +591,99 @@
 }
 
 .birth-chart-note-description {
-  font-size: 0.875rem;
   color: hsl(var(--muted-foreground));
   line-height: 1.6;
   margin: 0;
+}
+
+/* ============================================================================
+ * BOTÃO GERAR PDF
+ * ============================================================================ */
+.birth-chart-pdf-section {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid hsl(var(--border));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.birth-chart-pdf-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%);
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  min-width: 280px;
+}
+
+.birth-chart-pdf-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.birth-chart-pdf-button:hover::before {
+  left: 100%;
+}
+
+.birth-chart-pdf-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.95) 0%, hsl(var(--primary) / 0.75) 100%);
+}
+
+.birth-chart-pdf-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.birth-chart-pdf-icon {
+  flex-shrink: 0;
+  color: hsl(var(--primary-foreground));
+}
+
+.birth-chart-pdf-text {
+  flex: 1;
+  text-align: center;
+  color: hsl(var(--primary-foreground));
+}
+
+.birth-chart-pdf-download-icon {
+  flex-shrink: 0;
+  color: hsl(var(--primary-foreground));
+  opacity: 0.8;
+  transition: transform 0.3s ease;
+}
+
+.birth-chart-pdf-button:hover .birth-chart-pdf-download-icon {
+  transform: translateY(2px);
+}
+
+.birth-chart-pdf-description {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  max-width: 600px;
+  margin: 0;
+  line-height: 1.5;
 }
 
 /* ============================================================================
@@ -641,6 +730,545 @@
 
   .birth-chart-planets-cards {
     flex-direction: column;
+  }
+}
+
+/* ============================================================================
+ * GLOSSÁRIO DE TERMOS TÉCNICOS
+ * ============================================================================ */
+.glossary-term {
+  position: relative;
+  display: inline;
+  border-bottom: 1px dotted hsl(var(--primary) / 0.5);
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.glossary-term:hover {
+  border-bottom-color: hsl(var(--primary));
+  color: hsl(var(--primary));
+}
+
+.glossary-term-highlight {
+  color: hsl(var(--primary));
+  font-weight: 500;
+  border-bottom: 1px dotted hsl(var(--primary) / 0.7);
+  transition: all 0.2s ease;
+}
+
+.glossary-term-highlight:hover {
+  border-bottom-color: hsl(var(--primary));
+}
+
+.glossary-tooltip {
+  max-width: 350px;
+  min-width: 280px;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  z-index: 9999;
+  animation: tooltipFadeIn 0.2s ease-out;
+  pointer-events: auto;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glossary-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.glossary-tooltip-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background-color: hsl(var(--primary) / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: hsl(var(--primary));
+}
+
+.glossary-tooltip-title {
+  flex: 1;
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+}
+
+.glossary-tooltip-close {
+  background: none;
+  border: none;
+  color: hsl(var(--muted-foreground));
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.glossary-tooltip-close:hover {
+  background-color: hsl(var(--muted) / 0.5);
+  color: hsl(var(--foreground));
+}
+
+.glossary-tooltip-content {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  text-align: justify;
+}
+
+@media (max-width: 640px) {
+  .glossary-tooltip {
+    max-width: calc(100vw - 2rem);
+    min-width: auto;
+  }
+}
+
+/* ============================================================================
+ * COMPLETE CHART SECTION - Estilos para o novo componente de mapa completo
+ * ============================================================================ */
+
+.birth-chart-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.birth-chart-error {
+  padding: 2rem;
+  text-align: center;
+  color: hsl(var(--destructive));
+}
+
+.complete-chart-planets-list {
+  display: flex;
+  flex-direction: column;
+  background-color: hsl(var(--card));
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+}
+
+.complete-chart-planet-item {
+  background-color: transparent;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 1.5rem;
+  box-shadow: none;
+  transition: background-color 0.2s ease;
+  margin-bottom: 0;
+}
+
+.complete-chart-planet-item:first-child {
+  border-top: none;
+}
+
+.complete-chart-planet-item:last-child {
+  border-bottom: none;
+}
+
+.complete-chart-planet-item:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.complete-chart-planet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.complete-chart-planet-name {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0;
+  flex: 1;
+}
+
+.complete-chart-retrograde {
+  color: hsl(var(--destructive));
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.complete-chart-load-interpretation {
+  padding: 0.5rem 1rem;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.complete-chart-load-interpretation:hover {
+  opacity: 0.9;
+}
+
+.complete-chart-planet-interpretation {
+  color: hsl(var(--foreground));
+  line-height: 1.75;
+  white-space: pre-wrap;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.complete-chart-house-badge {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 400;
+  margin-left: 0.5rem;
+}
+
+.complete-chart-houses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.complete-chart-house-item {
+  background-color: hsl(var(--card));
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border));
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.complete-chart-house-name {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid hsl(var(--border));
+}
+
+.complete-chart-house-planets {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.complete-chart-house-planet {
+  padding: 1rem;
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.complete-chart-planet-name-small {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+  flex: 1;
+}
+
+.complete-chart-load-interpretation-small {
+  padding: 0.375rem 0.75rem;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.complete-chart-load-interpretation-small:hover {
+  opacity: 0.9;
+}
+
+.complete-chart-planet-interpretation-small {
+  color: hsl(var(--foreground));
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border));
+  font-size: 0.9375rem;
+}
+
+@media (max-width: 768px) {
+  .complete-chart-planet-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .complete-chart-load-interpretation {
+    width: 100%;
+  }
+  
+  .complete-chart-planet-name {
+    font-size: 1.125rem;
+  }
+  
+  .complete-chart-house-name {
+    font-size: 1.25rem;
+  }
+}
+
+/* ============================================================================
+ * COMPLETE CHART TABS (ABAS)
+ * ============================================================================ */
+.complete-chart-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.complete-chart-tab-container {
+  background-color: hsl(var(--card));
+  border-radius: 1rem;
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.complete-chart-tab-container:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.complete-chart-tab {
+  width: 100%;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.complete-chart-tab:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.complete-chart-tab.active {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.complete-chart-tab-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--primary) / 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: hsl(var(--primary));
+}
+
+.complete-chart-tab-text {
+  flex: 1;
+}
+
+.complete-chart-tab-text h3 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.25rem 0;
+}
+
+.complete-chart-tab-text p {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.complete-chart-chevron {
+  color: hsl(var(--muted-foreground));
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.complete-chart-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.complete-chart-tab-content {
+  padding: 1.5rem;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.complete-chart-empty-message {
+  color: hsl(var(--muted-foreground));
+  text-align: center;
+  padding: 2rem;
+  font-style: italic;
+}
+
+/* ============================================================================
+ * COMPLETE CHART ITEMS
+ * ============================================================================ */
+.complete-chart-item-card {
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.complete-chart-item-card:hover {
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+.complete-chart-item-header {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+  gap: 1rem;
+}
+
+.complete-chart-item-header:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.complete-chart-item-name {
+  font-family: var(--font-serif);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0;
+  flex: 1;
+}
+
+.complete-chart-item-content {
+  padding: 1.5rem;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.complete-chart-interpretation {
+  color: hsl(var(--foreground));
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+/* ============================================================================
+ * COMPLETE CHART SUB ITEMS (para planetas dentro de casas)
+ * ============================================================================ */
+.complete-chart-sub-item {
+  background-color: hsl(var(--muted) / 0.2);
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.complete-chart-sub-item:last-child {
+  margin-bottom: 0;
+}
+
+.complete-chart-sub-item-header {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+  gap: 1rem;
+  font-size: 0.9375rem;
+  color: hsl(var(--foreground));
+}
+
+.complete-chart-sub-item-header:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.complete-chart-sub-item-header span {
+  flex: 1;
+  font-weight: 500;
+}
+
+/* ============================================================================
+ * RESPONSIVE
+ * ============================================================================ */
+@media (max-width: 768px) {
+  .complete-chart-tab {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .complete-chart-tab-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  .complete-chart-tab-text h3 {
+    font-size: 1.125rem;
+  }
+
+  .complete-chart-item-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .complete-chart-item-name {
+    font-size: 1rem;
+  }
+
+  .complete-chart-item-content {
+    padding: 1rem;
   }
 }
 

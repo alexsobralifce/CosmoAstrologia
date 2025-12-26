@@ -26,6 +26,9 @@ Este guia explica como configurar o sistema para rodar localmente em desenvolvim
    ```env
    SECRET_KEY=sua-chave-secreta-aqui
    GROQ_API_KEY=sua-chave-groq-aqui
+   BREVO_API_KEY=xkeysib-sua-api-key-aqui
+   EMAIL_FROM=noreply@cosmoastral.com.br
+   EMAIL_FROM_NAME=CosmoAstral
    ```
 
    **Gerar SECRET_KEY:**
@@ -36,6 +39,13 @@ Este guia explica como configurar o sistema para rodar localmente em desenvolvim
    **Obter GROQ_API_KEY:**
    - Acesse: https://console.groq.com/
    - Crie uma conta e obtenha sua chave de API
+   
+   **Obter BREVO_API_KEY:**
+   - Acesse: https://app.brevo.com/settings/keys/api
+   - Gere uma nova API key (formato: `xkeysib-...`)
+   - Configure no `.env` como `BREVO_API_KEY`
+   
+   **📧 Guia completo de configuração do Brevo:** [../backend/CONFIGURACAO_BREVO.md](../backend/CONFIGURACAO_BREVO.md)
 
 3. **Banco de dados:**
    - Por padrão, usa SQLite (`sqlite:///./astrologia.db`)

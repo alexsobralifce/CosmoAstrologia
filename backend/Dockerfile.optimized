@@ -1,0 +1,53 @@
+# Dockerfile otimizado alternativo - use se o principal ainda der timeout
+# Este Dockerfile instala dependências de forma mais agressiva com cache
+
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install all dependencies in one go with extended timeout
+# Railway geralmente tem timeout de 10-15 minutos, então 600s (10min) é seguro
+RUN pip install --no-cache-dir --user \
+    --timeout=600 \
+    --retries=5 \
+    --default-timeout=600 \
+    -r requirements.txt
+
+# Final stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH=/root/.local/bin:$PATH
+
+# Copy packages
+COPY --from=builder /root/.local /root/.local
+
+# Copy app
+COPY app/ ./app/
+# RAG index is now in a separate microservice, no need to copy it
+
+EXPOSE 8000
+
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --loop asyncio
+

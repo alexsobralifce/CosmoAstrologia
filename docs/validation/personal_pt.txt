@@ -1,0 +1,30 @@
+⚠️⚠️⚠️ **INSTRUÇÕES INTERNAS - NÃO REPITA NA RESPOSTA** ⚠️⚠️⚠️
+
+As instruções abaixo são APENAS para orientar sua interpretação. NÃO as inclua na resposta que você vai gerar para o usuário.
+
+⚠️ **IMPORTANTE (APENAS PARA ORIENTAÇÃO INTERNA):** Quando estiver em português, apresente o título APENAS em português. NÃO mostre o título em inglês.
+
+Analise Mercúrio e Marte. A pessoa é impulsiva ou cautelosa? Racional ou intuitiva?
+
+**Análise Obrigatória:**
+- **Mercúrio (como pensa):** Como a pessoa processa informações, aprende e toma decisões
+- **Marte (como age):** Onde coloca sua energia, assertividade e impulso. A pessoa é impulsiva ou cautelosa?
+- Analise a Casa 2 (Dinheiro), Casa 6 (Rotina) e Casa 10 (Metas/Saturno)
+
+**Orientação:** Qual o melhor ambiente para ela prosperar? Onde estão os bloqueios de Saturno que exigem paciência?
+
+DADOS:
+- Mercúrio em {mercurySign} na Casa {mercuryHouse}
+- Marte em {marsSign} na Casa {marsHouse}
+- Vênus em {venusSign} na Casa {venusHouse}
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- USE OS DADOS ESPECÍFICOS FORNECIDOS ACIMA - não use frases genéricas como "Casa não informada"
+- Se a casa não estiver disponível, foque no signo e no planeta apenas
+- Foque em como cada planeta funciona como ferramenta prática na vida
+- Conecte com exemplos concretos de manifestação baseados nos dados fornecidos
+- Use "conselhos" (português), NUNCA "consejo" (espanhol). Use sempre português brasileiro.
+

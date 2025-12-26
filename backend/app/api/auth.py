@@ -1,19 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 import bcrypt
+import json
 from typing import Optional
 from app.core.database import get_db
-from app.models.database import User, BirthChart
-from pydantic import BaseModel
+from app.models.database import User, BirthChart, PendingRegistration
+from pydantic import BaseModel, EmailStr
 from app.models.schemas import (
-    UserRegister, UserResponse, BirthChartResponse, Token, UserCreate, UserUpdateRequest, UserLogin
+    UserRegister, UserResponse, BirthChartResponse, Token, UserCreate, UserUpdateRequest, UserLogin, EmailVerificationResponse
 )
 from app.services.astrology_calculator import calculate_birth_chart
+from app.services.email_service import generate_verification_code, send_verification_email
 from jose import JWTError, jwt
 from app.core.config import settings
 
 router = APIRouter()
+
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+    code: str
 
 
 def hash_password(password: str) -> str:
@@ -61,19 +68,37 @@ def get_current_user(
     return user
 
 
-@router.post("/register", response_model=Token)
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
+@router.post("/register", response_model=EmailVerificationResponse)
+def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Registra um novo usuário e calcula seu mapa astral.
+    NÃO cria o usuário no banco até que o email seja verificado.
     """
     try:
-        # Verificar se o usuário já existe
+        # Verificar se o usuário já existe (verificado ou não)
         existing_user = db.query(User).filter(User.email == user_data.email).first()
         if existing_user:
+            db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email já cadastrado"
             )
+        
+        # Verificar se já existe registro pendente
+        existing_pending = db.query(PendingRegistration).filter(
+            PendingRegistration.email == user_data.email
+        ).first()
+        if existing_pending:
+            # Limpar registro pendente expirado
+            if existing_pending.verification_code_expires < datetime.now():
+                db.delete(existing_pending)
+                db.commit()
+            else:
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Já existe um registro pendente para este email. Verifique seu email ou aguarde a expiração."
+                )
         
         # Hash da senha (se fornecida)
         password_hash = None
@@ -88,43 +113,155 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
         print(f"[DEBUG] Calculando mapa astral para: {birth_data.birth_date}, {birth_data.birth_time}, lat: {birth_data.latitude}, lon: {birth_data.longitude}")
         
         try:
-            chart_data = calculate_birth_chart(
+            # Usar cache para garantir fonte única de verdade
+            from app.services.chart_data_cache import get_or_calculate_chart
+            chart_data = get_or_calculate_chart(
                 birth_date=birth_data.birth_date,
                 birth_time=birth_data.birth_time,
                 latitude=birth_data.latitude,
-                longitude=birth_data.longitude
+                longitude=birth_data.longitude,
+                calculate_func=calculate_birth_chart
             )
             print(f"[DEBUG] Mapa astral calculado: {chart_data}")
         except Exception as e:
             import traceback
             print(f"[ERROR] Erro ao calcular mapa astral: {str(e)}")
             print(traceback.format_exc())
+            db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erro ao calcular mapa astral: {str(e)}"
             )
-    
-        # Criar usuário
-        db_user = User(
+        
+        # Gerar código de verificação
+        verification_code = generate_verification_code()
+        expires_at = datetime.now() + timedelta(minutes=1)  # 1 minuto de expiração
+        
+        # Preparar dados do birth chart para armazenar como JSON
+        birth_chart_json = {
+            "name": birth_data.name,
+            "birth_date": birth_data.birth_date.isoformat() if isinstance(birth_data.birth_date, datetime) else str(birth_data.birth_date),
+            "birth_time": birth_data.birth_time,
+            "birth_place": birth_data.birth_place,
+            "latitude": birth_data.latitude,
+            "longitude": birth_data.longitude,
+            "chart_data": chart_data  # Todos os dados calculados
+        }
+        
+        # Criar registro pendente (NÃO cria usuário ainda)
+        pending_reg = PendingRegistration(
             email=user_data.email,
             password_hash=password_hash,
-            name=user_data.name
+            name=user_data.name,
+            verification_code=verification_code,
+            verification_code_expires=expires_at,
+            birth_chart_data=json.dumps(birth_chart_json, default=str)  # Serializar para JSON
+        )
+        db.add(pending_reg)
+        
+        try:
+            db.commit()
+            db.refresh(pending_reg)
+            
+            # Enviar email de verificação em background (não bloqueia a resposta)
+            background_tasks.add_task(
+                send_verification_email,
+                user_data.email,
+                verification_code,
+                user_data.name
+            )
+        except Exception as e:
+            db.rollback()
+            import traceback
+            print(f"[ERROR] Erro ao salvar registro pendente: {str(e)}")
+            print(traceback.format_exc())
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao salvar dados: {str(e)}"
+            )
+        
+        # Retornar mensagem indicando que email de verificação foi enviado
+        return EmailVerificationResponse(
+            message="Email de verificação enviado. Verifique seu email para ativar sua conta.",
+            requires_verification=True,
+            email=user_data.email
+        )
+    except HTTPException:
+        # HTTPException já foi tratada acima, apenas re-raise
+        raise
+    except Exception as e:
+        db.rollback()
+        import traceback
+        print(f"[ERROR] Erro inesperado no registro: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro interno do servidor: {str(e)}"
+        )
+
+
+@router.post("/verify-email")
+def verify_email(
+    verification_request: EmailVerificationRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Verifica o código de verificação de email.
+    Cria o usuário no banco apenas após validação bem-sucedida.
+    """
+    # Buscar registro pendente
+    pending_reg = db.query(PendingRegistration).filter(
+        PendingRegistration.email == verification_request.email
+    ).first()
+    
+    if not pending_reg:
+        raise HTTPException(status_code=404, detail="Registro pendente não encontrado. Por favor, registre-se novamente.")
+    
+    # Verificar se o código expirou
+    if pending_reg.verification_code_expires < datetime.now():
+        db.delete(pending_reg)
+        db.commit()
+        raise HTTPException(status_code=400, detail="Código expirado. Por favor, registre-se novamente.")
+    
+    # Verificar se o código está correto
+    if pending_reg.verification_code != verification_request.code:
+        raise HTTPException(status_code=400, detail="Código inválido")
+    
+    try:
+        # Deserializar dados do birth chart
+        birth_chart_data = json.loads(pending_reg.birth_chart_data)
+        chart_data = birth_chart_data["chart_data"]
+        
+        # Agora sim, criar o usuário no banco (após validação)
+        db_user = User(
+            email=pending_reg.email,
+            password_hash=pending_reg.password_hash,
+            name=pending_reg.name,
+            is_active=True,  # Ativo após verificação
+            email_verified=True,  # Email verificado
+            verification_code=None,
+            verification_code_expires=None
         )
         db.add(db_user)
         db.flush()  # Para obter o ID do usuário
         
-        # Verificar se a senha foi salva
-        print(f"[DEBUG] Usuário criado - Email: {db_user.email}, Password hash: {'Sim' if db_user.password_hash else 'Não'}")
+        # Converter birth_date de string para datetime se necessário
+        birth_date = birth_chart_data["birth_date"]
+        if isinstance(birth_date, str):
+            try:
+                birth_date = datetime.fromisoformat(birth_date.replace('Z', '+00:00'))
+            except:
+                birth_date = datetime.fromisoformat(birth_date)
         
         # Criar mapa astral
         db_birth_chart = BirthChart(
             user_id=db_user.id,
-            name=birth_data.name,
-            birth_date=birth_data.birth_date,
-            birth_time=birth_data.birth_time,
-            birth_place=birth_data.birth_place,
-            latitude=birth_data.latitude,
-            longitude=birth_data.longitude,
+            name=birth_chart_data["name"],
+            birth_date=birth_date,
+            birth_time=birth_chart_data["birth_time"],
+            birth_place=birth_chart_data["birth_place"],
+            latitude=birth_chart_data["latitude"],
+            longitude=birth_chart_data["longitude"],
             sun_sign=chart_data["sun_sign"],
             moon_sign=chart_data["moon_sign"],
             ascendant_sign=chart_data["ascendant_sign"],
@@ -134,24 +271,70 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
             is_primary=True
         )
         db.add(db_birth_chart)
+        
+        # Deletar registro pendente
+        db.delete(pending_reg)
+        
         db.commit()
         db.refresh(db_user)
         db.refresh(db_birth_chart)
         
-        # Criar token JWT
+        # Criar token JWT agora que o usuário está verificado e criado
         access_token = create_access_token(data={"sub": db_user.email})
         
-        return {"access_token": access_token, "token_type": "bearer"}
-    except HTTPException:
-        raise
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "message": "Email verificado com sucesso. Conta criada!"
+        }
+        
     except Exception as e:
+        db.rollback()
         import traceback
-        print(f"[ERROR] Erro geral no registro: {str(e)}")
+        print(f"[ERROR] Erro ao criar usuário após verificação: {str(e)}")
         print(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro interno do servidor: {str(e)}"
+            detail=f"Erro ao criar conta: {str(e)}"
         )
+
+
+class EmailResendRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/resend-verification")
+def resend_verification(
+    email_request: EmailResendRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Reenvia o código de verificação de email."""
+    # Buscar registro pendente
+    pending_reg = db.query(PendingRegistration).filter(
+        PendingRegistration.email == email_request.email
+    ).first()
+    
+    if not pending_reg:
+        raise HTTPException(status_code=404, detail="Registro pendente não encontrado. Por favor, registre-se novamente.")
+    
+    # Gerar novo código
+    verification_code = generate_verification_code()
+    expires_at = datetime.now() + timedelta(minutes=1)
+    
+    pending_reg.verification_code = verification_code
+    pending_reg.verification_code_expires = expires_at
+    db.commit()
+    
+    # Enviar email em background (não bloqueia a resposta)
+    background_tasks.add_task(
+        send_verification_email,
+        pending_reg.email,
+        verification_code,
+        pending_reg.name or "Usuário"
+    )
+    
+    return {"message": "Código de verificação reenviado com sucesso"}
 
 
 @router.post("/login", response_model=Token)
@@ -231,28 +414,41 @@ def get_user_birth_chart(
         )
     
     # Recalcular o mapa astral para garantir que está usando as fórmulas mais recentes
+    chart_data = None
     try:
-        chart_data = calculate_birth_chart(
+        # Usar cache para garantir fonte única de verdade
+        from app.services.chart_data_cache import get_or_calculate_chart
+        chart_data = get_or_calculate_chart(
             birth_date=birth_chart.birth_date,
             birth_time=birth_chart.birth_time,
             latitude=birth_chart.latitude,
-            longitude=birth_chart.longitude
+            longitude=birth_chart.longitude,
+            calculate_func=calculate_birth_chart
         )
         
         # Atualizar os signos recalculados (apenas os que estão no banco)
-        birth_chart.sun_sign = chart_data["sun_sign"]
-        birth_chart.moon_sign = chart_data["moon_sign"]
-        birth_chart.ascendant_sign = chart_data["ascendant_sign"]
-        birth_chart.sun_degree = chart_data.get("sun_degree")
-        birth_chart.moon_degree = chart_data.get("moon_degree")
-        birth_chart.ascendant_degree = chart_data.get("ascendant_degree")
+        if chart_data:
+            birth_chart.sun_sign = chart_data.get("sun_sign") or birth_chart.sun_sign
+            birth_chart.moon_sign = chart_data.get("moon_sign") or birth_chart.moon_sign
+            birth_chart.ascendant_sign = chart_data.get("ascendant_sign") or birth_chart.ascendant_sign
+            birth_chart.sun_degree = chart_data.get("sun_degree") or birth_chart.sun_degree
+            birth_chart.moon_degree = chart_data.get("moon_degree") or birth_chart.moon_degree
+            birth_chart.ascendant_degree = chart_data.get("ascendant_degree") or birth_chart.ascendant_degree
         
         db.commit()
         db.refresh(birth_chart)
-        
-        # Adicionar dados dos planetas calculados ao objeto de retorno
-        # (mesmo que não estejam no banco, retornamos para o frontend)
-        birth_chart_dict = {
+    except Exception as e:
+        # Se houver erro no recálculo, usar dados existentes no banco
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"[ERROR] Erro ao recalcular mapa astral: {str(e)}")
+        print(f"[ERROR] Traceback: {error_trace}")
+        # Fazer rollback da transação em caso de erro
+        db.rollback()
+        # Continuar com dados existentes do banco
+    
+    # Sempre retornar um dicionário válido (nunca retornar objeto ORM diretamente)
+    birth_chart_dict = {
             "id": birth_chart.id,
             "user_id": birth_chart.user_id,
             "name": birth_chart.name,
@@ -270,7 +466,11 @@ def get_user_birth_chart(
             "is_primary": birth_chart.is_primary,
             "created_at": birth_chart.created_at,
             "updated_at": birth_chart.updated_at,
-            # Adicionar planetas calculados
+    }
+    
+    # Adicionar planetas calculados se disponíveis
+    if chart_data:
+        birth_chart_dict.update({
             "mercury_sign": chart_data.get("mercury_sign"),
             "venus_sign": chart_data.get("venus_sign"),
             "mars_sign": chart_data.get("mars_sign"),
@@ -300,18 +500,10 @@ def get_user_birth_chart(
             "uranus_degree": chart_data.get("uranus_degree"),
             "neptune_degree": chart_data.get("neptune_degree"),
             "pluto_degree": chart_data.get("pluto_degree"),
-        }
-        
-        return birth_chart_dict
-    except Exception as e:
-        # Se houver erro no recálculo, retornar dados existentes
-        print(f"[WARNING] Erro ao recalcular mapa astral: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        # Retornar dados do banco mesmo em caso de erro
-        pass
+        })
     
-    return birth_chart
+    # Sempre retornar o dicionário (mesmo quando chart_data é None)
+    return birth_chart_dict
 
 
 class GoogleVerifyRequest(BaseModel):
@@ -482,11 +674,15 @@ def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
                 needs_onboarding=birth_chart is None
             )
         else:
-            # Novo usuário via Google - criar sem senha
+            # Novo usuário via Google - criar sem senha e SEM verificação de email
             db_user = User(
                 email=normalized_email,  # Usar email normalizado
                 password_hash=None,  # Usuário Google não tem senha
-                name=request.name
+                name=request.name,
+                is_active=True,  # Ativo imediatamente (Google já verifica email)
+                email_verified=True,  # Email já verificado pelo Google
+                verification_code=None,
+                verification_code_expires=None
                 # google_id será adicionado quando a migração do banco for feita
             )
             db.add(db_user)
@@ -559,12 +755,14 @@ def complete_onboarding(
         # Converter data de nascimento
         birth_date = datetime.fromisoformat(data.birth_date.replace('Z', '+00:00'))
         
-        # Calcular mapa astral
-        chart_data = calculate_birth_chart(
+        # Calcular mapa astral (usar cache para garantir fonte única)
+        from app.services.chart_data_cache import get_or_calculate_chart
+        chart_data = get_or_calculate_chart(
             birth_date=birth_date,
             birth_time=data.birth_time,
             latitude=data.latitude,
-            longitude=data.longitude
+            longitude=data.longitude,
+            calculate_func=calculate_birth_chart
         )
         
         # Criar mapa astral
@@ -683,13 +881,15 @@ def update_user(
                 detail="Mapa astral não encontrado"
             )
         
-        # Calcular novos signos
+        # Calcular novos signos (usar cache para garantir fonte única)
         try:
-            chart_data = calculate_birth_chart(
+            from app.services.chart_data_cache import get_or_calculate_chart
+            chart_data = get_or_calculate_chart(
                 birth_date=birth_data.birth_date,
                 birth_time=birth_data.birth_time,
                 latitude=birth_data.latitude,
-                longitude=birth_data.longitude
+                longitude=birth_data.longitude,
+                calculate_func=calculate_birth_chart
             )
         except Exception as e:
             raise HTTPException(

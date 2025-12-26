@@ -254,3 +254,72 @@
   overflow: hidden;
 }
 
+/* ============================================================================
+ * HOVER GLOBAL PARA BOTÕES E ELEMENTOS CLICÁVEIS
+ * ============================================================================
+ * Garante que todos os botões e elementos clicáveis tenham hover visível
+ * para melhorar a UX e indicar interatividade
+ * ============================================================================ */
+
+/* Todos os botões devem ter cursor pointer e hover */
+button:not(:disabled) {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover padrão para botões sem classe específica */
+button:not(.astro-button):not(.dashboard-section-back-button):not(.section-back-button):not(.synastry-sign-button):not(.synastry-analyze-button):not(:disabled):hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover mais sutil para botões de texto/ícone */
+button[class*="icon"]:hover:not(:disabled),
+button[class*="Icon"]:hover:not(:disabled) {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+/* Elementos com cursor pointer devem ter hover */
+[style*="cursor: pointer"]:hover,
+[style*="cursor:pointer"]:hover {
+  opacity: 0.9;
+}
+
+/* Links e elementos clicáveis */
+a[href]:hover,
+[role="button"]:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+/* Garantir que elementos interativos tenham cursor pointer */
+button:not(:disabled),
+a[href],
+[role="button"]:not([aria-disabled="true"]),
+[tabindex="0"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* Elementos desabilitados não devem ter cursor pointer */
+button:disabled,
+[disabled],
+[aria-disabled="true"] {
+  cursor: not-allowed !important;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Hover para elementos com onClick (React) */
+[onclick]:hover,
+[onClick]:hover {
+  opacity: 0.9;
+  cursor: pointer;
+}
+
+/* Melhorar feedback visual em elementos interativos */
+button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+

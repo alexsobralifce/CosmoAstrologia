@@ -1,0 +1,52 @@
+# Dockerfile para DEBUG - mostra erros detalhados
+# Use este para identificar qual dependência está falhando
+
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements
+COPY requirements-prod.txt requirements.txt
+
+# Show Python and pip versions
+RUN python --version && pip --version
+
+# Try to install all at once with verbose output
+RUN pip install --no-cache-dir --user \
+    --timeout=1800 \
+    --retries=10 \
+    -v \
+    -r requirements.txt 2>&1 | tee /tmp/install.log || \
+    (echo "=== INSTALL FAILED ===" && cat /tmp/install.log && exit 1)
+
+# Final stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH=/root/.local/bin:$PATH
+
+COPY --from=builder /root/.local /root/.local
+COPY app/ ./app/
+# RAG index is now in a separate microservice, no need to copy it
+
+EXPOSE 8000
+
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --loop asyncio
+

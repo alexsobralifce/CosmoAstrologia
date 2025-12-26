@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AstroButton } from './astro-button';
@@ -6,6 +8,7 @@ import { AstroCard } from './astro-card';
 import { UIIcons } from './ui-icons';
 import { AuthLoader } from './auth-loader';
 import { LocationAutocomplete, LocationSelection } from './location-autocomplete';
+import { EmailVerificationModal } from './email-verification-modal';
 import { useLanguage } from '../i18n';
 import { toast } from 'sonner';
 import { Chrome } from 'lucide-react';
@@ -42,6 +45,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{email?: string; password?: string; confirmPassword?: string; fullName?: string; birthDate?: string; birthTime?: string; birthCity?: string}>({});
+  const [showVerificationModal, setShowVerificationModal] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
 
   // ===== FORMATAÇÃO DE DATA (DD/MM/AAAA) =====
   const formatBirthDate = useCallback((value: string) => {
@@ -310,14 +315,31 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       console.log('[AUTH] Registrando usuário diretamente...', { email, name: fullName });
 
       // Registrar no backend
-      await apiService.registerUser(registerData);
+      const response = await apiService.registerUser(registerData);
 
+      // Verificar se precisa verificação de email
+      if (response && 'requires_verification' in response && response.requires_verification) {
+        setVerificationEmail(email);
+        setShowVerificationModal(true);
+        toast.success(
+          language === 'pt' ? 'Email de verificação enviado!' : 'Verification email sent!',
+          {
+            description: language === 'pt' 
+              ? 'Verifique seu email e digite o código' 
+              : 'Check your email and enter the code',
+            duration: 5000
+          }
+        );
+        return; // Não continuar para o dashboard ainda
+      }
+
+      // Se não precisa verificação (caso antigo), continuar normalmente
       toast.success(
         language === 'pt' ? 'Cadastro realizado com sucesso!' : 'Registration successful!',
         {
           description: language === 'pt' 
-            ? 'Bem-vindo ao Cosmos Astral!' 
-            : 'Welcome to Cosmos Astral!',
+            ? 'Bem-vindo ao CosmoAstral!' 
+            : 'Welcome to CosmoAstral!',
           duration: 3000
         }
       );
@@ -332,6 +354,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
     } catch (error: unknown) {
       console.error('[AUTH] Erro ao registrar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      setIsLoading(false);
       
       // Verificar se é erro de e-mail já existente
       if (errorMessage.includes('already registered') || errorMessage.includes('já cadastrado')) {
@@ -357,6 +380,75 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Função para verificar código de email
+  const handleVerifyEmail = async (code: string) => {
+    try {
+      const response = await apiService.verifyEmail(verificationEmail, code);
+      
+      toast.success(
+        language === 'pt' ? 'Email verificado com sucesso!' : 'Email verified successfully!',
+        {
+          description: language === 'pt' 
+            ? 'Bem-vindo ao CosmoAstral!' 
+            : 'Welcome to CosmoAstral!',
+          duration: 3000
+        }
+      );
+
+      setShowVerificationModal(false);
+      
+      // Buscar dados do usuário e ir para o dashboard
+      const userData = await apiService.getCurrentUser();
+      const birthChart = await apiService.getUserBirthChart();
+      
+      if (birthChart) {
+        onAuthSuccess({
+          email: verificationEmail,
+          name: userData?.name,
+          hasCompletedOnboarding: true
+        });
+      } else {
+        onNeedsBirthData(verificationEmail, userData?.name);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(
+        language === 'pt' ? 'Código inválido' : 'Invalid code',
+        {
+          description: errorMessage.includes('expirado') || errorMessage.includes('expired')
+            ? (language === 'pt' ? 'Código expirado. Solicite um novo.' : 'Code expired. Request a new one.')
+            : (language === 'pt' ? 'Verifique o código e tente novamente.' : 'Check the code and try again.'),
+          duration: 5000
+        }
+      );
+      throw error;
+    }
+  };
+
+  // Função para reenviar código
+  const handleResendCode = async () => {
+    try {
+      await apiService.resendVerificationCode(verificationEmail);
+      toast.success(
+        language === 'pt' ? 'Código reenviado!' : 'Code resent!',
+        {
+          description: language === 'pt'
+            ? 'Verifique seu email novamente'
+            : 'Check your email again',
+        }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(
+        language === 'pt' ? 'Erro ao reenviar código' : 'Error resending code',
+        {
+          description: errorMessage,
+        }
+      );
+      throw error;
     }
   };
 
@@ -478,7 +570,11 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
   const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
   const isProcessingGoogleLogin = useRef(false);
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  // Support Next.js (process.env) and window global (for tests)
+  const googleClientId = 
+    (typeof window !== 'undefined' && (window as any).__GOOGLE_CLIENT_ID__) ||
+    (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_GOOGLE_CLIENT_ID) ||
+    '';
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   // Função para lidar com o callback do Google OAuth
@@ -566,7 +662,20 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
   // Inicializar Google Identity Services e renderizar botão
   useEffect(() => {
+    // Só inicializar se tiver client ID
+    if (!googleClientId) {
+      return;
+    }
+
+    let checkInterval: NodeJS.Timeout | null = null;
+    let isInitialized = false;
+
     const initGoogleAuth = () => {
+      // Evitar múltiplas inicializações
+      if (isInitialized) {
+        return;
+      }
+
       // @ts-expect-error google is loaded from script
       if (window.google?.accounts?.id && googleClientId && googleButtonRef.current) {
         try {
@@ -583,6 +692,19 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
             cancel_on_tap_outside: true,
           });
 
+          // Calcular largura em pixels baseado no container
+          // Usar 100% da largura do container, mas o CSS vai controlar o tamanho final
+          let buttonWidth = 350; // Valor padrão em pixels
+          if (googleButtonRef.current) {
+            // Usar getBoundingClientRect para obter largura precisa
+            const rect = googleButtonRef.current.getBoundingClientRect();
+            const containerWidth = rect.width || googleButtonRef.current.offsetWidth || googleButtonRef.current.clientWidth;
+            if (containerWidth > 0) {
+              // Usar a largura total do container, o CSS vai garantir que fique centralizado
+              buttonWidth = Math.floor(containerWidth);
+            }
+          }
+
           // Renderizar botão do Google
           // @ts-expect-error
           window.google.accounts.id.renderButton(
@@ -592,12 +714,58 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
               theme: 'outline',
               size: 'large',
               text: 'signin_with',
-              width: '100%',
+              width: buttonWidth, // Largura em pixels baseada no container
             }
           );
+          
+          // Forçar realinhamento após renderização
+          setTimeout(() => {
+            if (googleButtonRef.current) {
+              const iframe = googleButtonRef.current.querySelector('iframe');
+              if (iframe) {
+                // Garantir que o iframe ocupe 100% mas fique centralizado
+                iframe.style.width = '100%';
+                iframe.style.maxWidth = '100%';
+                iframe.style.margin = '0 auto';
+                iframe.style.display = 'block';
+                iframe.style.position = 'relative';
+                iframe.style.left = '0';
+                iframe.style.right = '0';
+              }
+              
+              // Ajustar qualquer div wrapper que o Google possa criar
+              const wrapper = googleButtonRef.current.querySelector('div');
+              if (wrapper && wrapper !== googleButtonRef.current) {
+                wrapper.style.width = '100%';
+                wrapper.style.maxWidth = '100%';
+                wrapper.style.display = 'flex';
+                wrapper.style.alignItems = 'center';
+                wrapper.style.justifyContent = 'center';
+                wrapper.style.margin = '0';
+                wrapper.style.padding = '0';
+            }
+            }
+          }, 100);
+          
+          isInitialized = true;
           console.log('[AUTH] Google Identity Services inicializado e botão renderizado');
-        } catch (error) {
+          
+          // Limpar intervalo se ainda estiver rodando
+          if (checkInterval) {
+            clearInterval(checkInterval);
+            checkInterval = null;
+          }
+        } catch (error: any) {
           console.error('[AUTH] Erro ao inicializar Google Identity Services:', error);
+          
+          // Se for erro de origin não permitido, mostrar mensagem útil
+          if (error?.message?.includes('origin') || error?.message?.includes('not allowed') || error?.message?.includes('origin_mismatch')) {
+            const currentOrigin = window.location.origin;
+            console.warn('[AUTH] Origin não configurado no Google Cloud Console.');
+            console.warn(`[AUTH] URL atual: ${currentOrigin}`);
+            console.warn(`[AUTH] Adicione esta URL nas "Authorized JavaScript origins" do seu Client ID no Google Cloud Console: ${currentOrigin}`);
+            console.warn('[AUTH] Guia completo: backend/CONFIGURAR_GOOGLE_OAUTH_LOCAL.md');
+          }
         }
       }
     };
@@ -605,26 +773,37 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
     // Tentar inicializar imediatamente
     initGoogleAuth();
 
-    // Se não estiver disponível, tentar novamente após um delay
+    // Se não estiver disponível, tentar novamente após um delay (com limite de tentativas)
     // @ts-expect-error
-    if (!window.google?.accounts?.id) {
-      const checkInterval = setInterval(() => {
+    if (!window.google?.accounts?.id && !isInitialized) {
+      let attempts = 0;
+      const maxAttempts = 100; // Máximo de 10 segundos (100 * 100ms)
+      
+      checkInterval = setInterval(() => {
+        attempts++;
         // @ts-expect-error
-        if (window.google?.accounts?.id && googleButtonRef.current) {
+        if (window.google?.accounts?.id && googleButtonRef.current && !isInitialized) {
           initGoogleAuth();
-          clearInterval(checkInterval);
+        } else if (attempts >= maxAttempts) {
+          // Parar após máximo de tentativas
+          if (checkInterval) {
+            clearInterval(checkInterval);
+            checkInterval = null;
+          }
+          console.warn('[AUTH] Google Identity Services não carregou após 10 segundos');
         }
       }, 100);
-
-      // Limpar após 10 segundos
-      setTimeout(() => clearInterval(checkInterval), 10000);
     }
 
-    // Cleanup: remover botão quando componente desmontar
+    // Cleanup: remover botão e limpar intervalos quando componente desmontar
     return () => {
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
       if (googleButtonRef.current) {
         googleButtonRef.current.innerHTML = '';
       }
+      isInitialized = false;
     };
   }, [googleClientId, handleGoogleCallback]);
 
@@ -670,8 +849,8 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
             : 'Google OAuth not configured',
           {
             description: language === 'pt'
-              ? 'Usando modo de teste. Configure VITE_GOOGLE_CLIENT_ID para usar OAuth real.'
-              : 'Using test mode. Configure VITE_GOOGLE_CLIENT_ID to use real OAuth.',
+              ? 'Usando modo de teste. Configure NEXT_PUBLIC_GOOGLE_CLIENT_ID no .env.local para usar OAuth real.'
+              : 'Using test mode. Configure NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local to use real OAuth.',
             duration: 5000
           }
         );
@@ -829,7 +1008,7 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
 
   // Textos traduzidos
   const texts = {
-    title: language === 'pt' ? 'Cosmos Astral' : 'Cosmic Insight',
+    title: language === 'pt' ? 'CosmoAstral' : 'Cosmic Insight',
     subtitle: language === 'pt' ? 'Desbloqueie os mistérios das suas estrelas' : 'Unlock the mysteries of your stars',
     createAccount: language === 'pt' ? 'Criar Conta' : 'Create Account',
     welcomeBack: language === 'pt' ? 'Bem-vindo de Volta' : 'Welcome Back',
@@ -1223,6 +1402,18 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
           </div>
         </div>
       </div>
+
+      {/* Modal de Verificação de Email */}
+      <EmailVerificationModal
+        isOpen={showVerificationModal}
+        email={verificationEmail}
+        onVerify={handleVerifyEmail}
+        onResend={handleResendCode}
+        onCancel={() => {
+          setShowVerificationModal(false);
+          setVerificationEmail('');
+        }}
+      />
     </div>
     </>
   );

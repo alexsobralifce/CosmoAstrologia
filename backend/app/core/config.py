@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     2. Variáveis de ambiente do sistema
     3. Valores padrão (definidos abaixo)
     
-    Para desenvolvimento local, crie um arquivo backend/.env baseado em .env.example
+    Para desenvolvimento local, crie a pasta backend/.env baseada em .env.example
     Para produção (Railway), configure as variáveis diretamente no painel.
     """
     
@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    
+    # Email Configuration (Brevo/SendinBlue)
+    BREVO_API_KEY: str = ""
+    # Email do remetente (deve ser um email verificado no Brevo)
+    EMAIL_FROM: str = "noreply@cosmoastral.com.br"
+    # Nome do remetente
+    EMAIL_FROM_NAME: str = "CosmoAstral"
     
     # Google OAuth (Optional)
     GOOGLE_CLIENT_ID: str = ""
@@ -47,12 +54,27 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173"
     ]
     
-    # API Keys
-    GROQ_API_KEY: str = ""
+    # AI Provider Configuration
+    AI_PROVIDER: str = "groq"  # Padrão: groq (rápido e profissional)
     
-    # RAG Implementation
-    # Usando apenas LlamaIndex (legacy removido)
-    RAG_IMPLEMENTATION: str = "llamaindex"
+    # API Keys - Múltiplos provedores
+    DEEPSEEK_API_KEY: str = ""  # Fallback
+    GROQ_API_KEY: str = ""  # Provedor padrão
+    
+    # Groq Model Configuration (modelos profissionais disponíveis)
+    GROQ_MODEL: str = "llama-3.1-8b-instant"  # Modelo rápido e profissional (8B - sempre disponível)
+    # Outras opções disponíveis (verificar na console.groq.com quais estão habilitados):
+    # - llama-3.1-8b-instant (8B - rápido, padrão, sempre disponível)
+    # - llama-3.3-70b-versatile (70B - pode estar bloqueado no projeto)
+    # - mixtral-8x7b-32768 (56B - pode precisar ser habilitado no projeto)
+    OPENAI_API_KEY: str = ""
+    ANTHROPIC_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+    
+    # RAG Configuration (consolidado no backend)
+    DOCS_PATH: str = "docs"
+    INDEX_PATH: str = "rag_index_fastembed"
+    BGE_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
     
     @field_validator('CORS_ORIGINS', mode='before')
     @classmethod

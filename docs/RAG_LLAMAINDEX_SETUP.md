@@ -32,20 +32,20 @@ Execute o script para processar todos os documentos e criar o índice:
 
 ```bash
 cd backend
-python ../scripts/build_rag_index_llamaindex.py
+python ../scripts/build_rag_index_fastembed.py
 ```
 
 Ou diretamente:
 
 ```bash
-python scripts/build_rag_index_llamaindex.py
+python scripts/build_rag_index_fastembed.py
 ```
 
 Este script irá:
 1. Processar todos os PDFs e Markdowns em `backend/docs/`
 2. Extrair texto e dividir em chunks otimizados
 3. Criar embeddings usando modelo BGE do Hugging Face
-4. Salvar o índice em `backend/rag_index_llamaindex/`
+4. Salvar o índice em `backend/rag_index_fastembed/`
 
 **Tempo estimado**: 5-15 minutos dependendo do número de documentos.
 
@@ -133,7 +133,7 @@ backend/
 │       └── config.py                   # Configuração RAG_IMPLEMENTATION
 ├── docs/                               # Documentos a processar
 ├── rag_index.pkl                       # Índice legacy (pickle)
-└── rag_index_llamaindex/              # Índice novo (diretório)
+└── rag_index_fastembed/              # Índice novo (diretório)
 ```
 
 ## Migração da Implementação Legacy
@@ -147,7 +147,7 @@ backend/
 
 2. **Construir novo índice**:
    ```bash
-   python scripts/build_rag_index_llamaindex.py
+   python scripts/build_rag_index_fastembed.py
    ```
 
 3. **Testar nova implementação**:
@@ -183,7 +183,7 @@ pip install llama-index llama-index-embeddings-huggingface
 
 **Solução**: Execute o script de build:
 ```bash
-python scripts/build_rag_index_llamaindex.py
+python scripts/build_rag_index_fastembed.py
 ```
 
 ### Performance Lenta

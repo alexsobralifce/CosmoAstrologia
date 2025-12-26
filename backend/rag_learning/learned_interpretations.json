@@ -1,0 +1,30 @@
+[
+  {
+    "text": "O Sol em Leão na Casa 5 representa uma energia criativa e expressiva muito forte.\n        Esta posição indica que a pessoa tem um talento natural para se expressar artisticamente\n        e busca reconhecimento através de suas criações. A Casa 5 está relacionada à criatividade,\n        ao amor, aos filhos e ao prazer, então o Sol aqui sugere que a pessoa encontra sua\n        identidade através dessas áreas da vida.",
+    "hash": "2072d713607cd63adb1064949f890216",
+    "query": "Sol em Leão na Casa 5",
+    "metadata": {
+      "planet": "Sol",
+      "sign": "Leão",
+      "house": 5,
+      "category": "astrology"
+    },
+    "category": "astrology",
+    "learned_at": "2025-12-03T14:31:12.311536",
+    "source": "groq_generated"
+  },
+  {
+    "text": "Vênus em Libra na Casa 7 representa harmonia e beleza nos relacionamentos.\n        Esta posição indica que a pessoa valoriza muito o equilíbrio e a justiça em seus\n        relacionamentos pessoais e profissionais. A Casa 7 está diretamente relacionada\n        aos relacionamentos, então Vênus aqui sugere que a pessoa tem uma capacidade natural\n        de criar harmonia e atrair parceiros que compartilham seus valores estéticos e relacionais.",
+    "hash": "6f7ce8005a0442dfb311d0e2897d5726",
+    "query": "Vênus em Libra na Casa 7",
+    "metadata": {
+      "planet": "Vênus",
+      "sign": "Libra",
+      "house": 7,
+      "category": "astrology"
+    },
+    "category": "astrology",
+    "learned_at": "2025-12-03T14:31:12.869112",
+    "source": "groq_generated"
+  }
+]

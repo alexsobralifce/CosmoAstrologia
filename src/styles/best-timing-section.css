@@ -1,0 +1,375 @@
+.best-timing-section {
+  width: 100%;
+  padding: 1.5rem;
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.best-timing-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.best-timing-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.best-timing-subtitle {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+}
+
+.best-timing-actions {
+  margin-bottom: 1.5rem;
+}
+
+.best-timing-actions-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.75rem;
+}
+
+.best-timing-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.best-timing-action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  background-color: hsl(var(--card));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.best-timing-action-button:hover {
+  background-color: hsl(var(--muted) / 0.5);
+  transform: translateY(-2px);
+}
+
+.best-timing-action-button-active {
+  border-color: hsl(var(--accent));
+  background-color: hsl(var(--accent) / 0.1);
+  box-shadow: 0 0 0 2px hsl(var(--accent) / 0.2);
+}
+
+.best-timing-action-icon {
+  font-size: 1.5rem;
+}
+
+.best-timing-action-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.best-timing-action-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.best-timing-action-desc {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.best-timing-loading,
+.best-timing-error,
+.best-timing-empty {
+  padding: 2rem;
+  text-align: center;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.best-timing-error {
+  color: hsl(var(--destructive));
+}
+
+.best-timing-results {
+  margin-top: 1.5rem;
+}
+
+.best-timing-results-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 1rem 0;
+}
+
+.best-timing-moments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.best-timing-moment-card {
+  padding: 1.25rem;
+  border-left: 4px solid;
+}
+
+.best-timing-moment-high {
+  border-left-color: hsl(var(--accent));
+  background-color: hsl(var(--accent) / 0.05);
+}
+
+.best-timing-moment-medium {
+  border-left-color: hsl(var(--accent) / 0.7);
+  background-color: hsl(var(--accent) / 0.03);
+}
+
+.best-timing-moment-low {
+  border-left-color: hsl(var(--muted-foreground));
+  background-color: hsl(var(--muted) / 0.2);
+}
+
+.best-timing-moment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.best-timing-moment-date {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.best-timing-moment-date strong {
+  display: block;
+  font-size: 1rem;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.25rem;
+}
+
+.best-timing-moment-time {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.best-timing-moment-times {
+  display: block;
+  font-size: 0.875rem;
+  color: hsl(var(--accent));
+  font-weight: 500;
+  margin-top: 0.25rem;
+}
+
+.best-timing-moment-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  min-width: 80px;
+  position: relative;
+}
+
+.best-timing-moment-score-tooltip {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  cursor: help;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.best-timing-moment-score-tooltip:hover {
+  opacity: 1;
+}
+
+.best-timing-moment-score-high {
+  background-color: hsl(var(--accent) / 0.1);
+  color: hsl(var(--accent));
+}
+
+.best-timing-moment-score-medium {
+  background-color: hsl(var(--accent) / 0.05);
+  color: hsl(var(--accent) / 0.8);
+}
+
+.best-timing-moment-score-low {
+  background-color: hsl(var(--muted) / 0.3);
+  color: hsl(var(--muted-foreground));
+}
+
+.best-timing-moment-score-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.best-timing-moment-score-label {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.best-timing-moment-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  background-color: hsl(var(--destructive) / 0.1);
+  border: 1px solid hsl(var(--destructive) / 0.3);
+  border-radius: 0.5rem;
+  color: hsl(var(--destructive));
+  font-size: 0.875rem;
+}
+
+.best-timing-moment-aspects,
+.best-timing-moment-warnings {
+  margin-top: 0.75rem;
+}
+
+.best-timing-moment-aspects strong,
+.best-timing-moment-warnings strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 0.5rem;
+}
+
+.best-timing-moment-aspects ul,
+.best-timing-moment-warnings ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.best-timing-moment-aspects li,
+.best-timing-moment-warnings li {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground) / 0.9);
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.best-timing-moment-warnings {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.best-timing-moment-warnings strong {
+  color: hsl(var(--destructive));
+}
+
+.best-timing-moment-warnings li {
+  color: hsl(var(--destructive) / 0.9);
+}
+
+.best-timing-moment-score-explanation {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: hsl(var(--muted) / 0.3);
+  border-radius: 0.5rem;
+  border-left: 3px solid hsl(var(--accent) / 0.5);
+}
+
+.best-timing-moment-score-explanation-text {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.9);
+  margin: 0;
+}
+
+.best-timing-moment-score-explanation-text strong {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+}
+
+.best-timing-moment-score-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+.best-timing-moment-score-details-summary {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--accent));
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.best-timing-moment-score-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.best-timing-moment-score-details-summary::before {
+  content: '▶';
+  display: inline-block;
+  margin-right: 0.5rem;
+  transition: transform 0.2s;
+  font-size: 0.75rem;
+}
+
+.best-timing-moment-score-details[open] .best-timing-moment-score-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.best-timing-moment-score-details-content {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--foreground) / 0.9);
+}
+
+.best-timing-moment-score-details-content p {
+  margin: 0.5rem 0;
+}
+
+.best-timing-moment-score-details-content ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.best-timing-moment-score-details-content li {
+  margin: 0.25rem 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .best-timing-actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .best-timing-moment-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .best-timing-moment-score {
+    align-self: flex-end;
+  }
+}
+

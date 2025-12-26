@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { AstroButton } from './astro-button';
 import { AstroInput } from './astro-input';

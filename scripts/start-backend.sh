@@ -3,7 +3,10 @@
 # Script para iniciar o backend do Astrologia
 # Uso: ./start-backend.sh
 
-cd "$(dirname "$0")/backend" || exit 1
+# Ir para o diretório raiz do projeto (pai do diretório scripts)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT/backend" || exit 1
 
 echo "🚀 Iniciando backend do Astrologia..."
 echo ""

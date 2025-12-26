@@ -658,4 +658,3 @@ Quando você alinha suas ações com as qualidades do seu regente, experimenta m
         chunk = KnowledgeChunk("\n\n".join(sections))
         return [chunk.as_dict()]
 
-

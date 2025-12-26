@@ -43,6 +43,37 @@ Este documento explica como configurar as variáveis de ambiente para fazer depl
 - **Descrição**: Client Secret do Google OAuth
 - **Onde obter**: https://console.cloud.google.com/
 
+### 📧 Email (Brevo/SendinBlue - Verificação de Email)
+
+#### `BREVO_API_KEY` ⭐ **OBRIGATÓRIO para envio de emails**
+- **Descrição**: API Key do Brevo (SendinBlue) para envio de emails de verificação
+- **Onde obter**: https://app.brevo.com/settings/keys/api
+- **Formato**: `xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+- **Exemplo**: `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`
+- **⚠️ IMPORTANTE**: Sem esta chave, os emails não serão enviados (código será apenas logado)
+
+#### `EMAIL_FROM`
+- **Descrição**: Email remetente (aparece como "De:")
+- **Padrão**: `noreply@cosmoastral.com.br` (deve ser verificado no Brevo)
+- **Como verificar email**: 
+  1. Acesse https://app.brevo.com/settings/senders
+  2. Adicione o email do remetente
+  3. Verifique através do link enviado ou configure DNS
+
+#### `EMAIL_FROM_NAME`
+- **Descrição**: Nome do remetente (aparece como nome do remetente)
+- **Padrão**: `CosmoAstral`
+- **Exemplo**: `CosmoAstral`
+
+**📖 Guia completo de configuração:** [CONFIGURACAO_BREVO.md](../backend/CONFIGURACAO_BREVO.md)
+
+**✅ Vantagens do Brevo:**
+- ✅ Funciona perfeitamente no Railway (sem problemas de rede)
+- ✅ API simples e confiável
+- ✅ Grátis até 300 emails/dia
+- ✅ Dashboard completo para monitoramento
+- ✅ Sem necessidade de configurar SMTP complexo
+
 ### 📝 Opcionais (com valores padrão)
 
 #### `ALGORITHM`
@@ -78,6 +109,9 @@ Adicione cada variável clicando em **"New Variable"**:
 ```
 SECRET_KEY = [cole a chave gerada]
 GROQ_API_KEY = [sua chave da Groq]
+BREVO_API_KEY = [sua API key do Brevo - formato: xkeysib-...]
+EMAIL_FROM = noreply@cosmoastral.com.br
+EMAIL_FROM_NAME = CosmoAstral
 ```
 
 #### Variável de CORS (ajuste com sua URL de produção):
@@ -107,6 +141,9 @@ Após configurar as variáveis, faça um novo deploy ou aguarde o deploy automá
 ```
 SECRET_KEY = xK9mP2qR7vT4wY8zA1bC3dE5fG6hI0jK2lM4nO6pQ8rS0tU
 GROQ_API_KEY = gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+BREVO_API_KEY = xkeysib-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+EMAIL_FROM = noreply@cosmoastral.com.br
+EMAIL_FROM_NAME = CosmoAstral
 CORS_ORIGINS = https://meu-app.vercel.app,https://www.meusite.com
 DATABASE_URL = [definido automaticamente pelo Railway se usar Postgres]
 GOOGLE_CLIENT_ID = [seu client id - se usar OAuth]

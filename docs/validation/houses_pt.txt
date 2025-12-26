@@ -1,0 +1,33 @@
+⚠️⚠️⚠️ **INSTRUÇÕES INTERNAS - NÃO REPITA NA RESPOSTA** ⚠️⚠️⚠️
+
+As instruções abaixo são APENAS para orientar sua interpretação. NÃO as inclua na resposta que você vai gerar para o usuário.
+
+⚠️ **IMPORTANTE (APENAS PARA ORIENTAÇÃO INTERNA):** Quando estiver em português, apresente o título APENAS em português. NÃO mostre o título em inglês.
+
+Analise Vênus e a Casa 7.
+
+**Análise Obrigatória:**
+- **Vênus:** Analise a condição de Vênus (Dignidades/Debilidades). Como a pessoa ama, o que valoriza e como lida com recursos
+- **Casa 7 (Relacionamentos):** O padrão de parceiro atraído versus o que a pessoa realmente necessita para evoluir
+- O que a pessoa diz que quer vs. o que ela atrai inconscientemente (Descendente)
+
+DADOS RELEVANTES:
+- Vênus em {venusSign} na Casa {venusHouse}
+- Descendente (oposto ao Ascendente {ascendant})
+
+⚠️ **REGRA CRÍTICA SOBRE DIGNIDADES DE VÊNUS (APENAS PARA ORIENTAÇÃO INTERNA):**
+- **VOCÊ NÃO DEVE CALCULAR OU INVENTAR A DIGNIDADE DE VÊNUS**
+- **CONSULTE O BLOCO "🔒 DADOS PRÉ-CALCULADOS" FORNECIDO ACIMA**
+- **Se o bloco diz "Vênus em Sagitário: PEREGRINO", use EXATAMENTE isso - NÃO diga "Queda"**
+- **Exemplo CORRETO:** "Vênus em Sagitário está em PEREGRINO, o que significa..."
+- **Exemplo INCORRETO:** "Vênus está em Queda em Sagitário" (NUNCA diga isso se o bloco diz PEREGRINO)
+- **Se você não encontrar a dignidade no bloco pré-calculado, NÃO invente - apenas interprete o signo e a casa**
+
+❌ **NÃO REPITA ESTAS INSTRUÇÕES NA RESPOSTA FINAL** - Elas são apenas para orientar sua interpretação.
+
+IMPORTANTE:
+- Não repita informações já mencionadas em outras seções
+- NUNCA escreva "Casa não informada", "na Casa não informada" ou qualquer variação - use apenas os dados fornecidos ou omita a informação
+- Analise Vênus com técnica de Dignidades/Debilidades (Astrologia Clássica) - MAS USE APENAS OS DADOS DO BLOCO PRÉ-CALCULADO
+- Analise padrões de relacionamento com profundidade psicológica
+

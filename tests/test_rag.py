@@ -22,10 +22,10 @@ def test_rag():
         # Verificar se o índice está carregado
         if not hasattr(rag, 'index') or rag.index is None:
             print("\n✗ Índice não encontrado!")
-            print("Execute: python scripts/build_rag_index_llamaindex.py")
+            print("Execute: python scripts/build_rag_index_fastembed.py")
             return False
         
-        print(f"\n✓ Índice carregado (LlamaIndex)")
+        print(f"\n✓ Índice carregado (FastEmbed)")
         
         # Teste 1: Busca simples
         print("\n" + "-" * 60)

@@ -1,0 +1,31 @@
+# robots.txt para Cosmos Astral
+# Permite que todos os buscadores indexem o site
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://cosmoastral.com.br/sitemap.xml
+
+# IMPORTANTE: Permitir JavaScript e CSS (necessários para renderização SPA)
+# O Google precisa acessar esses arquivos para executar o JavaScript e renderizar o conteúdo
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.json$
+
+# Bloquear apenas diretórios de desenvolvimento
+Disallow: /build/
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /backend/
+Disallow: /docs/
+Disallow: /tests/
+
+# Permitir indexação de páginas principais
+Allow: /
+Allow: /login
+Allow: /dashboard
+
+# Crawl-delay (opcional, ajuda a não sobrecarregar o servidor)
+Crawl-delay: 1
+

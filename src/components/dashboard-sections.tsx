@@ -10,6 +10,7 @@ import { useLanguage } from '../i18n';
 import { OnboardingData } from './onboarding';
 import { AstroCard } from './astro-card';
 import { AstroButton } from './astro-button';
+import { InlineBold } from './ui/inline-bold';
 
 // Função utilitária para remover informações de suporte e conteúdo técnico
 const removeSupportAndTechnicalContent = (text: string): string => {
@@ -326,13 +327,9 @@ export const OverviewSection = ({ userData, onBack }: OverviewSectionProps) => {
         );
       } else if (boldMatch || (titleMatch && trimmed.length < 50)) {
         // Título ou texto em negrito
-        const content = boldMatch ? trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') : trimmed;
-        formattedParagraphs.push(
+                formattedParagraphs.push(
           <div key={index}>
-            <p 
-              className="overview-chart-ruler-heading" 
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
+            <p className="overview-chart-ruler-heading"><InlineBold text={trimmed} /></p>
           </div>
         );
       } else {
@@ -3364,13 +3361,8 @@ export const SynastrySection = ({ userData, onBack }: SynastrySectionProps) => {
         );
       } else {
         // Parágrafo normal - processar markdown inline
-        const processedText = trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
         formattedParagraphs.push(
-          <p 
-            key={index} 
-            className="synastry-text-paragraph"
-            dangerouslySetInnerHTML={{ __html: processedText }}
-          />
+          <p key={index} className="synastry-text-paragraph"><InlineBold text={trimmed} /></p>
         );
       }
     });

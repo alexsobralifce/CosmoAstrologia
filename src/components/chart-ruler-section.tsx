@@ -6,6 +6,7 @@ import { apiService } from '../services/api';
 import { UIIcons } from './ui-icons';
 import { formatGroqText } from '../utils/formatGroqText';
 import { useLanguage } from '../i18n';
+import { InlineBold } from './ui/inline-bold';
 
 interface ChartRulerSectionProps {
   ascendant: string;
@@ -73,13 +74,9 @@ export const ChartRulerSection = ({ ascendant, ruler, rulerSign, rulerHouse }: C
         );
       } else if (boldMatch || (titleMatch && trimmed.length < 50)) {
         // Título ou texto em negrito
-        const content = boldMatch ? trimmed.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') : trimmed;
-        formattedParagraphs.push(
+                formattedParagraphs.push(
           <div key={index} className="mb-4">
-            <p 
-              className="font-semibold text-foreground mb-2" 
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
+            <p className="font-semibold text-foreground mb-2"><InlineBold text={trimmed} /></p>
           </div>
         );
       } else {

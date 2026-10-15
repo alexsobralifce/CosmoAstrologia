@@ -210,6 +210,9 @@ export function useAuth() {
 
   const handleOnboardingComplete = async (data: OnboardingData) => {
     try {
+      if (!data.coordinates) {
+        throw new Error('Coordenadas de nascimento ausentes');
+      }
       const response = await apiService.registerUser({
         email: authData?.email || '',
         password: tempPassword || undefined,

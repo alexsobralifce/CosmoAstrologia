@@ -236,7 +236,7 @@ export function getGlossaryTerm(term: string, language: Language = 'pt'): Glossa
   }
 
   // Tentar encontrar por variações comuns
-  const variations: Record<string, string[]> = {
+  const variations: Record<string, Record<string, string[]>> = {
     pt: {
       'Ascendente': ['Asc', 'ASC', 'Ascendente'],
       'Regente do Mapa': ['Regente', 'Regente do Mapa', 'Regente Ascendente'],

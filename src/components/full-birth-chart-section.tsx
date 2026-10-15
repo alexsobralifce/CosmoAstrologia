@@ -36,7 +36,7 @@ const ChartSection = ({
   isLoading: boolean;
   isExpanded: boolean;
   onToggle: () => void;
-  icon: React.ComponentType<{ size: number; className?: string }>;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
   accentColor: string;
 }) => {
   const { language } = useLanguage();

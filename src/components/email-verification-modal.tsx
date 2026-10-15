@@ -199,7 +199,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
             <AstroButton
               onClick={handleResend}
               disabled={isResending}
-              variant="outline"
+              variant="secondary"
               size="sm"
             >
               {isResending ? texts.resending[language] : texts.resend[language]}
@@ -218,7 +218,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({
           <AstroButton
             onClick={onCancel}
             disabled={isLoading || isResending}
-            variant="outline"
+            variant="secondary"
             style={{ flex: 1 }}
           >
             {texts.cancel[language]}

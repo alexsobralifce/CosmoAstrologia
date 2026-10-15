@@ -847,7 +847,6 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       }
 
       // Usar o método prompt do Google Identity Services
-      // @ts-expect-error
       google.accounts.id.prompt((notification: any) => {
         if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
           // Se o prompt não foi exibido, usar renderButton ou One Tap

@@ -525,7 +525,7 @@ export const ThemeCustomizationModal = ({
             </TabsContent>
           </Tabs>
           <div className="flex justify-end gap-2 pt-4 border-t border-border/40">
-            <AstroButton variant="ghost" onClick={() => onOpenChange(false)}>
+            <AstroButton variant="secondary" onClick={() => onOpenChange(false)}>
               Cancelar
             </AstroButton>
             <AstroButton onClick={handleSave}>Salvar configurações</AstroButton>

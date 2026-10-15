@@ -32,7 +32,7 @@ jest.mock('@/services/api', () => ({
 }));
 
 // Mock Google Identity Services
-global.window.google = {
+(global as any).google = {
   accounts: {
     id: {
       initialize: jest.fn(),

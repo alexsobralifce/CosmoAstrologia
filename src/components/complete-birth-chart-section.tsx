@@ -19,7 +19,7 @@ interface PlanetInSign {
   sign: string;
   degree: number;
   degree_dms: string;
-  is_retrograde: boolean;
+  is_retrograde?: boolean;
   house: number;
 }
 
@@ -280,7 +280,7 @@ export const CompleteBirthChartSection = ({ userData, onBack }: CompleteBirthCha
                 </p>
               ) : (
                 item.planets?.map(planet => {
-        const planetKey = 'planet_key' in planet ? planet.planet_key : `point_${planet.point || planet.planet}`;
+        const planetKey = 'planet_key' in planet ? planet.planet_key : `point_${planet.point}`;
         const planetName = 'planet' in planet ? planet.planet : planet.point || '';
                   
                   return (

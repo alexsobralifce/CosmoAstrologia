@@ -288,7 +288,7 @@ export const InterpretationPage = ({ topicId, onBack }: InterpretationPageProps)
 
               {/* Article Content */}
               <div style={{ width: '100%', maxWidth: '100%' }}>
-                {contentData.sections.map((section, index) => (
+                {contentData.sections.map((section: { heading: string; content: string }, index: number) => (
                   <div key={index} style={{ marginBottom: '3rem', display: 'flex', gap: '2rem', alignItems: 'flex-start', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
                     {/* Large Section Number */}
                     <div style={{ flexShrink: 0, width: '4rem', minWidth: '4rem' }}>
@@ -303,7 +303,7 @@ export const InterpretationPage = ({ topicId, onBack }: InterpretationPageProps)
                         {section.heading}
                       </h2>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', width: '100%', maxWidth: '100%' }}>
-                        {section.content.split('\n\n').map((paragraph, pIndex) => (
+                        {section.content.split('\n\n').map((paragraph: string, pIndex: number) => (
                           <p 
                             key={pIndex} 
                             style={{ 

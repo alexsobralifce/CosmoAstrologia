@@ -1,27 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateBirthChartPDF } from './generateBirthChartPDF';
 import { OnboardingData } from '../components/onboarding';
 import jsPDF from 'jspdf';
 
 // Mock do jsPDF
-vi.mock('jspdf', () => {
+jest.mock('jspdf', () => {
   const jsPDFMockInstance = {
     internal: {
       pageSize: {
-        getWidth: vi.fn().mockReturnValue(210),
-        getHeight: vi.fn().mockReturnValue(297),
+        getWidth: jest.fn().mockReturnValue(210),
+        getHeight: jest.fn().mockReturnValue(297),
         height: 297,
       },
     },
-    setFontSize: vi.fn(),
-    setFont: vi.fn(),
-    setTextColor: vi.fn(),
-    text: vi.fn(),
-    getTextWidth: vi.fn().mockReturnValue(10),
-    addPage: vi.fn(),
-    setDrawColor: vi.fn(),
-    line: vi.fn(),
-    save: vi.fn(),
+    setFontSize: jest.fn(),
+    setFont: jest.fn(),
+    setTextColor: jest.fn(),
+    text: jest.fn(),
+    getTextWidth: jest.fn().mockReturnValue(10),
+    addPage: jest.fn(),
+    setDrawColor: jest.fn(),
+    line: jest.fn(),
+    save: jest.fn(),
   };
 
   class MockJsPDFClass {
@@ -46,7 +45,7 @@ vi.mock('jspdf', () => {
 describe('generateBirthChartPDF', () => {
   const mockUserData: OnboardingData = {
     name: 'Test User',
-    birthDate: '1990-01-01',
+    birthDate: new Date('1990-01-01'),
     birthTime: '12:00',
     birthPlace: 'Test City',
     sunSign: 'Capricorn',
@@ -64,7 +63,7 @@ describe('generateBirthChartPDF', () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   it('should generate PDF without errors', () => {
@@ -94,10 +93,10 @@ describe('generateBirthChartPDF', () => {
     // Mas precisamos acessá-lo via importação mockada ou assumindo que o mock funcionou.
     
     // Vamos pegar a instância criada
-    const MockJsPDF = vi.mocked(jsPDF);
+    const MockJsPDF = jest.mocked(jsPDF);
     
     // Verificando se save foi chamado em QUALQUER instância criada pelo mock
-    // Infelizmente, vi.mocked(jsPDF) é o construtor.
+    // Infelizmente, jest.mocked(jsPDF) é o construtor.
     
     // A melhor forma aqui, dado o mock acima, é que os métodos da instância MockJsPDFClass
     // apontam para os spies definidos em jsPDFMockInstance.

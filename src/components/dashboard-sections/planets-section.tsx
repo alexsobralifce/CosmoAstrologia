@@ -131,9 +131,10 @@ const FormattedPlanetInterpretation = ({
     }
   });
 
-  // Adicionar última seção
-  if (currentSection && currentSection.subsections.length > 0) {
-    sections.push(currentSection);
+  // Adicionar última seção (o TS não enxerga as atribuições feitas dentro do forEach)
+  const lastSection = currentSection as Section | null;
+  if (lastSection && lastSection.subsections.length > 0) {
+    sections.push(lastSection);
   }
 
   return (

@@ -531,7 +531,7 @@ export const FutureTransitsSection = ({ transits: propTransits }: FutureTransits
                       <div className="transits-transit-header-left">
                         {PlanetIcon && (
                           <div className={`transits-transit-icon-container transits-transit-icon-container-${aspectClass}`}>
-                            <PlanetIcon size={28} style={{ color: planetColor }} />
+                            <span style={{ color: planetColor, display: 'inline-flex' }}><PlanetIcon size={28} /></span>
                           </div>
                         )}
                         <div className="transits-transit-content">

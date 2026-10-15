@@ -8,6 +8,15 @@ from typing import Generator
 import sys
 from pathlib import Path
 
+import os
+import tempfile
+
+# Isola o banco dos testes: sem isso, SessionLocal aponta para o astrologia.db local
+# (dados reais de desenvolvimento) e os testes de auth apagam/criam usuários nele.
+# Precisa rodar antes de qualquer import de `app`.
+_TEST_DB_DIR = tempfile.mkdtemp(prefix="cosmo-tests-")
+os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB_DIR}/test.db"
+
 # Adicionar o diretório raiz ao path para imports
 backend_root = Path(__file__).parent.parent
 sys.path.insert(0, str(backend_root))
@@ -91,3 +100,11 @@ def test_client():
     from app.main import app
     return TestClient(app)
 
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _criar_tabelas_do_banco_de_teste():
+    """Cria o schema no banco temporário (o lifespan do app não roda com TestClient simples)."""
+    from app.core.database import Base, engine
+    import app.models.database  # noqa: F401  (registra os modelos em Base.metadata)
+    Base.metadata.create_all(bind=engine)

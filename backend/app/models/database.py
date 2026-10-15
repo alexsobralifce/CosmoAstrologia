@@ -72,3 +72,13 @@ class BirthChart(Base):
     # Relationship
     user = relationship("User", back_populates="birth_charts")
 
+
+
+class LLMCacheEntry(Base):
+    """Resposta de LLM guardada por hash do pedido (ver app/services/ai_cache.py)."""
+    __tablename__ = "llm_cache"
+
+    key = Column(String(64), primary_key=True)  # sha256 hex do pedido
+    provider = Column(String, nullable=False)
+    response = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

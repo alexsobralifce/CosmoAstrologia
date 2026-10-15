@@ -387,7 +387,7 @@ class GeminiProvider(AIProviderService):
             raise Exception(f"Erro ao gerar texto com Gemini: {str(e)}")
 
 
-def get_ai_provider(provider_name: Optional[str] = None) -> Optional[AIProviderService]:
+def _resolve_provider(provider_name: Optional[str] = None) -> Optional[AIProviderService]:
     """
     Retorna o provedor de IA configurado.
     Ordem de prioridade: Groq (padrão) -> DeepSeek (fallback) -> outros
@@ -450,6 +450,16 @@ def get_ai_provider(provider_name: Optional[str] = None) -> Optional[AIProviderS
     
     print("[AI Provider] ⚠️ Nenhum provedor de IA disponível")
     return None
+
+
+def get_ai_provider(provider_name: Optional[str] = None) -> Optional[AIProviderService]:
+    """Provedor de IA configurado, com cache de respostas quando LLM_CACHE_ENABLED."""
+    provider = _resolve_provider(provider_name)
+    if provider is None or not settings.LLM_CACHE_ENABLED:
+        return provider
+    from datetime import timedelta
+    from app.services.ai_cache import CachedAIProvider, SqlAlchemyCacheStore
+    return CachedAIProvider(provider, SqlAlchemyCacheStore(), timedelta(days=settings.LLM_CACHE_TTL_DAYS))
 
 
 def get_available_providers() -> Dict[str, bool]:

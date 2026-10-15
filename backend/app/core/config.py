@@ -31,6 +31,10 @@ class Settings(BaseSettings):
 
     # Rate limit das rotas que chamam LLM (por usuário, janela de 60 s)
     LLM_RATE_LIMIT_PER_MINUTE: int = 30
+
+    # Cache de respostas de LLM (mesmo prompt => mesma resposta, sem nova chamada paga)
+    LLM_CACHE_ENABLED: bool = True
+    LLM_CACHE_TTL_DAYS: int = 30
     
     # Email Configuration (Brevo/SendinBlue)
     BREVO_API_KEY: str = ""

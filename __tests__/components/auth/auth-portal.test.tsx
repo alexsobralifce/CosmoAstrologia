@@ -1,563 +1,271 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthPortal } from '@/components/auth-portal';
 import { apiService } from '@/services/api';
-import { renderWithProviders, mockApiResponse, mockApiError } from '../../utils/test-utils';
+import { renderWithProviders } from '../../utils/test-utils';
 
-// Mock import.meta.env before importing AuthPortal
-Object.defineProperty(globalThis, 'import', {
-  value: {
-    meta: {
-      env: {
-        VITE_GOOGLE_CLIENT_ID: 'test-google-client-id',
-        DEV: false,
-        PROD: true,
-      },
-    },
-  },
-  writable: true,
-  configurable: true,
-});
-
-// Mock API service
 jest.mock('@/services/api', () => ({
   apiService: {
     registerUser: jest.fn(),
     loginUser: jest.fn(),
+    getCurrentUser: jest.fn(),
+    getUserBirthChart: jest.fn(),
     verifyEmail: jest.fn(),
     resendVerificationCode: jest.fn(),
     verifyGoogleToken: jest.fn(),
   },
 }));
 
-// Mock Google Identity Services
-(global as any).google = {
-  accounts: {
-    id: {
-      initialize: jest.fn(),
-      prompt: jest.fn(),
-      renderButton: jest.fn(),
-    },
-  },
-} as any;
-
-// Mock toast
 jest.mock('sonner', () => ({
-  toast: {
-    success: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
-  },
+  toast: { success: jest.fn(), error: jest.fn(), info: jest.fn() },
 }));
 
+// Autocomplete real faz chamadas de geocodificação; o mock devolve uma seleção fixa
+jest.mock('@/components/location-autocomplete', () => ({
+  LocationAutocomplete: ({ onChange, onSelect, error }: any) => (
+    <div>
+      <input
+        data-testid="city-input"
+        onChange={(e) => {
+          onChange(e.target.value);
+          if (e.target.value === 'São Paulo') {
+            onSelect({ displayName: 'São Paulo, SP, Brasil', shortName: 'São Paulo, SP', lat: -23.55, lon: -46.63 });
+          }
+        }}
+      />
+      {error && <span>{error}</span>}
+    </div>
+  ),
+}));
+
+const api = apiService as jest.Mocked<typeof apiService>;
+
+// Rótulos reais: "Endereço de E-mail", "Senha", "Confirmar Senha", "Nome Completo", etc.
+const campo = (nome: RegExp) => screen.getByLabelText(nome);
+const botaoEntrar = () => screen.getByRole('button', { name: /^entrar$/i });
+const botaoCadastrar = () => screen.getByRole('button', { name: /^cadastrar$/i });
+
 describe('AuthPortal Component', () => {
-  const mockOnAuthSuccess = jest.fn();
-  const mockOnNeedsBirthData = jest.fn();
-  const mockOnGoogleNeedsOnboarding = jest.fn();
+  const onAuthSuccess = jest.fn();
+  const onNeedsBirthData = jest.fn();
+  const onGoogleNeedsOnboarding = jest.fn();
+  let user: ReturnType<typeof userEvent.setup>;
+
+  const renderPortal = () =>
+    renderWithProviders(
+      <AuthPortal
+        onAuthSuccess={onAuthSuccess}
+        onNeedsBirthData={onNeedsBirthData}
+        onGoogleNeedsOnboarding={onGoogleNeedsOnboarding}
+      />
+    );
+
+  const irParaCadastro = async () => {
+    renderPortal();
+    await user.click(botaoCadastrar());
+    await screen.findByLabelText(/nome completo/i);
+  };
+
+  const preencherCadastro = async (overrides: { senha?: string; confirma?: string } = {}) => {
+    const { senha = 'password123', confirma = senha } = overrides;
+    await user.type(campo(/nome completo/i), 'Maria Teste');
+    await user.type(campo(/data de nascimento/i), '15011990');
+    await user.type(campo(/hora de nascimento/i), '1430');
+    await user.type(screen.getByTestId('city-input'), 'São Paulo');
+    await user.type(campo(/endereço de e-mail/i), 'maria@example.com');
+    await user.type(campo(/^senha$/i), senha);
+    await user.type(campo(/confirmar senha/i), confirma);
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    user = userEvent.setup();
   });
 
   describe('Rendering', () => {
-    it('should render in login mode initially', () => {
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
+    it('renders in login mode initially', () => {
+      renderPortal();
 
-      expect(screen.getByText(/entrar|login/i)).toBeInTheDocument();
-      expect(screen.queryByLabelText(/nome completo|full name/i)).not.toBeInTheDocument();
+      expect(botaoEntrar()).toBeInTheDocument();
+      expect(screen.queryByLabelText(/nome completo/i)).not.toBeInTheDocument();
     });
 
-    it('should switch to signup mode when toggle is clicked', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
+    it('switches to signup mode', async () => {
+      await irParaCadastro();
 
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
-
-      await waitFor(() => {
-        expect(screen.getByLabelText(/nome completo|full name/i)).toBeInTheDocument();
-      });
+      expect(screen.getByLabelText(/nome completo/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/confirmar senha/i)).toBeInTheDocument();
     });
   });
 
-  describe('Email Validation', () => {
-    it('should show error for empty email', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
+  describe('Login validation', () => {
+    it('keeps the submit button disabled while e-mail or password is empty', async () => {
+      renderPortal();
+      expect(botaoEntrar()).toBeDisabled();
 
-      const emailInput = screen.getByLabelText(/e-mail|email/i);
-      const submitButton = screen.getByRole('button', { name: /entrar|login/i });
+      await user.type(campo(/endereço de e-mail/i), 'maria@example.com');
+      expect(botaoEntrar()).toBeDisabled();
 
-      await user.clear(emailInput);
-      await user.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/e-mail é obrigatório|email is required/i)).toBeInTheDocument();
-      });
+      await user.type(campo(/^senha$/i), 'password123');
+      expect(botaoEntrar()).not.toBeDisabled();
     });
 
-    it('should show error for invalid email format', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
+    it('shows an error for an invalid e-mail and does not call the API', async () => {
+      renderPortal();
+      await user.type(campo(/endereço de e-mail/i), 'invalid-email');
+      await user.type(campo(/^senha$/i), 'password123');
+      await user.click(botaoEntrar());
 
-      const emailInput = screen.getByLabelText(/e-mail|email/i);
-      await user.type(emailInput, 'invalid-email');
-
-      const submitButton = screen.getByRole('button', { name: /entrar|login/i });
-      await user.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/e-mail inválido|invalid email/i)).toBeInTheDocument();
-      });
-    });
-
-    it('should accept valid email', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      const emailInput = screen.getByLabelText(/e-mail|email/i);
-      await user.type(emailInput, 'test@example.com');
-
-      expect(emailInput).toHaveValue('test@example.com');
+      expect(await screen.findByText(/e-mail inválido/i)).toBeInTheDocument();
+      expect(api.loginUser).not.toHaveBeenCalled();
     });
   });
 
-  describe('Password Validation', () => {
-    it('should show error for empty password in login', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
+  describe('Login flow', () => {
+    it('logs in and calls onAuthSuccess when the user has a birth chart', async () => {
+      api.loginUser.mockResolvedValue({ access_token: 't', token_type: 'bearer' } as any);
+      api.getCurrentUser.mockResolvedValue({ name: 'Maria' } as any);
+      api.getUserBirthChart.mockResolvedValue({ sun_sign: 'Capricórnio' } as any);
+
+      renderPortal();
+      await user.type(campo(/endereço de e-mail/i), 'maria@example.com');
+      await user.type(campo(/^senha$/i), 'password123');
+      await user.click(botaoEntrar());
+
+      await waitFor(() => expect(api.loginUser).toHaveBeenCalledWith('maria@example.com', 'password123'));
+      await waitFor(
+        () => expect(onAuthSuccess).toHaveBeenCalledWith(
+          expect.objectContaining({ email: 'maria@example.com', hasCompletedOnboarding: true })
+        ),
+        { timeout: 3000 }
       );
-
-      const emailInput = screen.getByLabelText(/e-mail|email/i);
-      const passwordInput = screen.getByLabelText(/senha|password/i);
-      const submitButton = screen.getByRole('button', { name: /entrar|login/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.clear(passwordInput);
-      await user.click(submitButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/senha é obrigatória|password is required/i)).toBeInTheDocument();
-      });
     });
 
-    it('should show error for password less than 6 characters in signup', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
+    it('asks for birth data when the user has no birth chart yet', async () => {
+      api.loginUser.mockResolvedValue({ access_token: 't', token_type: 'bearer' } as any);
+      api.getCurrentUser.mockResolvedValue({ name: 'Maria' } as any);
+      api.getUserBirthChart.mockResolvedValue(null as any);
 
-      // Switch to signup mode
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
+      renderPortal();
+      await user.type(campo(/endereço de e-mail/i), 'maria@example.com');
+      await user.type(campo(/^senha$/i), 'password123');
+      await user.click(botaoEntrar());
 
-      await waitFor(async () => {
-        const passwordInput = screen.getByLabelText(/senha|password/i);
-        await user.type(passwordInput, '12345');
-        const submitButton = screen.getByRole('button', { name: /criar conta|sign up/i });
-        await user.click(submitButton);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText(/mínimo de 6 caracteres|minimum 6 characters/i)).toBeInTheDocument();
-      });
+      await waitFor(() => expect(onNeedsBirthData).toHaveBeenCalledWith('maria@example.com', 'Maria'), { timeout: 3000 });
+      expect(onAuthSuccess).not.toHaveBeenCalled();
     });
 
-    it('should show error when passwords do not match in signup', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
+    it('shows the generic credentials error without revealing which field is wrong', async () => {
+      api.loginUser.mockRejectedValue(new Error('E-mail ou senha incorretos.'));
+      const { toast } = jest.requireMock('sonner');
+
+      renderPortal();
+      await user.type(campo(/endereço de e-mail/i), 'maria@example.com');
+      await user.type(campo(/^senha$/i), 'errada123');
+      await user.click(botaoEntrar());
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/e-mail ou senha incorretos/i), expect.anything())
       );
+      expect(onAuthSuccess).not.toHaveBeenCalled();
+    });
 
-      // Switch to signup mode
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
+    it('replaces the form with the loader while the login is in flight', async () => {
+      api.loginUser.mockImplementation(() => new Promise(() => {}));
 
-      await waitFor(async () => {
-        const passwordInput = screen.getByLabelText(/senha|password/i);
-        const confirmPasswordInput = screen.getByLabelText(/confirmar senha|confirm password/i);
-        const submitButton = screen.getByRole('button', { name: /criar conta|sign up/i });
+      renderPortal();
+      await user.type(campo(/endereço de e-mail/i), 'maria@example.com');
+      await user.type(campo(/^senha$/i), 'password123');
+      await user.click(botaoEntrar());
 
-        await user.type(passwordInput, 'password123');
-        await user.type(confirmPasswordInput, 'password456');
-        await user.click(submitButton);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText(/senhas não coincidem|passwords do not match/i)).toBeInTheDocument();
-      });
+      await waitFor(() => expect(screen.queryByLabelText(/endereço de e-mail/i)).not.toBeInTheDocument());
     });
   });
 
-  describe('Login Flow', () => {
-    it('should successfully login with valid credentials', async () => {
-      const user = userEvent.setup();
-      const mockResponse = {
-        access_token: 'test-token',
-        token_type: 'bearer',
-      };
+  describe('Signup', () => {
+    it('keeps the submit button disabled until every field is filled', async () => {
+      await irParaCadastro();
+      expect(botaoCadastrar()).toBeDisabled();
 
-      (apiService.loginUser as jest.Mock).mockResolvedValue(mockResponse);
-
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      const emailInput = screen.getByLabelText(/e-mail|email/i);
-      const passwordInput = screen.getByLabelText(/senha|password/i);
-      const submitButton = screen.getByRole('button', { name: /entrar|login/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.type(passwordInput, 'password123');
-      await user.click(submitButton);
-
-      await waitFor(() => {
-        expect(apiService.loginUser).toHaveBeenCalledWith('test@example.com', 'password123');
-      });
-
-      await waitFor(() => {
-        expect(mockOnAuthSuccess).toHaveBeenCalled();
-      });
+      await preencherCadastro();
+      expect(botaoCadastrar()).not.toBeDisabled();
     });
 
-    it('should handle login error', async () => {
-      const user = userEvent.setup();
-      (apiService.loginUser as jest.Mock).mockRejectedValue(
-        new Error('Invalid credentials')
+    it('rejects a password shorter than 6 characters', async () => {
+      await irParaCadastro();
+      await preencherCadastro({ senha: '12345' });
+      await user.click(botaoCadastrar());
+
+      expect(await screen.findByText(/mínimo de 6 caracteres/i)).toBeInTheDocument();
+      expect(api.registerUser).not.toHaveBeenCalled();
+    });
+
+    it('rejects mismatching passwords', async () => {
+      await irParaCadastro();
+      await preencherCadastro({ senha: 'password123', confirma: 'different123' });
+      await user.click(botaoCadastrar());
+
+      expect(await screen.findByText(/as senhas não coincidem/i)).toBeInTheDocument();
+      expect(api.registerUser).not.toHaveBeenCalled();
+    });
+
+    it('registers and opens the e-mail verification modal', async () => {
+      api.registerUser.mockResolvedValue({ message: 'ok', requires_verification: true, email: 'maria@example.com' } as any);
+
+      await irParaCadastro();
+      await preencherCadastro();
+      await user.click(botaoCadastrar());
+
+      await waitFor(() =>
+        expect(api.registerUser).toHaveBeenCalledWith(
+          expect.objectContaining({
+            email: 'maria@example.com',
+            name: 'Maria Teste',
+            birth_data: expect.objectContaining({
+              birth_time: '14:30',
+              birth_place: 'São Paulo, SP',
+              latitude: -23.55,
+              longitude: -46.63,
+            }),
+          })
+        )
       );
-
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      const emailInput = screen.getByLabelText(/e-mail|email/i);
-      const passwordInput = screen.getByLabelText(/senha|password/i);
-      const submitButton = screen.getByRole('button', { name: /entrar|login/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.type(passwordInput, 'wrongpassword');
-      await user.click(submitButton);
-
-      await waitFor(() => {
-        expect(apiService.loginUser).toHaveBeenCalled();
-      });
+      expect(await screen.findByText(/verifique seu email/i)).toBeInTheDocument();
     });
   });
 
-  describe('Signup Flow', () => {
-    it('should validate all required fields in signup', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
+  describe('Birth date and time masks', () => {
+    it('formats the birth date as DD/MM/AAAA', async () => {
+      await irParaCadastro();
+      await user.type(campo(/data de nascimento/i), '15011990');
 
-      // Switch to signup mode
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
-
-      await waitFor(async () => {
-        const submitButton = screen.getByRole('button', { name: /criar conta|sign up/i });
-        await user.click(submitButton);
-      });
-
-      // Should show multiple validation errors
-      await waitFor(() => {
-        expect(screen.getByText(/nome é obrigatório|name is required/i)).toBeInTheDocument();
-      });
+      expect(campo(/data de nascimento/i)).toHaveValue('15/01/1990');
     });
 
-    it('should successfully register user with valid data', async () => {
-      const user = userEvent.setup();
-      const mockResponse = {
-        access_token: 'test-token',
-        token_type: 'bearer',
-      };
+    it('formats the birth time as HH:MM', async () => {
+      await irParaCadastro();
+      await user.type(campo(/hora de nascimento/i), '1430');
 
-      (apiService.registerUser as jest.Mock).mockResolvedValue(mockResponse);
-
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      // Switch to signup mode
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
-
-      await waitFor(async () => {
-        const emailInput = screen.getByLabelText(/e-mail|email/i);
-        const passwordInput = screen.getByLabelText(/senha|password/i);
-        const confirmPasswordInput = screen.getByLabelText(/confirmar senha|confirm password/i);
-        const nameInput = screen.getByLabelText(/nome completo|full name/i);
-        const birthDateInput = screen.getByLabelText(/data de nascimento|birth date/i);
-        const birthTimeInput = screen.getByLabelText(/hora de nascimento|birth time/i);
-        const birthCityInput = screen.getByLabelText(/cidade de nascimento|birth city/i);
-        const submitButton = screen.getByRole('button', { name: /criar conta|sign up/i });
-
-        await user.type(emailInput, 'test@example.com');
-        await user.type(passwordInput, 'password123');
-        await user.type(confirmPasswordInput, 'password123');
-        await user.type(nameInput, 'Test User');
-        await user.type(birthDateInput, '01/01/1990');
-        await user.type(birthTimeInput, '12:00');
-        await user.type(birthCityInput, 'São Paulo');
-
-        await user.click(submitButton);
-      });
-
-      await waitFor(() => {
-        expect(apiService.registerUser).toHaveBeenCalled();
-      });
+      expect(campo(/hora de nascimento/i)).toHaveValue('14:30');
     });
 
-    it('should handle registration requiring email verification', async () => {
-      const user = userEvent.setup();
-      const mockResponse = {
-        message: 'Verification code sent',
-        requires_verification: true,
-        email: 'test@example.com',
-      };
+    it('flags an invalid birth date as soon as it is complete', async () => {
+      await irParaCadastro();
+      await user.type(campo(/data de nascimento/i), '99999999');
 
-      (apiService.registerUser as jest.Mock).mockResolvedValue(mockResponse);
-
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      // Switch to signup and fill form
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
-
-      await waitFor(async () => {
-        const emailInput = screen.getByLabelText(/e-mail|email/i);
-        const passwordInput = screen.getByLabelText(/senha|password/i);
-        const confirmPasswordInput = screen.getByLabelText(/confirmar senha|confirm password/i);
-        const nameInput = screen.getByLabelText(/nome completo|full name/i);
-        const birthDateInput = screen.getByLabelText(/data de nascimento|birth date/i);
-        const birthTimeInput = screen.getByLabelText(/hora de nascimento|birth time/i);
-        const birthCityInput = screen.getByLabelText(/cidade de nascimento|birth city/i);
-        const submitButton = screen.getByRole('button', { name: /criar conta|sign up/i });
-
-        await user.type(emailInput, 'test@example.com');
-        await user.type(passwordInput, 'password123');
-        await user.type(confirmPasswordInput, 'password123');
-        await user.type(nameInput, 'Test User');
-        await user.type(birthDateInput, '01/01/1990');
-        await user.type(birthTimeInput, '12:00');
-        await user.type(birthCityInput, 'São Paulo');
-
-        await user.click(submitButton);
-      });
-
-      await waitFor(() => {
-        // Should show verification modal
-        expect(screen.getByText(/código de verificação|verification code/i)).toBeInTheDocument();
-      });
+      expect(await screen.findByText(/data inválida/i)).toBeInTheDocument();
     });
   });
 
-  describe('Birth Date and Time Formatting', () => {
-    it('should format birth date as DD/MM/YYYY', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
+  describe('Google', () => {
+    it('renders the Google sign-in button', () => {
+      renderPortal();
 
-      // Switch to signup mode
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
-
-      await waitFor(async () => {
-        const birthDateInput = screen.getByLabelText(/data de nascimento|birth date/i);
-        await user.type(birthDateInput, '01011990');
-        expect(birthDateInput).toHaveValue('01/01/1990');
-      });
-    });
-
-    it('should format birth time as HH:MM', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      // Switch to signup mode
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
-
-      await waitFor(async () => {
-        const birthTimeInput = screen.getByLabelText(/hora de nascimento|birth time/i);
-        await user.type(birthTimeInput, '1230');
-        expect(birthTimeInput).toHaveValue('12:30');
-      });
-    });
-
-    it('should validate invalid birth date', async () => {
-      const user = userEvent.setup();
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      // Switch to signup mode
-      const toggleButton = screen.getByText(/criar conta|sign up/i);
-      await user.click(toggleButton);
-
-      await waitFor(async () => {
-        const birthDateInput = screen.getByLabelText(/data de nascimento|birth date/i);
-        await user.type(birthDateInput, '32/13/1990');
-        await user.tab(); // Blur to trigger validation
-
-        await waitFor(() => {
-          expect(screen.getByText(/data inválida|invalid date/i)).toBeInTheDocument();
-        });
-      });
-    });
-  });
-
-  describe('Google OAuth', () => {
-    it('should render Google sign-in button', () => {
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      expect(screen.getByText(/entrar com google|sign in with google/i)).toBeInTheDocument();
-    });
-
-    it('should handle Google OAuth callback', async () => {
-      const mockGoogleResponse = {
-        email: 'google@example.com',
-        name: 'Google User',
-        google_id: 'google-123',
-      };
-
-      (apiService.verifyGoogleToken as jest.Mock).mockResolvedValue(mockGoogleResponse);
-
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      // Simulate Google OAuth callback
-      const callback = (window as any).handleGoogleCredentialResponse;
-      if (callback) {
-        await callback({ credential: 'google-token' });
-      }
-
-      await waitFor(() => {
-        expect(apiService.verifyGoogleToken).toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('Loading States', () => {
-    it('should show loading state during login', async () => {
-      const user = userEvent.setup();
-      (apiService.loginUser as jest.Mock).mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve({ access_token: 'token' }), 100))
-      );
-
-      renderWithProviders(
-        <AuthPortal
-          onAuthSuccess={mockOnAuthSuccess}
-          onNeedsBirthData={mockOnNeedsBirthData}
-          onGoogleNeedsOnboarding={mockOnGoogleNeedsOnboarding}
-        />
-      );
-
-      const emailInput = screen.getByLabelText(/e-mail|email/i);
-      const passwordInput = screen.getByLabelText(/senha|password/i);
-      const submitButton = screen.getByRole('button', { name: /entrar|login/i });
-
-      await user.type(emailInput, 'test@example.com');
-      await user.type(passwordInput, 'password123');
-      await user.click(submitButton);
-
-      // Should show loading indicator
-      await waitFor(() => {
-        expect(screen.getByText(/carregando|loading/i)).toBeInTheDocument();
-      });
+      // Com client id configurado o Google Identity Services desenha o botão dentro do contêiner;
+      // sem client id aparece o botão próprio "Google".
+      expect(document.querySelector('.login-google-button-container, .login-google-button')).toBeInTheDocument();
     });
   });
 });

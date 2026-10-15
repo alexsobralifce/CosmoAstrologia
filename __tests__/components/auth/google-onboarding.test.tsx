@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { GoogleOnboarding } from '@/components/google-onboarding';
 import { renderWithProviders } from '../../utils/test-utils';
 
+// O campo de hora é <input type="time">: não tem placeholder
+const horaInput = () => document.querySelector('input[type="time"]') as HTMLInputElement;
+
 // Mock LocationAutocomplete
 jest.mock('@/components/location-autocomplete', () => ({
   LocationAutocomplete: ({ onSelect }: any) => (
@@ -106,7 +109,7 @@ describe('GoogleOnboarding Component', () => {
       await userEvent.click(nextButton2);
 
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/hh:mm|birth time/i)).toBeInTheDocument();
+        expect(horaInput()).toBeInTheDocument();
       });
     });
 
@@ -130,12 +133,12 @@ describe('GoogleOnboarding Component', () => {
       await userEvent.click(nextButton2);
 
       await waitFor(() => {
-        const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
+        const birthTimeInput = horaInput();
         expect(birthTimeInput).toBeInTheDocument();
       });
 
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '12:00');
+      const birthTimeInput = horaInput();
+      fireEvent.change(birthTimeInput, { target: { value: '12:00' } });
       const nextButton3 = screen.getByRole('button', { name: /avançar|next/i });
       await userEvent.click(nextButton3);
 
@@ -193,12 +196,12 @@ describe('GoogleOnboarding Component', () => {
       await userEvent.click(nextButton2);
 
       await waitFor(() => {
-        const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
+        const birthTimeInput = horaInput();
         expect(birthTimeInput).toBeInTheDocument();
       });
 
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '25:00'); // Invalid time
+      const birthTimeInput = horaInput();
+      fireEvent.change(birthTimeInput, { target: { value: '25:00' } }); // Invalid time
 
       // Time validation should prevent invalid times
       const nextButton3 = screen.getByRole('button', { name: /avançar|next/i });
@@ -206,7 +209,7 @@ describe('GoogleOnboarding Component', () => {
 
       // Should not proceed with invalid time
       await waitFor(() => {
-        expect(screen.getByPlaceholderText(/hh:mm|birth time/i)).toBeInTheDocument();
+        expect(horaInput()).toBeInTheDocument();
       });
     });
   });
@@ -232,12 +235,12 @@ describe('GoogleOnboarding Component', () => {
       await userEvent.click(nextButton2);
 
       await waitFor(() => {
-        const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
+        const birthTimeInput = horaInput();
         expect(birthTimeInput).toBeInTheDocument();
       });
 
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '12:00');
+      const birthTimeInput = horaInput();
+      fireEvent.change(birthTimeInput, { target: { value: '12:00' } });
       const nextButton3 = screen.getByRole('button', { name: /avançar|next/i });
       await userEvent.click(nextButton3);
 
@@ -278,12 +281,12 @@ describe('GoogleOnboarding Component', () => {
 
       // Step 3 - Birth Time
       await waitFor(() => {
-        const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
+        const birthTimeInput = horaInput();
         expect(birthTimeInput).toBeInTheDocument();
       });
 
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '12:00');
+      const birthTimeInput = horaInput();
+      fireEvent.change(birthTimeInput, { target: { value: '12:00' } });
       const nextButton3 = screen.getByRole('button', { name: /avançar|next/i });
       await userEvent.click(nextButton3);
 
@@ -341,12 +344,12 @@ describe('GoogleOnboarding Component', () => {
       await userEvent.click(nextButton2);
 
       await waitFor(() => {
-        const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
+        const birthTimeInput = horaInput();
         expect(birthTimeInput).toBeInTheDocument();
       });
 
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '12:00');
+      const birthTimeInput = horaInput();
+      fireEvent.change(birthTimeInput, { target: { value: '12:00' } });
       const nextButton3 = screen.getByRole('button', { name: /avançar|next/i });
       await userEvent.click(nextButton3);
 
@@ -432,12 +435,12 @@ describe('GoogleOnboarding Component', () => {
       await userEvent.click(nextButton2);
 
       await waitFor(() => {
-        const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
+        const birthTimeInput = horaInput();
         expect(birthTimeInput).toBeInTheDocument();
       });
 
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '12:00');
+      const birthTimeInput = horaInput();
+      fireEvent.change(birthTimeInput, { target: { value: '12:00' } });
       const nextButton3 = screen.getByRole('button', { name: /avançar|next/i });
       await userEvent.click(nextButton3);
 

@@ -17,14 +17,10 @@ jobs:
           cache: 'npm'
       - run: npm ci
 
-      # Tipos e testes do front ainda têm falhas antigas (~100 erros de tsc, 10 suítes do jest).
-      # Rodam e aparecem no log, mas não bloqueiam até a dívida ser paga; depois, remover continue-on-error.
       - name: Type-check
         run: npm run type-check
-        continue-on-error: true
       - name: Testes (jest)
         run: npm test -- --ci
-        continue-on-error: true
 
       - name: Build
         run: npm run build

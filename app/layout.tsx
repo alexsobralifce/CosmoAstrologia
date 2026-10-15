@@ -119,11 +119,6 @@ export default function RootLayout({
                 price: '0',
                 priceCurrency: 'BRL',
               },
-              aggregateRating: {
-                '@type': 'AggregateRating',
-                ratingValue: '4.8',
-                ratingCount: '150',
-              },
               featureList: [
                 'Mapa astral personalizado e completo',
                 'Cálculo preciso de mapa natal',

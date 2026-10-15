@@ -66,3 +66,4 @@ next-env.d.ts
 *.bak
 coverage.xml
 backend/test_birth_chart_*.json
+tsconfig.tsbuildinfo

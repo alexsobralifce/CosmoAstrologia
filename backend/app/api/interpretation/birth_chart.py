@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Header, status
 from typing import Optional
 from app.api.interpretation.birth_chart_prompts import _clean_interpretation_content, _generate_section_prompt, _get_master_prompt, _validate_chart_request
-from app.api.interpretation.birth_chart_schemas import FullBirthChartRequest, FullBirthChartResponse
+from app.api.interpretation.birth_chart_schemas import FullBirthChartRequest, FullBirthChartResponse, merge_calculated_data
 
 
 router = APIRouter()
@@ -27,6 +27,9 @@ async def generate_birth_chart_section(
     - synthesis: Síntese e Orientação Estratégica
     """
     try:
+        from app.services.birth_chart_section import (
+            build_full_user_prompt, resolve_coordinates, retrieve_section_context,
+        )
         from app.services.rag_service_fastembed import get_rag_service
         from app.services.ai_provider_service import get_ai_provider
         from app.services.swiss_ephemeris_calculator import calculate_birth_chart as calculate_swiss
@@ -61,41 +64,7 @@ async def generate_birth_chart_section(
         
         # Obter coordenadas do local (latitude/longitude)
         # PRIORIDADE 1: Usar coordenadas fornecidas pelo frontend (mais preciso)
-        latitude = request.latitude
-        longitude = request.longitude
-        
-        # PRIORIDADE 2: Se não fornecidas, tentar obter do nome do local
-        if latitude is None or longitude is None:
-            birth_place_lower = request.birthPlace.lower()
-            
-            # Mapeamento de cidades conhecidas (pode ser expandido)
-            city_coordinates = {
-                'são paulo': (-23.5505, -46.6333),
-                'sao paulo': (-23.5505, -46.6333),
-                'rio de janeiro': (-22.9068, -43.1729),
-                'rio': (-22.9068, -43.1729),
-                'belo horizonte': (-19.9167, -43.9345),
-                'brasília': (-15.7942, -47.8822),
-                'salvador': (-12.9714, -38.5014),
-                'fortaleza': (-3.7172, -38.5433),
-                'curitiba': (-25.4284, -49.2733),
-                'recife': (-8.0476, -34.8770),
-                'porto alegre': (-30.0346, -51.2177),
-                'sobral': (-3.6883, -40.3497),
-            }
-            
-            for city, (lat, lon) in city_coordinates.items():
-                if city in birth_place_lower:
-                    latitude = lat
-                    longitude = lon
-                    print(f"[FULL-BIRTH-CHART] Coordenadas encontradas para {city}: ({latitude}, {longitude})")
-                    break
-        
-        # PRIORIDADE 3: Se ainda não encontrou, usar valores padrão (São Paulo)
-        if latitude is None or longitude is None:
-            print(f"[WARNING] Coordenadas não encontradas para {request.birthPlace}, usando valores padrão (São Paulo)")
-            latitude = -23.5505
-            longitude = -46.6333
+        latitude, longitude = resolve_coordinates(request)
         
         # CALCULAR MAPA ASTRAL USANDO SWISS EPHEMERIS (FONTE ÚNICA DE VERDADE)
         try:
@@ -177,70 +146,11 @@ async def generate_birth_chart_section(
         moon_sign = calculated_chart.get('moon_sign', request.moonSign)
         ascendant = calculated_chart.get('ascendant_sign', request.ascendant)
         
-        queries = {
-            'power': f"temperamento elementos fogo terra ar água predominante ausente {sun_sign} {moon_sign} {ascendant}",
-            'triad': f"Sol Lua Ascendente tríade {sun_sign} {moon_sign} {ascendant} personalidade",
-            'personal': f"Mercúrio {calculated_chart.get('mercury_sign', request.mercurySign or '')} Vênus {calculated_chart.get('venus_sign', request.venusSign or '')} Marte {calculated_chart.get('mars_sign', request.marsSign or '')} dinâmica pessoal",
-            'houses': f"casas astrológicas Casa 2 Casa 4 Casa 6 Casa 7 Casa 10 vocação",
-            'karma': f"Júpiter Saturno Nodo Norte Sul Quíron karma propósito {calculated_chart.get('jupiter_sign', request.jupiterSign or '')} {calculated_chart.get('saturn_sign', request.saturnSign or '')}",
-            'synthesis': f"síntese mapa astral integração pontos fortes desafios"
-        }
-        
-        query = queries.get(request.section, "interpretação mapa astral")
-        context_documents = []
-        
-        if rag_service:
-            try:
-                results = rag_service.search(query, top_k=8, expand_query=True)
-                context_documents = results[:6]
-            except Exception as e:
-                print(f"[WARNING] Erro ao buscar no RAG: {e}")
-        
-        context_text = "\n\n".join([
-            f"[Fonte: {doc.get('source', 'unknown')}]\n{doc.get('text', '')}"
-            for doc in context_documents
-            if doc.get('text')
-        ])
+        context_text = retrieve_section_context(ascendant, calculated_chart, moon_sign, rag_service, request, sun_sign)
         
         # ===== PASSO 4: ATUALIZAR REQUEST COM DADOS CALCULADOS =====
         # Criar novo request com dados calculados pela biblioteca
-        updated_request = FullBirthChartRequest(
-            name=request.name,
-            birthDate=request.birthDate,
-            birthTime=request.birthTime,
-            birthPlace=request.birthPlace,
-            sunSign=calculated_chart.get('sun_sign', request.sunSign),
-            moonSign=calculated_chart.get('moon_sign', request.moonSign),
-            ascendant=calculated_chart.get('ascendant_sign', request.ascendant),
-            sunHouse=calculated_chart.get('sun_house', request.sunHouse),
-            moonHouse=calculated_chart.get('moon_house', request.moonHouse),
-            section=request.section,
-            language=request.language,
-            mercurySign=calculated_chart.get('mercury_sign', request.mercurySign),
-            mercuryHouse=calculated_chart.get('mercury_house', request.mercuryHouse),
-            venusSign=calculated_chart.get('venus_sign', request.venusSign),
-            venusHouse=calculated_chart.get('venus_house', request.venusHouse),
-            marsSign=calculated_chart.get('mars_sign', request.marsSign),
-            marsHouse=calculated_chart.get('mars_house', request.marsHouse),
-            jupiterSign=calculated_chart.get('jupiter_sign', request.jupiterSign),
-            jupiterHouse=calculated_chart.get('jupiter_house', request.jupiterHouse),
-            saturnSign=calculated_chart.get('saturn_sign', request.saturnSign),
-            saturnHouse=calculated_chart.get('saturn_house', request.saturnHouse),
-            uranusSign=calculated_chart.get('uranus_sign', request.uranusSign),
-            uranusHouse=calculated_chart.get('uranus_house', request.uranusHouse),
-            neptuneSign=calculated_chart.get('neptune_sign', request.neptuneSign),
-            neptuneHouse=calculated_chart.get('neptune_house', request.neptuneHouse),
-            plutoSign=calculated_chart.get('pluto_sign', request.plutoSign),
-            plutoHouse=calculated_chart.get('pluto_house', request.plutoHouse),
-            northNodeSign=calculated_chart.get('north_node_sign', request.northNodeSign),
-            northNodeHouse=calculated_chart.get('north_node_house', request.northNodeHouse),
-            southNodeSign=calculated_chart.get('south_node_sign', request.southNodeSign),
-            southNodeHouse=calculated_chart.get('south_node_house', request.southNodeHouse),
-            chironSign=calculated_chart.get('chiron_sign', request.chironSign),
-            chironHouse=calculated_chart.get('chiron_house', request.chironHouse),
-            midheavenSign=calculated_chart.get('midheaven_sign', request.midheavenSign),
-            icSign=calculated_chart.get('ic_sign', request.icSign),
-        )
+        updated_request = merge_calculated_data(calculated_chart, request)
         
         # ===== PASSO 5: GERAR PROMPT COM DADOS VALIDADOS =====
         # Obter prompt mestre
@@ -255,10 +165,7 @@ async def generate_birth_chart_section(
         )
         
         # Combinar prompt mestre + prompt da seção + contexto RAG
-        full_user_prompt = f"""{section_prompt}
-
-CONHECIMENTO ASTROLÓGICO DE REFERÊNCIA:
-{context_text[:3000] if context_text else "Informações astrológicas gerais."}"""
+        full_user_prompt = build_full_user_prompt(context_text, section_prompt)
         
         # ===== PASSO 6: GERAR INTERPRETAÇÃO COM IA =====
         print(f"[FULL-BIRTH-CHART] Gerando interpretação para seção {request.section}")

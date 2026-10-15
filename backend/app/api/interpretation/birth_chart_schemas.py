@@ -56,3 +56,44 @@ class FullBirthChartResponse(BaseModel):
     title: str
     content: str
     generated_by: str
+
+
+def merge_calculated_data(calculated_chart, request):
+    """Cópia do pedido com os dados calculados pela biblioteca no lugar dos enviados pelo cliente."""
+    return FullBirthChartRequest(
+            name=request.name,
+            birthDate=request.birthDate,
+            birthTime=request.birthTime,
+            birthPlace=request.birthPlace,
+            sunSign=calculated_chart.get('sun_sign', request.sunSign),
+            moonSign=calculated_chart.get('moon_sign', request.moonSign),
+            ascendant=calculated_chart.get('ascendant_sign', request.ascendant),
+            sunHouse=calculated_chart.get('sun_house', request.sunHouse),
+            moonHouse=calculated_chart.get('moon_house', request.moonHouse),
+            section=request.section,
+            language=request.language,
+            mercurySign=calculated_chart.get('mercury_sign', request.mercurySign),
+            mercuryHouse=calculated_chart.get('mercury_house', request.mercuryHouse),
+            venusSign=calculated_chart.get('venus_sign', request.venusSign),
+            venusHouse=calculated_chart.get('venus_house', request.venusHouse),
+            marsSign=calculated_chart.get('mars_sign', request.marsSign),
+            marsHouse=calculated_chart.get('mars_house', request.marsHouse),
+            jupiterSign=calculated_chart.get('jupiter_sign', request.jupiterSign),
+            jupiterHouse=calculated_chart.get('jupiter_house', request.jupiterHouse),
+            saturnSign=calculated_chart.get('saturn_sign', request.saturnSign),
+            saturnHouse=calculated_chart.get('saturn_house', request.saturnHouse),
+            uranusSign=calculated_chart.get('uranus_sign', request.uranusSign),
+            uranusHouse=calculated_chart.get('uranus_house', request.uranusHouse),
+            neptuneSign=calculated_chart.get('neptune_sign', request.neptuneSign),
+            neptuneHouse=calculated_chart.get('neptune_house', request.neptuneHouse),
+            plutoSign=calculated_chart.get('pluto_sign', request.plutoSign),
+            plutoHouse=calculated_chart.get('pluto_house', request.plutoHouse),
+            northNodeSign=calculated_chart.get('north_node_sign', request.northNodeSign),
+            northNodeHouse=calculated_chart.get('north_node_house', request.northNodeHouse),
+            southNodeSign=calculated_chart.get('south_node_sign', request.southNodeSign),
+            southNodeHouse=calculated_chart.get('south_node_house', request.southNodeHouse),
+            chironSign=calculated_chart.get('chiron_sign', request.chironSign),
+            chironHouse=calculated_chart.get('chiron_house', request.chironHouse),
+            midheavenSign=calculated_chart.get('midheaven_sign', request.midheavenSign),
+            icSign=calculated_chart.get('ic_sign', request.icSign),
+        )

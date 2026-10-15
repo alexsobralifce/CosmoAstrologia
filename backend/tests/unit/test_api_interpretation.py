@@ -10,6 +10,9 @@ from fastapi.testclient import TestClient
 
 # Rotas que chamam LLM: exigem usuário autenticado (custo e abuso).
 ROTAS_LLM = [
+    ("post", "/api/interpretation"),
+    ("post", "/api/interpretation/aspect"),
+    ("post", "/api/interpretation/daily-advice"),
     ("post", "/api/interpretation/planet"),
     ("post", "/api/interpretation/chart-ruler"),
     ("post", "/api/interpretation/complete-chart"),
@@ -60,3 +63,61 @@ class TestAutenticacaoObrigatoria:
             "/api/interpretation/planet", json={}, headers={"Authorization": "Bearer invalido"}
         )
         assert resposta.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+class FakeRag:
+    groq_client = None
+
+    def get_interpretation(self, **kwargs):
+        return {
+            'interpretation': 'Texto do RAG ' * 10,
+            'sources': [{'source': 'livro', 'page': 3, 'score': 0.9}],
+            'query_used': kwargs.get('custom_query') or 'q',
+            'generated_by': 'rag_only',
+        }
+
+    def search(self, *args, **kwargs):
+        return []
+
+
+@pytest.fixture
+def client_autenticado(monkeypatch):
+    from app.api.dependencies import require_user
+    from app.main import app
+
+    app.dependency_overrides[require_user] = lambda: type('U', (), {'id': 999})()
+    monkeypatch.setattr('app.api.interpretation.rag_queries.get_rag_service', lambda: FakeRag())
+    yield TestClient(app)
+    app.dependency_overrides.pop(require_user, None)
+
+
+class TestRotasRecuperadas:
+    @pytest.mark.api
+    @pytest.mark.unit
+    def test_interpretacao_generica(self, client_autenticado):
+        r = client_autenticado.post('/api/interpretation', json={'house': 4, 'custom_query': 'Casa 4'})
+        assert r.status_code == 200
+        corpo = r.json()
+        assert corpo['query_used'] == 'Casa 4' and corpo['sources'][0]['source'] == 'livro'
+
+    @pytest.mark.api
+    @pytest.mark.unit
+    def test_planeta_em_signo_usa_o_endpoint_especifico(self, client_autenticado):
+        r = client_autenticado.post('/api/interpretation', json={'planet': 'Sol', 'sign': 'Áries'})
+        assert r.status_code == 400
+
+    @pytest.mark.api
+    @pytest.mark.unit
+    def test_aspecto(self, client_autenticado):
+        r = client_autenticado.post('/api/interpretation/aspect', json={'planet1': 'Sol', 'planet2': 'Lua', 'aspect': 'conjunção'})
+        assert r.status_code == 200
+        assert 'Sol conjunção Lua' in r.json()['query_used']
+
+    @pytest.mark.api
+    @pytest.mark.unit
+    def test_conselho_diario_monta_consulta_com_a_casa_lunar(self, client_autenticado):
+        r = client_autenticado.post('/api/interpretation/daily-advice', json={
+            'moonHouse': 5, 'category': 'love', 'planetaryPositions': [{'name': 'Vênus', 'house': 7, 'sign': 'Libra'}]})
+        assert r.status_code == 200
+        consulta = r.json()['query_used']
+        assert 'casa 5' in consulta and 'Vênus casa 7' in consulta

@@ -14,6 +14,7 @@ from app.api.interpretation.complete_chart import router as complete_chart_route
 from app.api.interpretation.daily import router as daily_router
 from app.api.interpretation.numerology import router as numerology_router
 from app.api.interpretation.planets import router as planets_router
+from app.api.interpretation.rag_queries import router as rag_queries_router
 from app.api.interpretation.solar_return import router as solar_return_router
 from app.api.interpretation.synastry import router as synastry_router
 from app.api.interpretation.transits import router as transits_router
@@ -28,7 +29,7 @@ for _r in (best_timing_router, transits_router):
     router.include_router(_r, dependencies=[Depends(require_user)])
 
 # Rotas autenticadas que chamam LLM em todos os endpoints
-for _r in (planets_router, complete_chart_router, birth_chart_router, synastry_router):
+for _r in (planets_router, rag_queries_router, complete_chart_router, birth_chart_router, synastry_router):
     router.include_router(_r, dependencies=[Depends(require_user), Depends(llm_rate_limit)])
 
 # Módulos mistos: o rate limit de LLM é aplicado por rota (ver `dependencies=` nos decoradores)

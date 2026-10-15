@@ -1,21 +1,19 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Onboarding } from '@/components/onboarding';
 import { renderWithProviders } from '../../utils/test-utils';
 
 // Mock LocationAutocomplete
 jest.mock('@/components/location-autocomplete', () => ({
-  LocationAutocomplete: ({ onLocationSelect }: any) => (
+  LocationAutocomplete: ({ onChange, onSelect }: any) => (
     <div data-testid="location-autocomplete">
       <input
         data-testid="location-input"
         onChange={(e) => {
+          onChange(e.target.value);
           if (e.target.value === 'São Paulo, SP, Brasil') {
-            onLocationSelect({
-              place: 'São Paulo, SP, Brasil',
-              coordinates: { latitude: -23.5505, longitude: -46.6333 },
-            });
+            onSelect({ displayName: 'São Paulo, SP, Brasil', lat: -23.5505, lon: -46.6333 });
           }
         }}
       />
@@ -23,381 +21,178 @@ jest.mock('@/components/location-autocomplete', () => ({
   ),
 }));
 
-// Mock toast
 jest.mock('sonner', () => ({
-  toast: {
-    success: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
-  },
+  toast: { success: jest.fn(), error: jest.fn(), info: jest.fn() },
 }));
+
+// Fluxo real: 1) nome + e-mail + senha  2) data  3) hora  4) local
+const avancar = () => screen.getByRole('button', { name: /avançar/i });
+const submit = () => screen.getByRole('button', { name: /ver meu mapa astral|processando/i });
+const horaInput = () => document.querySelector('input[type="time"]') as HTMLInputElement;
+
+async function passo1(user: ReturnType<typeof userEvent.setup>, overrides: Partial<Record<'nome' | 'email' | 'senha' | 'confirma', string>> = {}) {
+  const { nome = 'Test User', email = 'test@example.com', senha = 'password123', confirma = senha } = overrides;
+  await user.type(screen.getByPlaceholderText('Digite seu nome'), nome);
+  await user.type(screen.getByPlaceholderText('seu@email.com'), email);
+  await user.type(screen.getByPlaceholderText('Mínimo 6 caracteres'), senha);
+  await user.type(screen.getByPlaceholderText('Digite a senha novamente'), confirma);
+}
+
+async function passo2(user: ReturnType<typeof userEvent.setup>, data = '01/01/1990') {
+  await user.type(screen.getByPlaceholderText('dd/mm/aaaa'), data);
+}
+
+function passo3(hora = '12:00') {
+  fireEvent.change(horaInput(), { target: { value: hora } });
+}
+
+async function escolherLocal(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByTestId('location-input'), 'São Paulo, SP, Brasil');
+}
+
+/** Preenche tudo até o passo 4 (local). */
+async function chegarAoPasso4(user: ReturnType<typeof userEvent.setup>) {
+  await passo1(user);
+  await user.click(avancar());
+  await passo2(user);
+  await user.click(avancar());
+  passo3();
+  await user.click(avancar());
+  await screen.findByTestId('location-autocomplete');
+}
 
 describe('Onboarding Component', () => {
   const mockOnComplete = jest.fn();
   const mockOnBackToLogin = jest.fn();
+  let user: ReturnType<typeof userEvent.setup>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    user = userEvent.setup();
   });
 
   describe('Rendering', () => {
-    it('should render initial step with email and password fields when no initialEmail', () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('renders step 1 with name, email and password fields when there is no initialEmail', () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
 
-      expect(screen.getByText(/criar seu mapa astral|vamos criar/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/seu@email.com|email/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/mínimo 6 caracteres|password/i)).toBeInTheDocument();
+      expect(screen.getByText(/vamos criar seu mapa astral/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Digite seu nome')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('seu@email.com')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Mínimo 6 caracteres')).toBeInTheDocument();
     });
 
-    it('should render with pre-filled email and name when provided', () => {
+    it('shows the connected account instead of the e-mail field when initialEmail is given', () => {
       renderWithProviders(
-        <Onboarding
-          onComplete={mockOnComplete}
-          initialEmail="test@example.com"
-          initialName="Test User"
-        />
+        <Onboarding onComplete={mockOnComplete} initialEmail="test@example.com" initialName="Test User" />
       );
 
-      const emailText = screen.getByText(/conta conectada|test@example.com/i);
-      expect(emailText).toBeInTheDocument();
+      expect(screen.getByText(/conta conectada/i)).toBeInTheDocument();
+      expect(screen.getByText('test@example.com')).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('seu@email.com')).not.toBeInTheDocument();
     });
 
-    it('should render step 2 with name field', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('renders step 2 with the birth date field', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await passo1(user);
+      await user.click(avancar());
 
-      const emailInput = screen.getByPlaceholderText(/seu@email.com|email/i);
-      const passwordInput = screen.getByPlaceholderText(/mínimo 6 caracteres|password/i);
-      
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-
-      const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/digite seu nome|name/i)).toBeInTheDocument();
-      });
+      expect(await screen.findByPlaceholderText('dd/mm/aaaa')).toBeInTheDocument();
     });
 
-    it('should render step 3 with birth date and time fields', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('renders step 3 with the birth time field', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await passo1(user);
+      await user.click(avancar());
+      await passo2(user);
+      await user.click(avancar());
 
-      // Step 1
-      const emailInput = screen.getByPlaceholderText(/e-mail|email/i);
-      const passwordInput = screen.getByPlaceholderText(/senha|password/i);
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      // Step 2
-      await waitFor(() => {
-        const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-        expect(nameInput).toBeInTheDocument();
-      });
-      const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-      await userEvent.type(nameInput, 'Test User');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      // Step 3
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/hh:mm|birth time/i)).toBeInTheDocument();
-      });
+      await waitFor(() => expect(horaInput()).toBeInTheDocument());
     });
 
-    it('should render step 4 with location field', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('renders step 4 with the location field', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await chegarAoPasso4(user);
 
-      // Navigate through steps
-      const emailInput = screen.getByPlaceholderText(/e-mail|email/i);
-      const passwordInput = screen.getByPlaceholderText(/senha|password/i);
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-        expect(nameInput).toBeInTheDocument();
-      });
-      const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-      await userEvent.type(nameInput, 'Test User');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        const birthDateInput = screen.getByPlaceholderText(/data de nascimento|birth date/i);
-        expect(birthDateInput).toBeInTheDocument();
-      });
-      const birthDateInput = screen.getByPlaceholderText(/data de nascimento|birth date/i);
-      await userEvent.type(birthDateInput, '01/01/1990');
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '12:00');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      // Step 4
-      await waitFor(() => {
-        expect(screen.getByTestId('location-autocomplete')).toBeInTheDocument();
-      });
+      expect(screen.getByTestId('location-autocomplete')).toBeInTheDocument();
     });
   });
 
   describe('Validation', () => {
-    it('should validate email format', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('blocks "Avançar" when the e-mail is invalid', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await passo1(user, { email: 'invalid-email' });
 
-      const emailInput = screen.getByPlaceholderText(/seu@email.com|email/i);
-      await userEvent.type(emailInput, 'invalid-email');
-      await userEvent.tab();
-
-      // Email validation happens on blur or next button click
-      const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton);
-
-      // Should not proceed to next step with invalid email
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/seu@email.com|email/i)).toBeInTheDocument();
-      }, { timeout: 1000 });
+      expect(avancar()).toBeDisabled();
     });
 
-    it('should validate password minimum length', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('blocks "Avançar" when the password has fewer than 6 characters', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await passo1(user, { senha: '12345' });
 
-      const emailInput = screen.getByPlaceholderText(/seu@email.com|email/i);
-      const passwordInput = screen.getByPlaceholderText(/mínimo 6 caracteres|password/i);
-      
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, '12345'); // Less than 6 characters
-
-      const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton);
-
-      // Should show error or not proceed
-      await waitFor(() => {
-        const errorMessage = screen.queryByText(/senha deve ter pelo menos 6 caracteres|password must be at least 6 characters/i);
-        expect(errorMessage || screen.getByPlaceholderText(/mínimo 6 caracteres|password/i)).toBeTruthy();
-      });
+      expect(avancar()).toBeDisabled();
     });
 
-    it('should validate password confirmation match', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('blocks "Avançar" when the password confirmation does not match', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await passo1(user, { confirma: 'different123' });
 
-      const emailInput = screen.getByPlaceholderText(/seu@email.com|email/i);
-      const passwordInput = screen.getByPlaceholderText(/mínimo 6 caracteres|password/i);
-      
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        const confirmPasswordInput = screen.getByPlaceholderText(/digite a senha novamente|confirm password/i);
-        expect(confirmPasswordInput).toBeInTheDocument();
-      });
-
-      const confirmPasswordInput = screen.getByPlaceholderText(/digite a senha novamente|confirm password/i);
-      await userEvent.type(confirmPasswordInput, 'different123');
-
-      // Should show error when passwords don't match
-      await waitFor(() => {
-        const errorMessage = screen.queryByText(/senhas não coincidem|passwords do not match/i);
-        expect(errorMessage || confirmPasswordInput).toBeTruthy();
-      });
+      expect(avancar()).toBeDisabled();
     });
 
-    it('should validate name is required', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('blocks "Avançar" when the name is empty', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await passo1(user, { nome: ' ' });
 
-      // Complete step 1
-      const emailInput = screen.getByPlaceholderText(/e-mail|email/i);
-      const passwordInput = screen.getByPlaceholderText(/senha|password/i);
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      // Try to proceed without name
-      await waitFor(() => {
-        const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-        expect(nextButton).toBeInTheDocument();
-      });
-      
-      const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton);
-
-      // Should not proceed to next step
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/digite seu nome|name/i)).toBeInTheDocument();
-      });
+      expect(avancar()).toBeDisabled();
     });
 
-    it('should validate birth date format', async () => {
+    it('rejects an invalid birth date', async () => {
       renderWithProviders(
-        <Onboarding
-          onComplete={mockOnComplete}
-          initialEmail="test@example.com"
-          initialName="Test User"
-        />
+        <Onboarding onComplete={mockOnComplete} initialEmail="test@example.com" initialName="Test User" />
       );
+      await user.click(avancar());
+      await passo2(user, '99/99/9999');
 
-      // Navigate to step 3
-      const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        const birthDateInput = screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i);
-        expect(birthDateInput).toBeInTheDocument();
-      });
-
-      const birthDateInput = screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i);
-      await userEvent.type(birthDateInput, '99/99/9999'); // Invalid date
-
-      // Date validation should prevent invalid dates
-      const nextButton2 = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton2);
-
-      // Should not proceed with invalid date
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i)).toBeInTheDocument();
-      });
+      expect(screen.getByText(/digite uma data válida/i)).toBeInTheDocument();
+      expect(avancar()).toBeDisabled();
     });
 
-    it('should validate birth time format', async () => {
+    it('blocks "Avançar" on step 3 until a birth time is filled', async () => {
       renderWithProviders(
-        <Onboarding
-          onComplete={mockOnComplete}
-          initialEmail="test@example.com"
-          initialName="Test User"
-        />
+        <Onboarding onComplete={mockOnComplete} initialEmail="test@example.com" initialName="Test User" />
       );
+      await user.click(avancar());
+      await passo2(user);
+      await user.click(avancar());
 
-      // Navigate to step 3
-      const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-        expect(birthTimeInput).toBeInTheDocument();
-      });
-
-      const birthDateInput = screen.getByPlaceholderText(/data de nascimento|birth date/i);
-      await userEvent.type(birthDateInput, '01/01/1990');
-      
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthTimeInput, '25:00'); // Invalid time
-
-      // Time validation should prevent invalid times
-      const nextButton2 = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton2);
-
-      // Should not proceed with invalid time
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/hh:mm|birth time/i)).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('LocationAutocomplete Integration', () => {
-    it('should calculate coordinates when location is selected', async () => {
-      renderWithProviders(
-        <Onboarding
-          onComplete={mockOnComplete}
-          initialEmail="test@example.com"
-          initialName="Test User"
-        />
-      );
-
-      // Navigate to step 4
-      const nextButton = screen.getByRole('button', { name: /próximo|next/i });
-      await userEvent.click(nextButton);
-
-      await waitFor(() => {
-        const birthDateInput = screen.getByPlaceholderText(/data de nascimento|birth date/i);
-        expect(birthDateInput).toBeInTheDocument();
-      });
-
-      const birthDateInput = screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i);
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthDateInput, '01/01/1990');
-      await userEvent.type(birthTimeInput, '12:00');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('location-autocomplete')).toBeInTheDocument();
-      });
-
-      const locationInput = screen.getByTestId('location-input');
-      await userEvent.type(locationInput, 'São Paulo, SP, Brasil');
-
-      await waitFor(() => {
-        // Coordinates should be set
-        expect(mockOnComplete).not.toHaveBeenCalled();
-      });
+      await waitFor(() => expect(horaInput()).toBeInTheDocument());
+      expect(avancar()).toBeDisabled();
+      passo3('12:00');
+      expect(avancar()).not.toBeDisabled();
     });
   });
 
   describe('Form Submission', () => {
-    it('should submit complete form with all required data', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('only enables the final button after a location is selected', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await chegarAoPasso4(user);
 
-      // Step 1
-      const emailInput = screen.getByPlaceholderText(/e-mail|email/i);
-      const passwordInput = screen.getByPlaceholderText(/senha|password/i);
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
+      expect(submit()).toBeDisabled();
+      await escolherLocal(user);
+      await waitFor(() => expect(submit()).not.toBeDisabled());
+      expect(mockOnComplete).not.toHaveBeenCalled();
+    });
 
-      // Step 2
-      await waitFor(() => {
-        const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-        expect(nameInput).toBeInTheDocument();
-      });
-      const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-      await userEvent.type(nameInput, 'Test User');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
+    it('submits the complete data', async () => {
+      mockOnComplete.mockResolvedValue(undefined);
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await chegarAoPasso4(user);
+      await escolherLocal(user);
+      await waitFor(() => expect(submit()).not.toBeDisabled());
+      await user.click(submit());
 
-      // Step 3
-      await waitFor(() => {
-        const birthDateInput = screen.getByPlaceholderText(/data de nascimento|birth date/i);
-        expect(birthDateInput).toBeInTheDocument();
-      });
-      const birthDateInput = screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i);
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthDateInput, '01/01/1990');
-      await userEvent.type(birthTimeInput, '12:00');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      // Step 4
-      await waitFor(() => {
-        expect(screen.getByTestId('location-autocomplete')).toBeInTheDocument();
-      });
-      const locationInput = screen.getByTestId('location-input');
-      await userEvent.type(locationInput, 'São Paulo, SP, Brasil');
-
-      await waitFor(() => {
-        const completeButton = screen.getByRole('button', { name: /finalizar|complete|concluir/i });
-        expect(completeButton).toBeInTheDocument();
-      });
-
-      const completeButton = screen.getByRole('button', { name: /finalizar|complete|concluir/i });
-      await userEvent.click(completeButton);
-
-      await waitFor(() => {
+      await waitFor(() =>
         expect(mockOnComplete).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'Test User',
@@ -405,163 +200,60 @@ describe('Onboarding Component', () => {
             password: 'password123',
             birthDate: expect.any(Date),
             birthTime: '12:00',
-            birthPlace: expect.any(String),
-            coordinates: expect.objectContaining({
-              latitude: expect.any(Number),
-              longitude: expect.any(Number),
-            }),
+            birthPlace: 'São Paulo, SP, Brasil',
+            coordinates: { latitude: -23.5505, longitude: -46.6333 },
           })
-        );
-      });
+        )
+      );
     });
 
-    it('should handle submission errors', async () => {
-      const mockOnCompleteWithError = jest.fn().mockRejectedValue(new Error('Submission failed'));
-      
-      renderWithProviders(
-        <Onboarding onComplete={mockOnCompleteWithError} />
-      );
+    it('recovers from a submission error', async () => {
+      mockOnComplete.mockRejectedValue(new Error('Submission failed'));
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await chegarAoPasso4(user);
+      await escolherLocal(user);
+      await waitFor(() => expect(submit()).not.toBeDisabled());
+      await user.click(submit());
 
-      // Complete all steps quickly
-      const emailInput = screen.getByPlaceholderText(/e-mail|email/i);
-      const passwordInput = screen.getByPlaceholderText(/senha|password/i);
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
+      await waitFor(() => expect(mockOnComplete).toHaveBeenCalled());
+      await waitFor(() => expect(submit()).not.toBeDisabled());
+      expect(screen.queryByText(/processando/i)).not.toBeInTheDocument();
+    });
 
-      await waitFor(() => {
-        const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-        expect(nameInput).toBeInTheDocument();
-      });
-      const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-      await userEvent.type(nameInput, 'Test User');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
+    it('shows a loading state while submitting', async () => {
+      let resolver: () => void = () => {};
+      mockOnComplete.mockImplementation(() => new Promise<void>((resolve) => { resolver = resolve; }));
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await chegarAoPasso4(user);
+      await escolherLocal(user);
+      await waitFor(() => expect(submit()).not.toBeDisabled());
+      await user.click(submit());
 
-      await waitFor(() => {
-        const birthDateInput = screen.getByPlaceholderText(/data de nascimento|birth date/i);
-        expect(birthDateInput).toBeInTheDocument();
-      });
-      const birthDateInput = screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i);
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthDateInput, '01/01/1990');
-      await userEvent.type(birthTimeInput, '12:00');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('location-autocomplete')).toBeInTheDocument();
-      });
-      const locationInput = screen.getByTestId('location-input');
-      await userEvent.type(locationInput, 'São Paulo, SP, Brasil');
-
-      await waitFor(() => {
-        const completeButton = screen.getByRole('button', { name: /finalizar|complete|concluir/i });
-        expect(completeButton).toBeInTheDocument();
-      });
-
-      const completeButton = screen.getByRole('button', { name: /finalizar|complete|concluir/i });
-      await userEvent.click(completeButton);
-
-      await waitFor(() => {
-        expect(mockOnCompleteWithError).toHaveBeenCalled();
-      });
+      expect(await screen.findByText(/processando/i)).toBeInTheDocument();
+      resolver();
+      await waitFor(() => expect(screen.queryByText(/processando/i)).not.toBeInTheDocument());
     });
   });
 
   describe('Navigation', () => {
-    it('should navigate back to previous step', async () => {
-      renderWithProviders(
-        <Onboarding onComplete={mockOnComplete} />
-      );
+    it('goes back to the previous step', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} />);
+      await passo1(user);
+      await user.click(avancar());
+      await screen.findByPlaceholderText('dd/mm/aaaa');
 
-      // Go to step 2
-      const emailInput = screen.getByPlaceholderText(/e-mail|email/i);
-      const passwordInput = screen.getByPlaceholderText(/senha|password/i);
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
+      await user.click(screen.getByRole('button', { name: /^voltar$/i }));
 
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/nome completo|full name/i)).toBeInTheDocument();
-      });
-
-      // Go back
-      const backButton = screen.getByRole('button', { name: /voltar|back/i });
-      await userEvent.click(backButton);
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/seu@email.com|email/i)).toBeInTheDocument();
-      });
+      expect(await screen.findByPlaceholderText('Digite seu nome')).toBeInTheDocument();
     });
 
-    it('should call onBackToLogin when back button is clicked on first step', () => {
-      renderWithProviders(
-        <Onboarding
-          onComplete={mockOnComplete}
-          onBackToLogin={mockOnBackToLogin}
-        />
-      );
+    it('calls onBackToLogin from the first step', async () => {
+      renderWithProviders(<Onboarding onComplete={mockOnComplete} onBackToLogin={mockOnBackToLogin} />);
 
-      const backButton = screen.getByRole('button', { name: /voltar|back|login/i });
-      if (backButton) {
-        fireEvent.click(backButton);
-        expect(mockOnBackToLogin).toHaveBeenCalled();
-      }
-    });
-  });
+      await user.click(screen.getByRole('button', { name: /voltar ao login/i }));
 
-  describe('Loading States', () => {
-    it('should show loading state during submission', async () => {
-      const mockOnCompleteDelayed = jest.fn().mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 100))
-      );
-
-      renderWithProviders(
-        <Onboarding onComplete={mockOnCompleteDelayed} />
-      );
-
-      // Complete form quickly
-      const emailInput = screen.getByPlaceholderText(/seu@email.com|email/i);
-      const passwordInput = screen.getByPlaceholderText(/mínimo 6 caracteres|password/i);
-      await userEvent.type(emailInput, 'test@example.com');
-      await userEvent.type(passwordInput, 'password123');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-        expect(nameInput).toBeInTheDocument();
-      });
-      const nameInput = screen.getByPlaceholderText(/nome completo|full name/i);
-      await userEvent.type(nameInput, 'Test User');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        const birthDateInput = screen.getByPlaceholderText(/data de nascimento|birth date/i);
-        expect(birthDateInput).toBeInTheDocument();
-      });
-      const birthDateInput = screen.getByPlaceholderText(/dd\/mm\/aaaa|birth date/i);
-      const birthTimeInput = screen.getByPlaceholderText(/hh:mm|birth time/i);
-      await userEvent.type(birthDateInput, '01/01/1990');
-      await userEvent.type(birthTimeInput, '12:00');
-      await userEvent.click(screen.getByRole('button', { name: /próximo|next/i }));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('location-autocomplete')).toBeInTheDocument();
-      });
-      const locationInput = screen.getByTestId('location-input');
-      await userEvent.type(locationInput, 'São Paulo, SP, Brasil');
-
-      await waitFor(() => {
-        const completeButton = screen.getByRole('button', { name: /finalizar|complete|concluir/i });
-        expect(completeButton).toBeInTheDocument();
-      });
-
-      const completeButton = screen.getByRole('button', { name: /finalizar|complete|concluir/i });
-      await userEvent.click(completeButton);
-
-      // Button should be disabled or show loading state
-      await waitFor(() => {
-        expect(completeButton).toBeDisabled();
-      }, { timeout: 2000 });
+      expect(mockOnBackToLogin).toHaveBeenCalled();
     });
   });
 });

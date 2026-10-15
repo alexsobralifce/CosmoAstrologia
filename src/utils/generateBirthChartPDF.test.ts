@@ -37,6 +37,7 @@ jest.mock('jspdf', () => {
   }
 
   return {
+    __esModule: true,
     default: MockJsPDFClass,
     jsPDF: MockJsPDFClass,
   };

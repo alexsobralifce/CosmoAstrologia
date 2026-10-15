@@ -1,8 +1,21 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EmailVerificationModal } from '@/components/email-verification-modal';
 import { renderWithProviders } from '../../utils/test-utils';
+
+// Com fake timers o userEvent precisa avançar o relógio falso, senão trava
+// O contador reagenda um setTimeout a cada render, então o relógio avança de 1 em 1 segundo
+const avancar = (segundos: number) => {
+  for (let i = 0; i < segundos; i++) {
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+  }
+};
+const botaoReenviar = () => screen.getByRole('button', { name: /reenviar|resend/i });
+
+const user = () => userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
 
 // Mock toast
 jest.mock('sonner', () => ({
@@ -42,7 +55,7 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      expect(screen.getByText(/verificar email|verify email/i)).toBeInTheDocument();
+      expect(screen.getByText(/verifique seu email|verify your email/i)).toBeInTheDocument();
       expect(screen.getByText(/test@example.com/i)).toBeInTheDocument();
     });
 
@@ -51,7 +64,7 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} isOpen={false} />
       );
 
-      expect(screen.queryByText(/verificar email|verify email/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/verifique seu email|verify your email/i)).not.toBeInTheDocument();
     });
 
     it('should render code input field', () => {
@@ -59,7 +72,7 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i);
+      const codeInput = screen.getByPlaceholderText(/000000/);
       expect(codeInput).toBeInTheDocument();
     });
 
@@ -77,8 +90,9 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const resendButton = screen.getByRole('button', { name: /reenviar|resend/i });
-      expect(resendButton).toBeInTheDocument();
+      // O botão de reenvio só aparece quando o contador chega a zero
+      avancar(60);
+      expect(botaoReenviar()).toBeInTheDocument();
     });
 
     it('should render cancel button', () => {
@@ -97,8 +111,8 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i) as HTMLInputElement;
-      await userEvent.type(codeInput, 'abc123');
+      const codeInput = screen.getByPlaceholderText(/000000/) as HTMLInputElement;
+      await user().type(codeInput, 'abc123');
 
       // Should only contain numbers
       expect(codeInput.value).toBe('123');
@@ -109,8 +123,8 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i) as HTMLInputElement;
-      await userEvent.type(codeInput, '1234567890');
+      const codeInput = screen.getByPlaceholderText(/000000/) as HTMLInputElement;
+      await user().type(codeInput, '1234567890');
 
       // Should only contain first 6 digits
       expect(codeInput.value).toBe('123456');
@@ -121,8 +135,8 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i) as HTMLInputElement;
-      await userEvent.type(codeInput, '123456');
+      const codeInput = screen.getByPlaceholderText(/000000/) as HTMLInputElement;
+      await user().type(codeInput, '123456');
 
       expect(codeInput.value).toBe('123456');
     });
@@ -136,11 +150,11 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i);
-      await userEvent.type(codeInput, '123456');
+      const codeInput = screen.getByPlaceholderText(/000000/);
+      await user().type(codeInput, '123456');
 
       const verifyButton = screen.getByRole('button', { name: /verificar|verify/i });
-      await userEvent.click(verifyButton);
+      await user().click(verifyButton);
 
       await waitFor(() => {
         expect(mockOnVerify).toHaveBeenCalledWith('123456');
@@ -152,11 +166,11 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i);
-      await userEvent.type(codeInput, '12345'); // Only 5 digits
+      const codeInput = screen.getByPlaceholderText(/000000/);
+      await user().type(codeInput, '12345'); // Only 5 digits
 
       const verifyButton = screen.getByRole('button', { name: /verificar|verify/i });
-      await userEvent.click(verifyButton);
+      await user().click(verifyButton);
 
       // Should not call onVerify with incomplete code
       await waitFor(() => {
@@ -171,11 +185,11 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i);
-      await userEvent.type(codeInput, '123456');
+      const codeInput = screen.getByPlaceholderText(/000000/);
+      await user().type(codeInput, '123456');
 
       const verifyButton = screen.getByRole('button', { name: /verificar|verify/i });
-      await userEvent.click(verifyButton);
+      await user().click(verifyButton);
 
       await waitFor(() => {
         expect(mockOnVerify).toHaveBeenCalledWith('123456');
@@ -191,11 +205,11 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i);
-      await userEvent.type(codeInput, '123456');
+      const codeInput = screen.getByPlaceholderText(/000000/);
+      await user().type(codeInput, '123456');
 
       const verifyButton = screen.getByRole('button', { name: /verificar|verify/i });
-      await userEvent.click(verifyButton);
+      await user().click(verifyButton);
 
       // Button should be disabled during loading
       await waitFor(() => {
@@ -205,116 +219,53 @@ describe('EmailVerificationModal Component', () => {
   });
 
   describe('Resend Code', () => {
+    it('should not offer resend while the countdown is running', () => {
+      renderWithProviders(<EmailVerificationModal {...defaultProps} />);
+
+      expect(screen.queryByRole('button', { name: /reenviar|resend/i })).not.toBeInTheDocument();
+    });
+
     it('should call onResend when resend button is clicked', async () => {
       mockOnResend.mockResolvedValue(undefined);
+      renderWithProviders(<EmailVerificationModal {...defaultProps} />);
 
-      renderWithProviders(
-        <EmailVerificationModal {...defaultProps} />
-      );
+      avancar(60);
+      await user().click(botaoReenviar());
 
-      // Wait for timer to expire or click resend
-      const resendButton = screen.getByRole('button', { name: /reenviar|resend/i });
-      
-      // If button is disabled, advance timer
-      if (resendButton.hasAttribute('disabled')) {
-        jest.advanceTimersByTime(61000); // Advance 61 seconds
-      }
-
-      await waitFor(() => {
-        expect(resendButton).not.toBeDisabled();
-      });
-
-      await userEvent.click(resendButton);
-
-      await waitFor(() => {
-        expect(mockOnResend).toHaveBeenCalled();
-      });
+      await waitFor(() => expect(mockOnResend).toHaveBeenCalled());
     });
 
     it('should reset timer after resending', async () => {
       mockOnResend.mockResolvedValue(undefined);
+      renderWithProviders(<EmailVerificationModal {...defaultProps} />);
 
-      renderWithProviders(
-        <EmailVerificationModal {...defaultProps} />
-      );
+      avancar(60);
+      await user().click(botaoReenviar());
 
-      // Advance timer to make resend available
-      jest.advanceTimersByTime(61000);
-
-      const resendButton = screen.getByRole('button', { name: /reenviar|resend/i });
-      await waitFor(() => {
-        expect(resendButton).not.toBeDisabled();
-      });
-
-      await userEvent.click(resendButton);
-
-      await waitFor(() => {
-        expect(mockOnResend).toHaveBeenCalled();
-      });
-
-      // Timer should be reset
-      const timeDisplay = screen.queryByText(/60|1:00/i);
-      expect(timeDisplay).toBeInTheDocument();
+      await waitFor(() => expect(mockOnResend).toHaveBeenCalled());
+      expect(await screen.findByText(/60s/)).toBeInTheDocument();
     });
 
     it('should clear code after resending', async () => {
       mockOnResend.mockResolvedValue(undefined);
+      renderWithProviders(<EmailVerificationModal {...defaultProps} />);
 
-      renderWithProviders(
-        <EmailVerificationModal {...defaultProps} />
-      );
+      const codeInput = screen.getByPlaceholderText(/000000/) as HTMLInputElement;
+      await user().type(codeInput, '123456');
+      avancar(60);
+      await user().click(botaoReenviar());
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i) as HTMLInputElement;
-      await userEvent.type(codeInput, '123456');
-
-      // Advance timer
-      jest.advanceTimersByTime(61000);
-
-      const resendButton = screen.getByRole('button', { name: /reenviar|resend/i });
-      await waitFor(() => {
-        expect(resendButton).not.toBeDisabled();
-      });
-
-      await userEvent.click(resendButton);
-
-      await waitFor(() => {
-        expect(codeInput.value).toBe('');
-      });
+      await waitFor(() => expect(codeInput.value).toBe(''));
     });
 
     it('should handle resend errors', async () => {
       mockOnResend.mockRejectedValue(new Error('Resend failed'));
+      renderWithProviders(<EmailVerificationModal {...defaultProps} />);
 
-      renderWithProviders(
-        <EmailVerificationModal {...defaultProps} />
-      );
+      avancar(60);
+      await user().click(botaoReenviar());
 
-      // Advance timer
-      jest.advanceTimersByTime(61000);
-
-      const resendButton = screen.getByRole('button', { name: /reenviar|resend/i });
-      await waitFor(() => {
-        expect(resendButton).not.toBeDisabled();
-      });
-
-      await userEvent.click(resendButton);
-
-      await waitFor(() => {
-        expect(mockOnResend).toHaveBeenCalled();
-      });
-    });
-
-    it('should disable resend button during countdown', () => {
-      renderWithProviders(
-        <EmailVerificationModal {...defaultProps} />
-      );
-
-      const resendButton = screen.getByRole('button', { name: /reenviar|resend/i });
-      
-      // Button should be disabled initially
-      if (resendButton.hasAttribute('disabled')) {
-        expect(resendButton).toBeDisabled();
-      }
+      await waitFor(() => expect(mockOnResend).toHaveBeenCalled());
     });
   });
 
@@ -335,7 +286,7 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} />
       );
 
-      const codeInput = screen.getByPlaceholderText(/digite o código|enter code/i) as HTMLInputElement;
+      const codeInput = screen.getByPlaceholderText(/000000/) as HTMLInputElement;
       fireEvent.change(codeInput, { target: { value: '123456' } });
 
       // Close modal
@@ -348,37 +299,25 @@ describe('EmailVerificationModal Component', () => {
         <EmailVerificationModal {...defaultProps} isOpen={true} />
       );
 
-      const newCodeInput = screen.getByPlaceholderText(/digite o código|enter code/i) as HTMLInputElement;
+      const newCodeInput = screen.getByPlaceholderText(/000000/) as HTMLInputElement;
       expect(newCodeInput.value).toBe('');
     });
   });
 
   describe('Timer', () => {
     it('should countdown from 60 seconds', () => {
-      renderWithProviders(
-        <EmailVerificationModal {...defaultProps} />
-      );
+      renderWithProviders(<EmailVerificationModal {...defaultProps} />);
 
-      // Initial time should be 60
-      expect(screen.getByText(/60|1:00/i)).toBeInTheDocument();
-
-      // Advance 1 second
-      jest.advanceTimersByTime(1000);
-
-      // Should show 59
-      expect(screen.getByText(/59|0:59/i)).toBeInTheDocument();
+      expect(screen.getByText(/60s/)).toBeInTheDocument();
+      avancar(1);
+      expect(screen.getByText(/59s/)).toBeInTheDocument();
     });
 
     it('should enable resend button when timer reaches 0', () => {
-      renderWithProviders(
-        <EmailVerificationModal {...defaultProps} />
-      );
+      renderWithProviders(<EmailVerificationModal {...defaultProps} />);
 
-      // Advance 61 seconds
-      jest.advanceTimersByTime(61000);
-
-      const resendButton = screen.getByRole('button', { name: /reenviar|resend/i });
-      expect(resendButton).not.toBeDisabled();
+      avancar(60);
+      expect(botaoReenviar()).not.toBeDisabled();
     });
   });
 });

@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 import os
 
 
@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Cookie de login: None = automático (Secure em produção). Defina COOKIE_SECURE=true/false para forçar.
+    COOKIE_SECURE: Optional[bool] = None
 
     # Rate limit das rotas que chamam LLM (por usuário, janela de 60 s)
     LLM_RATE_LIMIT_PER_MINUTE: int = 30

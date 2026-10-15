@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks, Response
+from app.core.auth_cookie import clear_auth_cookie, set_auth_cookie
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 import bcrypt
@@ -200,6 +201,7 @@ def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Ses
 @router.post("/verify-email")
 def verify_email(
     verification_request: EmailVerificationRequest,
+    response: Response,
     db: Session = Depends(get_db)
 ):
     """
@@ -278,6 +280,7 @@ def verify_email(
         
         # Criar token JWT agora que o usuário está verificado e criado
         access_token = create_access_token(data={"sub": db_user.email})
+        set_auth_cookie(response, access_token)
         
         return {
             "access_token": access_token,
@@ -345,7 +348,7 @@ def _invalid_credentials() -> HTTPException:
 
 
 @router.post("/login", response_model=Token)
-def login(credentials: UserLogin, db: Session = Depends(get_db)):
+def login(credentials: UserLogin, response: Response, db: Session = Depends(get_db)):
     """
     Autentica um usuário e retorna um token JWT.
     """
@@ -373,8 +376,16 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     
     # Criar token JWT
     access_token = create_access_token(data={"sub": user.email})
+    set_auth_cookie(response, access_token)
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/logout")
+def logout(response: Response):
+    """Apaga o cookie de login."""
+    clear_auth_cookie(response)
+    return {"message": "Sessão encerrada"}
 
 
 @router.get("/me", response_model=UserResponse)
@@ -642,7 +653,7 @@ def verify_google_token(request: GoogleVerifyRequest):
 
 
 @router.post("/google", response_model=GoogleAuthResponse)
-def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
+def google_auth(request: GoogleAuthRequest, response: Response, db: Session = Depends(get_db)):
     """
     Autentica um usuário via Google OAuth.
     - Se o usuário não existe, cria um novo sem senha
@@ -669,6 +680,7 @@ def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
             
             # Criar token JWT (usar email normalizado)
             access_token = create_access_token(data={"sub": normalized_email})
+            set_auth_cookie(response, access_token)
             
             return GoogleAuthResponse(
                 access_token=access_token,
@@ -694,6 +706,7 @@ def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
             
             # Criar token JWT (usar email normalizado)
             access_token = create_access_token(data={"sub": normalized_email})
+            set_auth_cookie(response, access_token)
             
             return GoogleAuthResponse(
                 access_token=access_token,

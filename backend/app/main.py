@@ -196,6 +196,10 @@ print("🌐 CORS Configuration:")
 print(f"   Allowed Origins: {cors_origins}")
 print("=" * 80)
 
+# Cookie de login -> cabeçalho Authorization (as rotas só conhecem Bearer)
+from app.core.auth_cookie import CookieToBearerMiddleware
+app.add_middleware(CookieToBearerMiddleware)
+
 # CORS
 app.add_middleware(
     CORSMiddleware,

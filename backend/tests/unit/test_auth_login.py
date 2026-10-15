@@ -781,3 +781,37 @@ class TestRateLimit:
 
         agora[0] = 61
         limiter.check("u1")  # janela passou
+
+
+class TestCookieDeLogin:
+    @pytest.mark.security
+    @pytest.mark.unit
+    def test_login_define_cookie_httponly_e_ele_autentica_sozinho(self, client, sample_user_data):
+        register_and_verify(client, sample_user_data)
+        client.cookies.clear()
+
+        resposta = client.post("/api/auth/login", json={
+            "email": sample_user_data["email"], "password": sample_user_data["password"]})
+        set_cookie = resposta.headers["set-cookie"].lower()
+        assert "auth_token=" in set_cookie and "httponly" in set_cookie and "samesite=lax" in set_cookie
+
+        # Sem cabeçalho Authorization: o cookie guardado pelo cliente basta
+        assert client.get("/api/auth/me").status_code == status.HTTP_200_OK
+
+    @pytest.mark.security
+    @pytest.mark.unit
+    def test_logout_apaga_o_cookie(self, client, sample_user_data):
+        register_and_verify(client, sample_user_data)
+        client.post("/api/auth/login", json={
+            "email": sample_user_data["email"], "password": sample_user_data["password"]})
+
+        client.post("/api/auth/logout")
+
+        assert client.get("/api/auth/me").status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.security
+    @pytest.mark.unit
+    def test_cabecalho_authorization_tem_prioridade_sobre_o_cookie(self, client):
+        resposta = client.get("/api/auth/me", headers={"Authorization": "Bearer invalido"},
+                              cookies={"auth_token": "outro"})
+        assert resposta.status_code == status.HTTP_401_UNAUTHORIZED

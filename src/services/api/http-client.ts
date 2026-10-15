@@ -11,6 +11,11 @@ const getApiBaseUrl = (): string => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
 
+  // Modo cookie em produção: a API é acessada pelo mesmo site (proxy do Next em /api)
+  if (process.env.NEXT_PUBLIC_AUTH_MODE === 'cookie' && process.env.NODE_ENV === 'production') {
+    return '';
+  }
+
   // Priority 2: Development fallback
   if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
     return 'http://localhost:8000';
@@ -30,12 +35,30 @@ const getApiBaseUrl = (): string => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
+/**
+ * 'cookie': o login vive num cookie httpOnly (o JS não vê o token). Exige front e API no mesmo site
+ *           (proxy do Next, ver next.config.cjs) e NEXT_PUBLIC_API_URL vazio em produção.
+ * 'token':  comportamento antigo (token no localStorage + cabeçalho Authorization).
+ */
+export const AUTH_MODE: 'cookie' | 'token' = process.env.NEXT_PUBLIC_AUTH_MODE === 'cookie' ? 'cookie' : 'token';
+
 export class HttpClient {
   getAuthToken(): string | null {
-    if (typeof window === 'undefined') {
+    if (AUTH_MODE === 'cookie' || typeof window === 'undefined') {
       return null;
     }
     return localStorage.getItem('auth_token');
+  }
+
+  /** Guarda o token só no modo 'token'; no modo 'cookie' o backend já definiu o cookie httpOnly. */
+  storeToken(token: string): void {
+    if (AUTH_MODE === 'token') {
+      localStorage.setItem('auth_token', token);
+    }
+  }
+
+  clearToken(): void {
+    localStorage.removeItem('auth_token');
   }
 
 
@@ -70,6 +93,7 @@ export class HttpClient {
         ...options,
         headers,
         signal: controller.signal,
+        credentials: AUTH_MODE === 'cookie' ? 'include' : options.credentials,
       });
     } catch (fetchError) {
       clearTimeout(timeoutId);

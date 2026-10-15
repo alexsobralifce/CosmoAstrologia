@@ -15,7 +15,7 @@ export const createAuthApi = (http: HttpClient) => ({
 
     // Se retornou token, salvar (caso não precise verificação)
     if (response && 'access_token' in response && response.access_token) {
-      localStorage.setItem('auth_token', response.access_token);
+      http.storeToken(response.access_token);
     }
 
     return response;
@@ -29,7 +29,7 @@ export const createAuthApi = (http: HttpClient) => ({
 
     // Salvar token após verificação
     if (response.access_token) {
-      localStorage.setItem('auth_token', response.access_token);
+      http.storeToken(response.access_token);
     }
 
     return response;
@@ -50,7 +50,7 @@ export const createAuthApi = (http: HttpClient) => ({
 
     // Salvar token
     if (response.access_token) {
-      localStorage.setItem('auth_token', response.access_token);
+      http.storeToken(response.access_token);
     }
 
     return response;
@@ -95,7 +95,11 @@ export const createAuthApi = (http: HttpClient) => ({
   },
 
   logout() {
-    localStorage.removeItem('auth_token');
+    http.clearToken();
+    // Apaga também o cookie httpOnly (melhor esforço; não bloqueia a saída)
+    if (typeof window !== 'undefined') {
+      void http.request('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
+    }
   },
 
   // ===== AUTENTICAÇÃO GOOGLE =====
@@ -141,7 +145,7 @@ export const createAuthApi = (http: HttpClient) => ({
 
     // Salvar token
     if (response.access_token) {
-      localStorage.setItem('auth_token', response.access_token);
+      http.storeToken(response.access_token);
     }
 
     return response;

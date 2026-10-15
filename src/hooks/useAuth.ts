@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiService } from '@/services/api';
+import { apiService, AUTH_MODE } from '@/services/api';
 import type { OnboardingData } from '@/components/onboarding';
 import type { GoogleOnboardingData } from '@/components/google-onboarding';
 import type { AuthUserData } from '@/components/auth-portal';
@@ -27,7 +27,8 @@ export function useAuth() {
     const checkAuth = async () => {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-        if (!token) {
+        // No modo cookie o token não é legível pelo JS: pergunta direto ao backend
+        if (!token && AUTH_MODE !== 'cookie') {
           setIsCheckingAuth(false);
           return;
         }

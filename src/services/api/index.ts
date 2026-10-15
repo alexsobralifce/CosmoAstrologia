@@ -1,4 +1,4 @@
-import { API_BASE_URL, HttpClient } from './http-client';
+import { API_BASE_URL, AUTH_MODE, HttpClient } from './http-client';
 import { createAuthApi } from './auth-api';
 import { createInterpretationApi } from './interpretation-api';
 import { createNumerologyApi } from './numerology-api';
@@ -22,4 +22,4 @@ export const apiService = {
 };
 
 export type ApiService = typeof apiService;
-export { API_BASE_URL };
+export { API_BASE_URL, AUTH_MODE };

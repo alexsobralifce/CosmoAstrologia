@@ -52,3 +52,17 @@ backend/rag_index.pkl
 *.temp
 .cache/
 
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
+
+# Artefatos locais e dados pessoais (não versionar)
+.next/
+next-env.d.ts
+*.db
+*.db-shm
+*.db-wal
+*.pid
+*.bak
+coverage.xml
+backend/test_birth_chart_*.json

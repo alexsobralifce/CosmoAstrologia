@@ -49,6 +49,34 @@ def db_session():
         db.close()
 
 
+@pytest.fixture(autouse=True)
+def _isolamento(monkeypatch):
+    """Sem e-mail real e com tabelas limpas a cada teste (o banco já é temporário, ver conftest)."""
+    monkeypatch.setattr("app.api.auth.send_verification_email", lambda *a, **k: None)
+    from app.core.database import SessionLocal
+    from app.models.database import BirthChart, PendingRegistration, User
+    with SessionLocal() as db:
+        for model in (BirthChart, PendingRegistration, User):
+            db.query(model).delete()
+        db.commit()
+
+
+def register_and_verify(client, data):
+    """Cadastra e confirma o e-mail (fluxo atual); devolve a resposta de /verify-email."""
+    resp = client.post("/api/auth/register", json=data)
+    assert resp.status_code == status.HTTP_200_OK, resp.text
+    return register_and_verify_pending(client, data)
+
+
+def register_and_verify_pending(client, data):
+    """Confirma o e-mail de um cadastro que já está pendente."""
+    from app.core.database import SessionLocal
+    from app.models.database import PendingRegistration
+    with SessionLocal() as db:
+        code = db.query(PendingRegistration).filter_by(email=data["email"]).one().verification_code
+    return client.post("/api/auth/verify-email", json={"email": data["email"], "code": code})
+
+
 class TestEmailPasswordRegistration:
     """
     Testes para registro com e-mail e senha (POST /api/auth/register)
@@ -58,54 +86,34 @@ class TestEmailPasswordRegistration:
     @pytest.mark.auth
     @pytest.mark.unit
     def test_register_new_user_success(self, client, sample_user_data):
-        """
-        TDD: Registro de novo usuário deve retornar token JWT.
-        """
-        # Arrange
-        # Cleanup: remover usuário se existir
-        from app.core.database import SessionLocal
-        from app.models.database import User
-        db = SessionLocal()
-        try:
-            existing = db.query(User).filter(User.email == sample_user_data["email"]).first()
-            if existing:
-                db.delete(existing)
-                db.commit()
-        finally:
-            db.close()
-        
-        # Act
+        """Registro cria cadastro pendente; o token só sai após verificar o e-mail."""
         response = client.post("/api/auth/register", json=sample_user_data)
-        
-        # Assert
+
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert "access_token" in data
-        assert "token_type" in data
-        assert data["token_type"] == "bearer"
-        assert len(data["access_token"]) > 0
-        
-        # Verificar que o token é válido
-        payload = jwt.decode(data["access_token"], settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        assert data["requires_verification"] is True
+        assert data["email"] == sample_user_data["email"]
+        assert "access_token" not in data
+
+        verified = register_and_verify_pending(client, sample_user_data)
+        assert verified.status_code == status.HTTP_200_OK
+        body = verified.json()
+        assert body["token_type"] == "bearer"
+        payload = jwt.decode(body["access_token"], settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         assert payload["sub"] == sample_user_data["email"]
-    
+
     @pytest.mark.critical
     @pytest.mark.auth
     @pytest.mark.unit
     def test_register_duplicate_email_returns_400(self, client, sample_user_data):
-        """
-        TDD: Tentativa de registro com e-mail já cadastrado deve retornar 400.
-        """
-        # Arrange - criar usuário primeiro
-        client.post("/api/auth/register", json=sample_user_data)
-        
-        # Act - tentar registrar novamente
+        """E-mail já cadastrado (ou com cadastro pendente) deve retornar 400."""
+        register_and_verify(client, sample_user_data)
+
         response = client.post("/api/auth/register", json=sample_user_data)
-        
-        # Assert
+
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "já cadastrado" in response.json()["detail"].lower() or "already" in response.json()["detail"].lower()
-    
+        assert "já cadastrado" in response.json()["detail"].lower()
+
     @pytest.mark.critical
     @pytest.mark.auth
     @pytest.mark.unit
@@ -142,7 +150,7 @@ class TestEmailPasswordRegistration:
             db.close()
         
         # Act
-        response = client.post("/api/auth/register", json=sample_user_data)
+        response = register_and_verify(client, sample_user_data)
         
         # Assert
         assert response.status_code == status.HTTP_200_OK
@@ -172,7 +180,7 @@ class TestEmailPasswordLogin:
         TDD: Login com credenciais corretas deve retornar token JWT.
         """
         # Arrange - criar usuário primeiro
-        client.post("/api/auth/register", json=sample_user_data)
+        register_and_verify(client, sample_user_data)
         
         # Act
         login_data = {
@@ -191,9 +199,9 @@ class TestEmailPasswordLogin:
     @pytest.mark.critical
     @pytest.mark.auth
     @pytest.mark.unit
-    def test_login_user_not_found_returns_404(self, client):
+    def test_login_user_not_found_returns_401_generico(self, client):
         """
-        TDD: Login com usuário inexistente deve retornar 404.
+        Login com e-mail inexistente responde 401 igual ao de senha errada (não revela se a conta existe).
         """
         # Act
         login_data = {
@@ -203,8 +211,8 @@ class TestEmailPasswordLogin:
         response = client.post("/api/auth/login", json=login_data)
         
         # Assert
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "não encontrado" in response.json()["detail"].lower() or "not found" in response.json()["detail"].lower()
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.json()["detail"] == "E-mail ou senha incorretos."
     
     @pytest.mark.critical
     @pytest.mark.auth
@@ -214,7 +222,7 @@ class TestEmailPasswordLogin:
         TDD: Login com senha incorreta deve retornar 401.
         """
         # Arrange - criar usuário primeiro
-        client.post("/api/auth/register", json=sample_user_data)
+        register_and_verify(client, sample_user_data)
         
         # Act
         login_data = {
@@ -225,7 +233,7 @@ class TestEmailPasswordLogin:
         
         # Assert
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "incorreta" in response.json()["detail"].lower() or "incorrect" in response.json()["detail"].lower()
+        assert response.json()["detail"] == "E-mail ou senha incorretos."
     
     @pytest.mark.critical
     @pytest.mark.auth
@@ -276,7 +284,7 @@ class TestEmailPasswordLogin:
         TDD: Login deve funcionar com e-mail em maiúsculas/minúsculas.
         """
         # Arrange - criar usuário
-        client.post("/api/auth/register", json=sample_user_data)
+        register_and_verify(client, sample_user_data)
         
         # Act - tentar login com e-mail em maiúsculas
         login_data = {
@@ -446,7 +454,7 @@ class TestGoogleOAuthLogin:
         finally:
             db.close()
         
-        register_response = client.post("/api/auth/register", json=user_data)
+        register_response = register_and_verify(client, user_data)
         assert register_response.status_code == status.HTTP_200_OK
         
         google_auth_data = {
@@ -585,7 +593,7 @@ class TestAuthenticationSecurity:
         finally:
             db.close()
         
-        response = client.post("/api/auth/register", json=user_data)
+        response = register_and_verify(client, user_data)
         assert response.status_code == status.HTTP_200_OK
         token = response.json()["access_token"]
         
@@ -604,7 +612,7 @@ class TestAuthenticationSecurity:
         TDD: Senha deve ser armazenada com hash, não em texto plano.
         """
         # Arrange
-        client.post("/api/auth/register", json=sample_user_data)
+        register_and_verify(client, sample_user_data)
         
         # Act - buscar usuário do banco
         from app.core.database import SessionLocal
@@ -686,7 +694,7 @@ class TestCompleteAuthFlow:
             db.close()
         
         # Act 1 - Registrar
-        register_response = client.post("/api/auth/register", json=sample_user_data)
+        register_response = register_and_verify(client, sample_user_data)
         assert register_response.status_code == status.HTTP_200_OK
         register_token = register_response.json()["access_token"]
         
@@ -754,3 +762,22 @@ class TestCompleteAuthFlow:
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert "google" in response.json()["detail"].lower() or "senha" in response.json()["detail"].lower()
 
+
+
+class TestRateLimit:
+    @pytest.mark.security
+    @pytest.mark.unit
+    def test_janela_deslizante_bloqueia_e_libera(self):
+        from app.core.rate_limit import RateLimitExceeded, SlidingWindowLimiter
+
+        agora = [0.0]
+        limiter = SlidingWindowLimiter(max_calls=2, window_seconds=60, clock=lambda: agora[0])
+        limiter.check("u1")
+        limiter.check("u1")
+        with pytest.raises(RateLimitExceeded) as exc:
+            limiter.check("u1")
+        assert exc.value.retry_after >= 1
+        limiter.check("u2")  # outra chave não é afetada
+
+        agora[0] = 61
+        limiter.check("u1")  # janela passou

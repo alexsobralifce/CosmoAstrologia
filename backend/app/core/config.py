@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Rate limit das rotas que chamam LLM (por usuário, janela de 60 s)
+    LLM_RATE_LIMIT_PER_MINUTE: int = 30
     
     # Email Configuration (Brevo/SendinBlue)
     BREVO_API_KEY: str = ""

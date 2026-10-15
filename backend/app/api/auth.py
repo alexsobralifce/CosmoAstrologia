@@ -104,9 +104,6 @@ def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Ses
         password_hash = None
         if user_data.password:
             password_hash = hash_password(user_data.password)
-            print(f"[DEBUG] Senha fornecida, hash criado: {password_hash[:20]}...")
-        else:
-            print("[DEBUG] Nenhuma senha fornecida no registro")
         
         # Calcular signos astrológicos
         birth_data = user_data.birth_data
@@ -337,6 +334,16 @@ def resend_verification(
     return {"message": "Código de verificação reenviado com sucesso"}
 
 
+_DUMMY_PASSWORD_HASH = hash_password("senha-fantasma-para-igualar-tempo")
+
+
+def _invalid_credentials() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="E-mail ou senha incorretos."
+    )
+
+
 @router.post("/login", response_model=Token)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
     """
@@ -350,11 +357,10 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(func.lower(User.email) == normalized_email).first()
     
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuário não encontrado. Este e-mail não está cadastrado."
-        )
-    
+        # Mesma resposta e mesmo custo de CPU do caso "senha errada": não revela se o e-mail existe.
+        verify_password(credentials.password, _DUMMY_PASSWORD_HASH)
+        raise _invalid_credentials()
+
     # Verificar senha
     if not user.password_hash:
         raise HTTPException(
@@ -363,10 +369,7 @@ def login(credentials: UserLogin, db: Session = Depends(get_db)):
         )
     
     if not verify_password(credentials.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Senha incorreta. Verifique e tente novamente."
-        )
+        raise _invalid_credentials()
     
     # Criar token JWT
     access_token = create_access_token(data={"sub": user.email})

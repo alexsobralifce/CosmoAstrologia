@@ -1,9 +1,7 @@
-from fastapi import APIRouter
-from fastapi import HTTPException
-from fastapi import Header
-from fastapi import status
+from fastapi import APIRouter, HTTPException, Header, status
 from pydantic import BaseModel
 from typing import Optional
+
 
 router = APIRouter()
 

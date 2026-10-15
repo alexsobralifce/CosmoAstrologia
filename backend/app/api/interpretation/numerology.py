@@ -1,18 +1,13 @@
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Header, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from typing import Any, Dict, List, Optional
+from app.api.dependencies import llm_rate_limit
 from app.api.interpretation.solar_return import SourceItem
 from app.core.database import get_db
 from app.models.database import BirthChart
-from datetime import datetime
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
-from fastapi import Header
-from fastapi import status
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
+
 
 router = APIRouter()
 
@@ -135,7 +130,7 @@ async def get_numerology_map(
 
 
 
-@router.post("/numerology/interpretation", response_model=NumerologyInterpretationResponse)
+@router.post("/numerology/interpretation", dependencies=[Depends(llm_rate_limit)], response_model=NumerologyInterpretationResponse)
 async def get_numerology_interpretation(
     request: NumerologyInterpretationRequest,
     authorization: Optional[str] = Header(None),
@@ -514,7 +509,7 @@ IMPORTANTE: O usuário é leigo e busca orientação prática para viver melhor.
 
 
 
-@router.post("/numerology/birth-grid-quantities", response_model=BirthGridQuantitiesResponse)
+@router.post("/numerology/birth-grid-quantities", dependencies=[Depends(llm_rate_limit)], response_model=BirthGridQuantitiesResponse)
 async def get_birth_grid_quantities_interpretation(
     request: BirthGridQuantitiesRequest,
     authorization: Optional[str] = Header(None)

@@ -1,13 +1,8 @@
 from datetime import datetime
-from fastapi import APIRouter
-from fastapi import HTTPException
-from fastapi import Header
-from fastapi import status
+from fastapi import APIRouter, HTTPException, Header, status
 from pydantic import BaseModel
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
+from typing import Any, Dict, List, Optional
+
 
 router = APIRouter()
 

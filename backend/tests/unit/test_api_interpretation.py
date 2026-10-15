@@ -1,117 +1,62 @@
 """
-Testes TDD para API de Interpretação - Código Crítico
-Garante que os endpoints funcionam corretamente e lidam com erros adequadamente.
+Testes da API de interpretação.
+
+Os endpoints antigos de RAG (/api/interpretation, /status, /search) saíram do backend
+(o RAG virou serviço à parte); estes testes cobrem o contrato atual do pacote.
 """
 import pytest
-from unittest.mock import patch, MagicMock
 from fastapi import status
 from fastapi.testclient import TestClient
+
+# Rotas que chamam LLM: exigem usuário autenticado (custo e abuso).
+ROTAS_LLM = [
+    ("post", "/api/interpretation/planet"),
+    ("post", "/api/interpretation/chart-ruler"),
+    ("post", "/api/interpretation/complete-chart"),
+    ("post", "/api/solar-return/interpretation"),
+    ("post", "/api/numerology/interpretation"),
+    ("post", "/api/numerology/birth-grid-quantities"),
+    ("post", "/api/full-birth-chart/section"),
+    ("post", "/api/synastry/interpretation"),
+]
 
 
 @pytest.fixture
 def client():
-    """Cliente de teste para a API."""
     from app.main import app
     return TestClient(app)
 
 
-class TestInterpretationAPI:
-    """Testes para endpoints de interpretação."""
-    
-    @pytest.mark.critical
-    @pytest.mark.api
-    @pytest.mark.unit
-    def test_get_interpretation_returns_503_when_rag_service_unavailable(self, client):
-        """
-        TDD: Endpoint deve retornar 503 quando serviço RAG não está disponível.
-        Código crítico - garante resposta apropriada quando serviço está down.
-        """
-        # Arrange - usar custom_query para evitar validação que retorna 400
-        with patch('app.api.interpretation.get_rag_service', return_value=None):
-            # Act
-            response = client.post(
-                "/api/interpretation",
-                json={
-                    "custom_query": "Sol em Leão"
-                }
-            )
-            
-            # Assert
-            assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-            assert "RAG" in response.json()["detail"] or "não disponível" in response.json()["detail"]
-    
-    @pytest.mark.critical
-    @pytest.mark.api
-    @pytest.mark.unit
-    def test_rag_status_endpoint_handles_missing_service(self, client):
-        """
-        TDD: Endpoint de status deve funcionar mesmo quando serviço não está disponível.
-        Código crítico - garante que status pode ser consultado sempre.
-        """
-        # Arrange
-        with patch('app.api.interpretation.get_rag_service', return_value=None):
-            # Act
-            response = client.get("/api/interpretation/status")
-            
-            # Assert
-            assert response.status_code == status.HTTP_200_OK
-            data = response.json()
-            assert data.get("status") == "unavailable" or data.get("available") is False
-            assert "has_index" in data or "index_loaded" in data
-    
-    @pytest.mark.critical
-    @pytest.mark.api
-    @pytest.mark.unit
-    def test_rag_search_returns_empty_results_when_service_unavailable(self, client):
-        """
-        TDD: Busca RAG deve retornar resultados vazios quando serviço não está disponível.
-        Código crítico - garante que busca não quebra o app.
-        """
-        # Arrange
-        with patch('app.api.interpretation.get_rag_service', return_value=None):
-            # Act
-            response = client.get("/api/interpretation/search?query=test&top_k=5")
-            
-            # Assert
-            assert response.status_code == status.HTTP_200_OK
-            data = response.json()
-            assert data["results"] == []
-            assert data["count"] == 0
-            assert "error" in data
-    
-    @pytest.mark.critical
-    @pytest.mark.api
-    @pytest.mark.unit
-    def test_interpretation_endpoint_validates_required_fields(self, client):
-        """
-        TDD: Endpoint deve validar campos obrigatórios antes de processar.
-        Código crítico - garante validação de entrada.
-        """
-        # Arrange - request sem campos obrigatórios
-        with patch('app.api.interpretation.get_rag_service', return_value=None):
-            # Act
-            response = client.post(
-                "/api/interpretation",
-                json={}
-            )
-            
-            # Assert - pode retornar 422 (validação) ou 503 (serviço), mas não 500
-            assert response.status_code in [
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
-                status.HTTP_503_SERVICE_UNAVAILABLE
-            ]
-    
+class TestInterpretationPackage:
     @pytest.mark.api
     @pytest.mark.unit
     def test_api_imports_without_syntax_errors(self):
-        """
-        TDD: Módulo de API deve importar sem erros de sintaxe.
-        Código crítico - garante que não há erros de sintaxe após correções.
-        """
-        # Arrange & Act & Assert
-        try:
-            from app.api import interpretation
-            assert interpretation is not None
-        except SyntaxError as e:
-            pytest.fail(f"Módulo tem erro de sintaxe: {e}")
+        from app.api import interpretation
+        assert interpretation.router is not None
 
+    @pytest.mark.api
+    @pytest.mark.unit
+    @pytest.mark.parametrize("metodo,caminho", ROTAS_LLM)
+    def test_rotas_llm_estao_registradas(self, client, metodo, caminho):
+        from app.main import app
+        registradas = {(m.lower(), r.path) for r in app.routes if hasattr(r, "methods") for m in r.methods}
+        assert (metodo, caminho) in registradas
+
+
+class TestAutenticacaoObrigatoria:
+    @pytest.mark.api
+    @pytest.mark.security
+    @pytest.mark.unit
+    @pytest.mark.parametrize("metodo,caminho", ROTAS_LLM)
+    def test_rotas_llm_sem_token_retornam_401(self, client, metodo, caminho):
+        resposta = getattr(client, metodo)(caminho, json={})
+        assert resposta.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.api
+    @pytest.mark.security
+    @pytest.mark.unit
+    def test_token_invalido_retorna_401(self, client):
+        resposta = client.post(
+            "/api/interpretation/planet", json={}, headers={"Authorization": "Bearer invalido"}
+        )
+        assert resposta.status_code == status.HTTP_401_UNAUTHORIZED

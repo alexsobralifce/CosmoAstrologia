@@ -1,11 +1,9 @@
 from datetime import datetime
-from fastapi import APIRouter
-from fastapi import HTTPException
-from fastapi import Header
-from fastapi import status
+from fastapi import APIRouter, Depends, HTTPException, Header, status
 from pydantic import BaseModel
-from typing import List
-from typing import Optional
+from typing import List, Optional
+from app.api.dependencies import llm_rate_limit
+
 
 router = APIRouter()
 
@@ -116,7 +114,7 @@ async def calculate_solar_return_chart(
 
 
 
-@router.post("/solar-return/interpretation", response_model=InterpretationResponse)
+@router.post("/solar-return/interpretation", dependencies=[Depends(llm_rate_limit)], response_model=InterpretationResponse)
 async def get_solar_return_interpretation(
     request: SolarReturnInterpretationRequest,
     authorization: Optional[str] = Header(None)

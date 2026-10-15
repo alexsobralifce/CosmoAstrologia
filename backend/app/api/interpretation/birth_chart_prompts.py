@@ -1,5 +1,5 @@
-from app.api.interpretation.birth_chart_schemas import FullBirthChartRequest
 from typing import Optional
+from app.api.interpretation.birth_chart_schemas import FullBirthChartRequest
 
 
 # ===== FUNÇÕES AUXILIARES PARA MAPA ASTRAL COMPLETO =====

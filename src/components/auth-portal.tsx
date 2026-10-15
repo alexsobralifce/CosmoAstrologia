@@ -521,37 +521,24 @@ export const AuthPortal = ({ onAuthSuccess, onNeedsBirthData, onGoogleNeedsOnboa
       setIsLoading(false);
       const errorMessage = error instanceof Error ? error.message : '';
       
-      // Verificar se é erro de usuário não encontrado
-      if (errorMessage.toLowerCase().includes('not found') || 
-          errorMessage.toLowerCase().includes('não encontrado') ||
-          errorMessage.toLowerCase().includes('user not found') ||
-          errorMessage.toLowerCase().includes('usuário não encontrado')) {
-        // Usuário não existe - mostrar mensagem informativa para cadastro
-        toast.error(
-          language === 'pt' ? 'E-mail não cadastrado' : 'Email not registered', 
-          {
-            description: language === 'pt' 
-              ? 'Este e-mail não possui cadastro. Clique em "Criar conta" para se cadastrar.'
-              : 'This email is not registered. Click "Create account" to sign up.',
-            duration: 5000
-          }
-        );
-        setErrors({ email: language === 'pt' ? 'E-mail não cadastrado no sistema' : 'Email not registered' });
-      } else if (errorMessage.toLowerCase().includes('incorrect') || 
-                 errorMessage.toLowerCase().includes('invalid') ||
-                 errorMessage.toLowerCase().includes('senha') ||
-                 errorMessage.toLowerCase().includes('password')) {
+      // O backend responde com mensagem única para e-mail inexistente e senha errada
+      // (evita enumerar contas); por isso não distinguimos os dois casos aqui.
+      if (errorMessage.toLowerCase().includes('incorret') ||
+          errorMessage.toLowerCase().includes('incorrect') ||
+          errorMessage.toLowerCase().includes('invalid') ||
+          errorMessage.toLowerCase().includes('senha') ||
+          errorMessage.toLowerCase().includes('password')) {
         // Senha incorreta
         toast.error(
-          language === 'pt' ? 'Senha incorreta' : 'Incorrect password', 
+          language === 'pt' ? 'E-mail ou senha incorretos' : 'Incorrect email or password', 
           {
             description: language === 'pt' 
-              ? 'A senha digitada está incorreta. Tente novamente.'
-              : 'The password entered is incorrect. Please try again.',
+              ? 'Confira os dados digitados e tente novamente. Ainda não tem conta? Clique em "Criar conta".'
+              : 'Check your details and try again. No account yet? Click "Create account".',
         duration: 4000
           }
         );
-        setErrors({ password: language === 'pt' ? 'Senha incorreta' : 'Incorrect password' });
+        setErrors({ password: language === 'pt' ? 'E-mail ou senha incorretos' : 'Incorrect email or password' });
       } else {
         // Erro genérico
         toast.error(
